@@ -978,6 +978,10 @@ static const char s_eg_hlsl[] =
     "}\n";
 static const char* eg_hlsl(void) { return s_eg_hlsl; }
 
+/* The text, for the precompile (port/precompile.cpp; the Kit's DLL hands it over as ascension_game_vertex_pass):
+ * built into the shader cache before the game starts, it is read from there at the first lit draw. */
+const char* edge_gpul_vertex_pass_hlsl(void) { return s_eg_hlsl; }
+
 /* GOWA_EDGE_GPU_SELFTEST: the C pass over the packed vertexes (c + 0x50's second word, the buffer the
  * vertex PUT took) against the SPU's, for the vertexes in the stage's list */
 static volatile long long s_st_verts, s_st_units[5], s_st_calls;

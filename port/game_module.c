@@ -118,6 +118,14 @@ static void pgo_writer_start(void)
 }
 #endif
 
+/* The vertex pass's text, for the precompile (port/precompile.cpp), which loads the DLL for it alone: nothing to set
+ * up before, the text is the DLL's constant. */
+extern const char* edge_gpul_vertex_pass_hlsl(void);
+__declspec(dllexport) const char* ascension_game_vertex_pass(void)
+{
+    return edge_gpul_vertex_pass_hlsl();
+}
+
 __declspec(dllexport) int ascension_game_init(const GameModuleHost* h, GameModuleOut* out)
 {
     out->thread_id = GetCurrentThreadId();

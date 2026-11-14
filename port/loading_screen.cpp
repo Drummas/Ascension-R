@@ -1,7 +1,8 @@
 /*
  * The precompile gate. Before the game starts, every vertex shader in the game's archives is built into the shader
- * cache, once for each version of this program (precompile.cpp, `--precompile-shaders`): a player never meets a
- * vertex shader the first time in play. It is not up to the player: the game starts when they are built.
+ * cache, and the port's vertex pass (EDGE's lighting on the GPU), once for each version of this program
+ * (precompile.cpp, `--precompile-shaders`): a player never meets a vertex shader the first time in play, nor the CPU
+ * lighting the draws while the pass is compiled. It is not up to the player: the game starts when they are built.
  *
  * It runs where the game's window is about to open, in a window of its own laid out as that one will be (windowed at
  * its size, or borderless over the monitor), before the D3D12 window, its swap chain and the shader cache are made: a

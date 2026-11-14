@@ -16,6 +16,13 @@
  * (rsx_d3d12_precompile_vertex_programs). Fragment programs are not done: their text depends on the textures and
  * state of their draws, which the files do not say.
  *
+ * The vertex pass, the port's one compute program for EDGE's lighting on the GPU (native/spu_edge_gpulight.c),
+ * is built too, on a thread of its own while the archives are read and the programs compiled: in play the CPU lit
+ * the draws until it was there (33 s at a first start after it changed, the frame rate down to 8 at the first
+ * level). Its text is the game DLL's in the Kit (ascension_game_vertex_pass, the DLL loaded for that alone), the
+ * program's own otherwise; it is one more program in the progress. Without it (no DLL, an older one, a compile
+ * that fails) the game compiles it at its first lit draw, as before.
+ *
  * Beside the cache it leaves <cache>.vprogs, the programs found (read instead of the archives while their count and
  * bytes are the same: a run after an update takes seconds), and when the build is done <cache>.precompiled, which
  * says the version it was built for: the game's start does it first while that is missing or another version's
@@ -213,13 +220,61 @@ static void marker_write(const std::string& cache, const uint32_t stats[3])
     fclose(f);
 }
 
+/* The vertex pass (EDGE's lighting on the GPU) is built beside the programs, on a thread of its own: one more
+ * program in the progress. */
+static volatile LONG s_vp_done;
+static uint32_t s_pc_done, s_pc_total;   /* the programs' last progress */
+
 static void compile_progress(uint32_t done, uint32_t total)
 {
     static DWORD last;
+    s_pc_done = done;
+    s_pc_total = total;
     const DWORD now = GetTickCount();
-    if (done < total && now - last < 250) return;
+    const uint32_t d = done + (uint32_t)s_vp_done, t = total + 1;
+    if (d < t && now - last < 250) return;
     last = now;
-    printf("precompile: compile %u %u\n", done, total);
+    printf("precompile: compile %u %u\n", d, t);
+}
+
+/* The vertex pass's text: the game's DLL has it in the Kit (loaded for that alone, nothing of it run but the
+ * function that returns it), the program itself otherwise. NULL, with why, if there is none. */
+#ifdef PS3_GAME_MODULE_HOST
+extern "C" int game_module_where(wchar_t* path, size_t n);
+static const char* vertex_pass_text(char* why, size_t why_len)
+{
+    wchar_t p[MAX_PATH + 64];
+    if (!game_module_where(p, sizeof p / sizeof p[0])) { snprintf(why, why_len, "no game DLL"); return NULL; }
+    HMODULE dll = LoadLibraryExW(p, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+    if (!dll) { snprintf(why, why_len, "the game DLL did not load (%lu)", GetLastError()); return NULL; }
+    typedef const char* (*VertexPassFn)(void);
+    const VertexPassFn f = (VertexPassFn)(void*)GetProcAddress(dll, "ascension_game_vertex_pass");
+    if (!f) { snprintf(why, why_len, "the game DLL is from before the vertex pass's precompile"); return NULL; }
+    return f();      /* the DLL stays loaded: the text is its constant */
+}
+#else
+extern "C" const char* edge_gpul_vertex_pass_hlsl(void);
+static const char* vertex_pass_text(char* why, size_t why_len)
+{
+    (void)why; (void)why_len;
+    return edge_gpul_vertex_pass_hlsl();
+}
+#endif
+
+struct VertexPassJob {
+    const char* text;
+    int rc, compiled;
+    double seconds;
+    char why[600];
+};
+static DWORD WINAPI vertex_pass_worker(LPVOID arg)
+{
+    VertexPassJob* j = (VertexPassJob*)arg;
+    const DWORD t0 = GetTickCount();
+    j->rc = rsx_d3d12_precompile_vertex_pass(j->text, &j->compiled, j->why, sizeof j->why);
+    j->seconds = (GetTickCount() - t0) / 1000.0;
+    InterlockedExchange(&s_vp_done, 1);
+    return 0;
 }
 
 extern "C" int gowa_precompile(void)
@@ -274,6 +329,19 @@ extern "C" int gowa_precompile(void)
         printf("precompile: error %s\n", why);
         return 1;
     }
+    /* the vertex pass meanwhile: the archives' reading and the programs take longer than its one compile */
+    static VertexPassJob vp;
+    vp.text = vertex_pass_text(vp.why, sizeof vp.why);
+    HANDLE vp_thread = vp.text ? CreateThread(NULL, 0, vertex_pass_worker, &vp, 0, NULL) : NULL;
+    if (!vp_thread) {
+        if (vp.text) snprintf(vp.why, sizeof vp.why, "no thread for it");
+        vp.rc = -1;
+        InterlockedExchange(&s_vp_done, 1);
+    }
+    struct VpJoin {   /* every way out waits for it: it writes the cache */
+        HANDLE h;
+        ~VpJoin() { if (h) { WaitForSingleObject(h, INFINITE); CloseHandle(h); } }
+    } vp_join = { vp_thread };
     const std::string sc = cache_file();
     uint64_t arc_bytes = 0;
     for (const std::string& a : arcs) {
@@ -330,6 +398,17 @@ extern "C" int gowa_precompile(void)
         printf("precompile: error %s\n", why);
         return 1;
     }
+    /* the vertex pass, if it is still being compiled: it lands in the cache's journal after the pack, which the
+     * game's start reads as well */
+    while (vp_join.h && WaitForSingleObject(vp_join.h, 250) == WAIT_TIMEOUT) compile_progress(s_pc_done, s_pc_total);
+    if (vp.rc == 0) {
+        stats[vp.compiled ? 0 : 1]++;
+        printf("precompile: vertex pass %s in %.1f s\n", vp.compiled ? "compiled" : "already built", vp.seconds);
+    } else {
+        /* not a failure of the precompile: the game compiles it at its first lit draw, as before */
+        printf("precompile: vertex pass left to the game: %s\n", vp.why);
+    }
+    compile_progress(s_pc_done, s_pc_total);
     if (!sc.empty()) marker_write(sc, stats);
     printf("precompile: done %u %u %u %.0f\n", stats[0], stats[1], stats[2], (GetTickCount() - t0) / 1000.0);
     return 0;
