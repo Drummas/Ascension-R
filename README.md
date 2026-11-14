@@ -7,6 +7,8 @@
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
+<a href="https://recomplauncher.com/game/ascension-r"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
+
 An unofficial, native PC port of **God of War: Ascension** (PS3) for Windows, made by static recompilation with
 [ps3recomp](https://github.com/sp00nznet/ps3recomp). The game's PPU and SPU code is translated to x86-64 ahead of time and the RSX
 is drawn with Direct3D 12, so no emulator runs while you play.
@@ -69,6 +71,10 @@ problems further in.
 The [releases page](https://github.com/rigaz29/Ascension-R/releases) has the Kit: a zip of the program without the game's code.
 Its launcher finds your copy of the game, decrypts it with RPCS3 and builds the game's code on your PC, once, in about ten minutes.
 There is nothing else to install: the Kit brings its own Python and LLVM. Each release's notes have the steps.
+
+[RecompLauncher](https://recomplauncher.com/game/ascension-r) installs and updates the same Kit, and shows the settings on
+the game's page. Its Play goes straight into the game once the launcher above has set it up; hold Shift to see that
+launcher again.
 Optimise for this PC (System tab, off at first) has the build train on your PC first, with the game playing its opening by
 itself, and optimize with what it counted: 2-3% more frames, for about 15 minutes more.
 
