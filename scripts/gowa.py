@@ -1284,6 +1284,8 @@ def cmd_build(args):
         copy_fsr()
         copy_sdl3(sdl3)
         copy_vc_runtime(env)
+        # beside the exe as in a release, for RecompLauncher's "Add a build" (its Developer tools)
+        shutil.copy2(os.path.join(ROOT, "recomplauncher.json"), BUILD)
     return rc
 
 
@@ -1722,6 +1724,8 @@ def cmd_package(args):
     files += [(dxc, f) for f in DXC_DLLS] + [(ff, d) for _, d in FFMPEG_DLLS] + [(os.path.join(sdl3, "lib", "x64"), "SDL3.dll")]
     for folder, f in files:
         shutil.copy2(os.path.join(folder, f), stage)
+    # RecompLauncher sets the game up and shows its settings from this file, beside the program (recomplauncher.com/sdk)
+    shutil.copy2(os.path.join(ROOT, "recomplauncher.json"), stage)
     sdk = os.path.dirname(os.path.dirname(os.path.dirname(fsr)))
     third = os.path.join(PS3RECOMP, "third_party")
     for src, to in ((os.path.join(ROOT, "LICENSE"), "Ascension-R.txt"),
