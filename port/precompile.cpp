@@ -238,8 +238,10 @@ static void compile_progress(uint32_t done, uint32_t total)
 }
 
 /* The vertex pass's text: the game's DLL has it in the Kit (loaded for that alone, nothing of it run but the
- * function that returns it), the program itself otherwise. NULL, with why, if there is none. */
-#ifdef PS3_GAME_MODULE_HOST
+ * function that returns it), the program itself otherwise. NULL, with why, if there is none. PORT_GAME_MODULE
+ * (CMakeLists.txt, this file's own definition): PS3_GAME_MODULE_HOST reaches only the runtime's sources, and
+ * with it the Kit's exe was linked against the program's text, which is in the DLL. */
+#ifdef PORT_GAME_MODULE
 extern "C" int game_module_where(wchar_t* path, size_t n);
 static const char* vertex_pass_text(char* why, size_t why_len)
 {
