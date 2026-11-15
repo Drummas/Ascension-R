@@ -1460,8 +1460,9 @@ def release_problems(stage, env):
                 continue
             with open(path, "rb") as f:
                 low = f.read().lower()
-            # the project's public address, on GitHub and in GitHub's API (the launcher's update notice)
-            for own in ("github.com/rigaz29", "repos/rigaz29"):
+            # the project's public address, on GitHub, in GitHub's API (the launcher's update notice) and as
+            # RecompLauncher's repo id (recomplauncher.json)
+            for own in ("github.com/rigaz29", "repos/rigaz29", "rigaz29/ascension-r"):
                 for enc in ("ascii", "utf-16-le"):
                     low = low.replace(own.encode(enc), b"")
             bad += ["%s holds %r" % (rel, n) for n in sorted(set(n for k, n in needles.items() if k in low))]
@@ -1529,7 +1530,10 @@ def package_audit(stage):
         parts = rel.split(os.sep)
         top = parts[1] if parts[0] == "kit" and len(parts) > 2 else parts[0] if len(parts) > 1 else ""
         name = parts[-1].lower()
-        if top.lower() in GAME_FOLDERS or name in GAME_NAMES or os.path.splitext(name)[1] in GAME_TYPES:
+        ext = os.path.splitext(name)[1]
+        # LLVM's own runtime in its folder: clang's profile runtime, for Optimise for this PC (kit-build --pgo)
+        llvm_lib = ext == ".lib" and p.startswith(folders[1])
+        if top.lower() in GAME_FOLDERS or name in GAME_NAMES or (ext in GAME_TYPES and not llvm_lib):
             bad.append("%s: by its name, a file of the game or made from it" % rel)
         with open(p, "rb") as f:
             data = f.read()
