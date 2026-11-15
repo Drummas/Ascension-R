@@ -44,6 +44,7 @@
 #include "version.h"
 #include "loading_screen.h"
 #include "precompile_music.h"
+extern "C" int rsx_d3d12_backend_open_monitor(int monitor[4], int work[4]);   /* rsx_d3d12_backend.h */
 
 /* ---------------------------------------------------------------------------
  * The pixel font: 5x7 in a cell of 6x8, upper case (lower case is drawn as upper)
@@ -894,18 +895,33 @@ static DWORD WINAPI ui_main(LPVOID)
     wchar_t wtitle[128];
     swprintf(wtitle, 128, L"%hs", title && *title ? title : "Ascension-R");
     const int borderless = ps3_settings_ieq(ps3_settings_str("display", "mode", NULL, "windowed"), "borderless");
+    /* The monitor the game's window will open on (the launcher's, rsx_d3d12_backend_open_on), else the main display
+     * borderless and where Windows puts it in a window, as the game's window does. */
+    int mon[4], work[4];
+    const int there = rsx_d3d12_backend_open_monitor(mon, work);
     if (borderless) {
         MONITORINFO mi;
         mi.cbSize = sizeof mi;
         POINT o = {0, 0};
         GetMonitorInfoW(MonitorFromPoint(o, MONITOR_DEFAULTTOPRIMARY), &mi);
+        if (there) {
+            mi.rcMonitor.left = mon[0]; mi.rcMonitor.top = mon[1];
+            mi.rcMonitor.right = mon[2]; mi.rcMonitor.bottom = mon[3];
+        }
         s_hwnd = CreateWindowExW(0, wc.lpszClassName, wtitle, WS_POPUP | WS_VISIBLE, mi.rcMonitor.left, mi.rcMonitor.top,
                                  mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, NULL, NULL,
                                  wc.hInstance, NULL);
     } else {
         RECT wr = {0, 0, cw, ch};
         AdjustWindowRect(&wr, WS_OVERLAPPEDWINDOW, FALSE);
-        s_hwnd = CreateWindowExW(0, wc.lpszClassName, wtitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT,
+        int x = CW_USEDEFAULT, y = CW_USEDEFAULT;
+        if (there) {
+            x = work[0] + ((work[2] - work[0]) - (wr.right - wr.left)) / 2;
+            y = work[1] + ((work[3] - work[1]) - (wr.bottom - wr.top)) / 2;
+            if (x < work[0]) x = work[0];
+            if (y < work[1]) y = work[1];
+        }
+        s_hwnd = CreateWindowExW(0, wc.lpszClassName, wtitle, WS_OVERLAPPEDWINDOW | WS_VISIBLE, x, y,
                                  wr.right - wr.left, wr.bottom - wr.top, NULL, NULL, wc.hInstance, NULL);
     }
     SetEvent(s_ui_ready);

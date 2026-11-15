@@ -101,8 +101,10 @@ and what has not been tried.
 
 Ultrawide in the launcher's Display tab (`display.ultrawide`, off by default) draws the game to the full width of a screen
 wider than 16:9. The vertical view stays as it was and more shows at the sides. The HUD, menus and movies stay 16:9 in the
-middle, with black bars beside a movie or a menu that has no game behind it. In a window it goes by `display.window_size`
-and otherwise by the screen. It takes effect at the next start, and the first session compiles part of the shaders again.
+middle, with black bars beside a movie or a menu that has no game behind it. Any width works, 21:9 and 32:9 among them. In
+a window it goes by `display.window_size`, and otherwise by the monitor the game is on: the game opens on the monitor the
+launcher was on when Play was pressed, so an ultrawide monitor beside a 16:9 main one works too. It takes effect at the
+next start, and the first session compiles part of the shaders again.
 Frame generation works without its pass for moving objects at these widths. The
 [note](notes/2026-11-10-ultrawide.md) has what was measured and what has not been tried.
 

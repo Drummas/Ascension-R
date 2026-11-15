@@ -42,6 +42,7 @@
 #include "version.h"
 #include "update_check.h"
 #include "loading_screen.h"   /* the header's scene and the pixel font */
+extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
 
 #include <math.h>
 #include <stdio.h>
@@ -3731,6 +3732,10 @@ extern "C" int gowa_launcher(void)
     s_find.stop = 1;
     find_end();
     update_check_end();
+    if (s_done == 1) {   /* the game opens on the monitor the launcher was on, and Ultrawide goes by that monitor */
+        RECT lr;
+        if (GetWindowRect(s_main, &lr)) rsx_d3d12_backend_open_on((lr.left + lr.right) / 2, (lr.top + lr.bottom) / 2);
+    }
     DestroyWindow(s_main);
     /* Let the destroy messages through before the game opens its window. */
     while (PeekMessageA(&msg, NULL, 0, 0, PM_REMOVE)) { TranslateMessage(&msg); DispatchMessageA(&msg); }
