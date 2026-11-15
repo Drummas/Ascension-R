@@ -240,7 +240,7 @@
     },
     {
       "id": "device", "label": "Device", "group": "Controls",
-      "help": "Auto takes a controller when one is there, else the keyboard and mouse.",
+      "help": "Auto reads a controller and the keyboard and mouse at the same time: either one plays.",
       "choices": [
         { "label": "Auto", "set": { "input/device": "auto" } },
         { "label": "Controller", "set": { "input/device": "pad" } },

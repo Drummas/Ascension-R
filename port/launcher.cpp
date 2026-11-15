@@ -135,7 +135,7 @@ static const char* const k_taken_n[] = { "Normal", "Half", "Quarter", "None" };
 static const char* const k_dealt[] = { "1", "2", "5", "kill" };
 static const char* const k_dealt_n[] = { "Normal", "2x", "5x", "One hit" };
 static const char* const k_dev[] = { "auto", "pad", "keyboard" };
-static const char* const k_dev_n[] = { "Controller, else keyboard", "Controller only", "Keyboard only" };
+static const char* const k_dev_n[] = { "Controller and keyboard", "Controller only", "Keyboard only" };
 static const char* const k_dev_s[] = { "Auto", "Controller", "Keyboard" };
 static const char* const k_api[] = { "auto", "xinput", "sdl3" };
 static const char* const k_api_n[] = { "XInput, else SDL3", "XInput only", "SDL3 for every controller" };
@@ -206,7 +206,7 @@ static Opt s_opt[] = {
       "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built "
       "while you play: a moment, a few seconds after a GPU driver update." },
     { T_CONTROLS, "input", "device", "auto", "Device", 0, LIST(k_dev, k_dev_n), k_dev_s,
-      "Auto takes a controller when one is there, else the keyboard and mouse." },
+      "Auto reads a controller and the keyboard and mouse at the same time: either one plays." },
     { T_CONTROLS, "input", "api", "auto", "Controller API", 0, LIST(k_api, k_api_n), k_api_s,
       "Auto reads a controller through XInput when it has it (Xbox, most PC pads), else through SDL3 (DualShock 4, "
       "DualSense, Switch and others). With DS4Windows, XInput, or one controller counts twice." },
