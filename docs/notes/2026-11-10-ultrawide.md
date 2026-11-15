@@ -36,7 +36,25 @@ pixels wide against 838 at 16:9). That code is gone. Two things are left to the 
 - A flat vertex at or past the edge of the 16:9 goes as far past the edge of the screen, for draws on the display target in
   a frame with a 3D scene (a line added to the vertex programs, asked for through `vp_posoffset.w`). Fades, the death
   screen's backdrop and a cutscene's bars reach the sides that way.
-- A frame with no 3D scene gets black bars beside the 16:9 (`present_to_backbuffer`).
+- A frame with no 3D scene gets black bars beside the 16:9 (`present_to_backbuffer`). A scene is at least
+  `WIDE_SCENE_MIN` (8) draws through the camera into a target the size of the display other than the display itself,
+  counted per frame between flips and carried to the present on the frame's FLIP record (2026-11-16, below).
+
+## The pause menu (2026-11-16)
+
+Its backdrop is not 2D: it is a mesh in front of the menu's camera, made to fill a 16:9 view, drawn in two or so draws
+into the scene's target (the dark panel and its red glow), over the last frame of play left in that target; the item's 3D
+model is drawn on the display itself. At a wider view the mesh covered the middle only, 21% to 79% of the width at 32:9,
+and that last frame of play showed beside it. Found with a recording cut in the first fight and a START press added
+(scratchpad `pad_pause.py`), `RSX_CAP` frames at 32:9 and the targets' BMPs.
+
+The flat-vertex rule cannot reach a perspective mesh, and the frame counted as a scene: one camera draw was enough. Now a
+scene takes eight such draws into an offscreen target the size of the display, which play makes by the thousand (1,065 in
+the scene's target in a frame of the first fight) and the pause menu by the few (4). The pause menu gets black bars beside
+its 16:9, as it looks on the PS3. The count is made per frame on the walk and kept on its FLIP record: counted at the
+present instead, the batches of one menu frame added up to a scene.
+
+Checked in a 1600x450 window (32:9): play full width, the pause menu between bars.
 
 ## Drawing wider
 
@@ -55,11 +73,9 @@ In a 1680x720 window (no ultrawide monitor here), with FSR 1 at 1.5x and 1x and 
 
 ## Not fixed, not tried
 
-- The pause menu's backdrop stops short of the screen's edges, so the world shows at the far left and right. Neither
-  dropping the `w` test nor taking in targets the size of the display moved it; its draw has not been found.
 - Frame generation's pass for what moves (`fg_objects`) is off at these widths: with it on, close-ups of Kratos got coloured
   noise at 21:9 and not at 16:9. The cause was not found. Frame generation goes by the camera alone there.
 - The first session at a wider aspect compiles the vertex programs again, because their text differs; until that is done,
   a cutscene can show dark or missing objects.
-- The main menu, a real ultrawide monitor and 32:9. The sides of some cutscenes may show places the camera was never meant
-  to see.
+- The main menu and a real ultrawide monitor; 32:9 only in a 1600x450 window. The sides of some cutscenes may show places
+  the camera was never meant to see.
