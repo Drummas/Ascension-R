@@ -106,6 +106,15 @@ and otherwise by the screen. It takes effect at the next start, and the first se
 Frame generation works without its pass for moving objects at these widths. The
 [note](notes/2026-11-10-ultrawide.md) has what was measured and what has not been tried.
 
+## Frame rate on screen
+
+Frame rate display in the launcher's Display tab (`display.show_fps`): in the title bar (the default), off, or on screen,
+a panel in the top right corner. The panel shows the frame rate, the frame time and a graph of the last frames, two to a
+bar, the slower of each pair: cyan near the usual frame time, amber from 1.25 times it, red from 1.8 times, a hitch. The
+frame rate turns amber under 29 and red under 20, as the game holds 30. It names no hardware. `show_fps = stats` in
+`ascension-r.ini` shows the older stats panel instead, for diagnosis: the GPU, CPU, PPU, SPU and RSX load, memory, the
+graphics card's and CPU's names, and Kratos's position.
+
 ## FSR 3.1
 
 Two rows in the launcher's Graphics tab, both off by default, measured on a GTX 1650 Ti. `build` copies their DLLs from

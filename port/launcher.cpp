@@ -172,7 +172,7 @@ static Opt s_opt[] = {
     { T_DISPLAY, "display", "frame_cap", "off", "Frame rate cap", 0, LIST(k_cap, k_cap_n), k_cap_s,
       "An even pace instead of the highest rate the PC reaches. With frame generation, off follows the monitor." },
     { T_DISPLAY, "display", "show_fps", "title", "Frame rate display", 0, LIST(k_fps, k_fps_n), k_fps_s,
-      "On screen shows FPS, frame time and the CPU, GPU, PPU, SPU and RSX load." },
+      "On screen shows FPS, frame time and a graph of the last frames' times, in the top right corner." },
     { T_DISPLAY, "display", "ultrawide", "off", "Ultrawide", 1, SW,
       "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start." },
     { T_DISPLAY, "display", "shader_hint", "on", "Shader build indicator", 1, SW,
@@ -2112,7 +2112,7 @@ static void draw_play(void)
         ry += SW_H + 16;
     }
     if (Opt* fps = opt_find("display", "show_fps")) {
-        text(L"Frame rate and load on screen", s_tf_ui, R(rx, ry, rw - SW_W - 10, SW_H), C_TEXT);
+        text(L"Frame rate on screen", s_tf_ui, R(rx, ry, rw - SW_W - 10, SW_H), C_TEXT);
         w_switch(ps3_settings_ieq(fps->cur, "overlay"), rx + rw - SW_W, ry, H_SW + (int)(fps - s_opt));
     }
 }

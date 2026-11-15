@@ -54,7 +54,7 @@ problems further in.
   itself, and says when a newer release is out, with a link to it.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and FSR 3.1 scaling, FSR 3.1 frame generation, SMAA 1x and
   anisotropic filtering.
-- **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and frame rate and load on screen.
+- **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and the frame rate on screen.
 - **Shaders:** a compressed cache, pipelines built before the title, and every vertex shader built before the first start
   of each version, on an 8-bit screen with music of its own.
 - **Game patches:** switch off MLAA, depth of field, motion blur, mesh trimming or dynamic shadows.
