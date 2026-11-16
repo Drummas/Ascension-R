@@ -109,6 +109,7 @@ static SPU_THREAD_LOCAL struct {
     int skin;                   /* a skinned job's (spu_edge_gpuskin.c) */
     int rigid;                  /* an unskinned job's, its transforms left to the pass (GOWA_EDGE_RIGID) */
     int vel;                    /* a velocity job's: lit arrays and the previous position (GOWA_EDGE_VEL) */
+    int vbn;                    /* a velocity job's binormals left out (GOWA_EDGE_VEL_BINORM) */
     int u;                      /* an unskinned result's arrays left unpacked (GOWA_EDGE_UNPACK) */
     int udec;                   /* and they were: a revoke gives them back */
     int ucheck;                 /* GOWA_EDGE_UNPACK=2: revoked at the packing, which is then checked */
@@ -276,33 +277,37 @@ static int memo_unpack_mode(void)
     return v;
 }
 
-/* GOWA_TURNS=<seconds> (benches): what a switch gives, measured within one run, both halves in the same
- * scene and at the same heat. A switch that asks (GOWA_EDGE_UNPACK) is off for the first turn from
- * the first kept job, on for the next, and so on. Every half second is logged with its turn, the flips
- * and the kept jobs so far: scripts/turns.py leaves out each turn's first half second, while the
- * frames in flight change over, and fits a turn's frame time to its kept jobs a flip and the switch
+/* GOWA_TURNS=<seconds>[:<switch>] (benches): what a switch gives, measured within one run, both halves in
+ * the same scene and at the same heat. A switch that asks (unpack: GOWA_EDGE_UNPACK, vbn:
+ * GOWA_EDGE_VEL_BINORM), or only the one named, is off for the first turn from the first kept job, on
+ * for the next, and so on; the others stay on. Every half second is logged with its turn, the flips and
+ * the kept jobs so far: scripts/turns.py leaves out each turn's first half second, while the frames in
+ * flight change over, and fits a turn's frame time to its kept jobs a flip and the switch
  * (docs/notes/2026-11-16-s-j-review.md). Unset: always on. Not in the Kit's DLL. */
 #ifndef PS3_GAME_MODULE
 __declspec(dllimport) int __stdcall QueryPerformanceCounter(long long* count);
 __declspec(dllimport) int __stdcall QueryPerformanceFrequency(long long* freq);
 extern unsigned cellGcm_flip_request_count(void);
-static int edge_turn_on(void)
+static int edge_turn_on(const char* name)
 {
     static long long half = -1, t0;
     static long halves;
+    static char only[16];
     static volatile long seen = -1;
     if (half < 0) {
         const char* e = getenv("GOWA_TURNS");
         const double secs = e ? atof(e) : 0;
+        const char* sw = e ? strchr(e, ':') : NULL;
+        if (sw) strncpy(only, sw + 1, sizeof only - 1);
         long long f = 0, t = 0;
         QueryPerformanceFrequency(&f);
         QueryPerformanceCounter(&t);
         t0 = t;
         halves = secs >= 1 ? (long)(secs * 2 + 0.5) : 0;
-        if (halves) fprintf(stderr, "[turns] turns of %.1f s\n", halves / 2.0);
+        if (halves) fprintf(stderr, "[turns] turns of %.1f s, %s\n", halves / 2.0, only[0] ? only : "every switch");
         half = f / 2;
     }
-    if (!halves) return 1;
+    if (!halves || (only[0] && strcmp(only, name))) return 1;
     long long a;
     QueryPerformanceCounter(&a);
     const long step = a > t0 ? (long)((a - t0) / half) : 0;
@@ -313,10 +318,31 @@ static int edge_turn_on(void)
     return (int)(turn & 1);
 }
 #else
-static inline int edge_turn_on(void) { return 1; }
+static inline int edge_turn_on(const char* name) { (void)name; return 1; }
 #endif
 
 static volatile long long s_u_left, s_u_given, s_u_place, s_u_checked;
+
+/* GOWA_EDGE_VEL_BINORM: 1 on (the default), 0 off.
+ *
+ * A velocity job (unskinned or skinned) calls 0xA880 twice, back at 0x54F8 and 0x5AEC, and its loop at
+ * 0xA950 makes the binormals, which only a lighting stage reads: a velocity job has none, and its
+ * output piece packs the position, the normal, the tangent and the previous position. With the
+ * lighting on the GPU the first call was left out and then run late before the packing, the second
+ * ran: two calls of the normals loop a velocity job, the largest of EDGE's natives in the fight. The
+ * hook at 0xA928 (spu_edge_gpulight.c) now leaves both out, none run late. Tried on 2026-11-12, right
+ * by GOWA_EDGE_VEL=2 (1.2 million jobs, no byte different) but slower in runs that could not tell; now
+ * measured by turns (docs/notes/2026-11-16-s-j-review.md). */
+static int memo_vbn_mode(void)
+{
+    static volatile int m = -1;
+    int v = m;
+    if (v >= 0) return v;
+    const char* e = getenv("GOWA_EDGE_VEL_BINORM");
+    v = e ? atoi(e) != 0 : 1;
+    m = v;
+    return v;
+}
 
 static void memo_report(void)
 {
@@ -833,7 +859,7 @@ void edge_memo_job(void)
     t_m.skin = 0;
     t_m.rigid = 0;
     t_m.vel = 0;
-    t_m.u = t_m.udec = t_m.ucheck = 0;
+    t_m.u = t_m.udec = t_m.ucheck = t_m.vbn = 0;
     if (t_r.rec) t_r.rec->arrays = t_r.rec->flags = 0;
     t_r.got[0] = t_r.got[1] = t_r.got[2] = t_r.got[3] = 0;
     t_r.prev_src = 0;
@@ -851,7 +877,9 @@ void gowa_edge_memo_9a40(spu_context* ctx)
     static int stats = -1;
     if (stats < 0) { stats = getenv("GOWA_EDGE_NATIVE_STATS") != NULL; if (stats) atexit(memo_report); }
     ej_view v;
-    if (ej_read(ctx, &v, ej_be32_at(ctx->ls + 0x106B0)) || (v.skinned && !memo_skin_mode())) return;
+    if (ej_read(ctx, &v, ej_be32_at(ctx->ls + 0x106B0))) return;
+    if ((v.kind == EJ_VEL || v.kind == EJ_VEL_SKIN) && memo_vbn_mode()) t_m.vbn = edge_turn_on("vbn");
+    if (v.skinned && !memo_skin_mode()) return;
     if (v.kind == EJ_LIT || v.kind == EJ_LIT_SKIN) {
         if (!edge_gpul_lean_on() || !edge_cull_left_out()) return;
     } else if (v.kind == EJ_VEL) {
@@ -909,7 +937,7 @@ void gowa_edge_memo_9a40(spu_context* ctx)
         if (rstats && !(rj & 0xFFFF)) er_report();
         if (t_m.state == 2) {
             const int um = memo_unpack_mode();
-            t_m.u = um == 2 || (um == 1 && edge_turn_on());
+            t_m.u = um == 2 || (um == 1 && edge_turn_on("unpack"));
         }
     }
     if (stats && !(s_jobs & 0xFFFF)) memo_report();
@@ -1217,6 +1245,9 @@ int edge_memo_vel(void) { return t_m.vel && t_m.rigid; }
 /* the output stage: a velocity job's block can stay out of the ring */
 int edge_memo_vel_kept(uint32_t stride) { return t_m.vel && t_m.rigid && stride == ER_VEL_STRIDE; }
 
+/* the hook at 0xA928: a velocity job's binormals, which nothing reads, are left out (GOWA_EDGE_VEL_BINORM) */
+int edge_memo_vel_binorm_left(void) { return t_m.vbn; }
+
 #else
 void edge_memo_job(void) { }
 void gowa_edge_memo_9a40(spu_context* ctx) { (void)ctx; }
@@ -1240,4 +1271,5 @@ void edge_memo_skin_bbc8(spu_context* ctx) { (void)ctx; }
 int edge_memo_rigid_bbc8(spu_context* ctx) { (void)ctx; return 0; }
 int edge_memo_vel(void) { return 0; }
 int edge_memo_vel_kept(uint32_t stride) { (void)stride; return 0; }
+int edge_memo_vel_binorm_left(void) { return 0; }
 #endif

@@ -72,7 +72,8 @@
  *  - the binormals, 0xA880's loop at 0xA950 into the eighth array: its result is the stage's r10
  *    and nothing else's. Its hook at 0xA928, with the array in place, leaves the loop out and
  *    returns as 0xA880 does. Unless the stage ends up skipped, 0xA880 runs after all, from its
- *    arguments (eg_binorm_late);
+ *    arguments (eg_binorm_late). A velocity job, which has no stage, has both its calls left out
+ *    for good (GOWA_EDGE_VEL_BINORM, spu_edge_memo.c);
  *  - ids 27-30 in the output piece: the pass writes over them. It packs bytes 0-23 of a vertex
  *    (spu_edge_cmp.c); the rest of the 54 are whatever the local store held.
  */
@@ -126,16 +127,16 @@ static const char* eg_hlsl(void);
 static void eg_selftest(const uint8_t* ls, const eg_rec* r, uint32_t n);
 
 static volatile long long s_eg_taken, s_eg_skipped, s_eg_declined, s_eg_published, s_eg_unskipped, s_eg_lost;
-static volatile long long s_eg_binorm, s_eg_binorm_late;
+static volatile long long s_eg_binorm, s_eg_binorm_late, s_eg_binorm_vel;
 static int s_eg_stats;
 #define EG_COUNT(v) do { if (s_eg_stats) __atomic_add_fetch(&(v), 1, __ATOMIC_RELAXED); } while (0)
 static void eg_report(void)
 {
     fprintf(stderr, "[edge-gpu] lighting: %lld records taken (%lld stages skipped), %lld declined; "
             "%lld published, %lld skipped stages run late, %lld records dropped; "
-            "binormals left out %lld, %lld of those run after all\n",
+            "binormals left out %lld, %lld of those run after all; a velocity job's left out %lld\n",
             s_eg_taken, s_eg_skipped, s_eg_declined, s_eg_published, s_eg_unskipped, s_eg_lost,
-            s_eg_binorm, s_eg_binorm_late);
+            s_eg_binorm, s_eg_binorm_late, s_eg_binorm_vel);
 }
 
 static int eg_mode(void)
@@ -207,14 +208,23 @@ static int eg_lean(void)
  * entry when it is declined, or before the packing when the driver does not call it (no lights). */
 int gowa_edge_binorm_a928(spu_context* ctx)
 {
-    if (eg_mode() != 2 || t_eg_late || !eg_lean()) return 0;
-    const uint32_t sp = ctx->gpr[1]._u32[0];
-    t_eg.binorm = 0;
-    if (ctx->gpr[80]._u32[0] != 0x107A0 || eg_be32(ctx->ls, sp + 0x80) != 0x54F8) return 0;
-    t_eg.binorm = 1;
-    t_eg.binorm_c = ctx->gpr[80];
-    t_eg.binorm_n = ctx->gpr[83];
-    EG_COUNT(s_eg_binorm);
+    const uint32_t sp = ctx->gpr[1]._u32[0], back = eg_be32(ctx->ls, sp + 0x80);
+    /* a velocity job's two calls, which nothing reads: left out, neither run late (spu_edge_memo.c,
+     * GOWA_EDGE_VEL_BINORM) */
+    const int vel = edge_memo_vel_binorm_left() && !t_eg_late && ctx->gpr[80]._u32[0] == 0x107A0 &&
+                    (back == 0x54F8 || back == 0x5AEC);
+    if (vel) {
+        t_eg.binorm = 0;
+        EG_COUNT(s_eg_binorm_vel);
+    } else {
+        if (eg_mode() != 2 || t_eg_late || !eg_lean()) return 0;
+        t_eg.binorm = 0;
+        if (ctx->gpr[80]._u32[0] != 0x107A0 || back != 0x54F8) return 0;
+        t_eg.binorm = 1;
+        t_eg.binorm_c = ctx->gpr[80];
+        t_eg.binorm_n = ctx->gpr[83];
+        EG_COUNT(s_eg_binorm);
+    }
     ctx->gpr[3] = ctx->gpr[53];
     ctx->gpr[0] = spu_ls_read128(ctx, sp + 0x80);
     ctx->gpr[1] = spu_ai(ctx->gpr[1], 112);

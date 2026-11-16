@@ -40,6 +40,7 @@ int edge_memo_rigid_bbc8(spu_context* ctx);
  * out of the ring */
 int edge_memo_vel(void);
 int edge_memo_vel_kept(uint32_t stride);
+int edge_memo_vel_binorm_left(void);
 /* 0xF538's constant vectors for the matrix at mat (spu_edge_xform.c) */
 void edge_xf_consts(const uint8_t* ls, uint32_t mat, float c[4][4]);
 
