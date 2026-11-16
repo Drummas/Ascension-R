@@ -279,8 +279,9 @@ static int memo_unpack_mode(void)
 
 /* GOWA_TURNS=<seconds>[:<switch>] (benches): what a switch gives, measured within one run, both halves in
  * the same scene and at the same heat. A switch that asks (unpack: GOWA_EDGE_UNPACK, vbn:
- * GOWA_EDGE_VEL_BINORM), or only the one named, is off for the first turn from the first kept job, on
- * for the next, and so on; the others stay on. Every half second is logged with its turn, the flips and
+ * GOWA_EDGE_VEL_BINORM, rt: the runtime's, g_spu_rt_turn), or only the one named, is off for the first
+ * turn from the first kept job, on for the next, and so on; the others stay on. The clock runs on the
+ * memo's own switches' questions, every unskinned result and velocity job. Every half second is logged with its turn, the flips and
  * the kept jobs so far: scripts/turns.py leaves out each turn's first half second, while the frames in
  * flight change over, and fits a turn's frame time to its kept jobs a flip and the switch
  * (docs/notes/2026-11-16-s-j-review.md). Unset: always on. Not in the Kit's DLL. */
@@ -323,15 +324,18 @@ static int edge_turn_on(const char* name)
         if (halves) fprintf(stderr, "[turns] turns of %.1f s, %s\n", halves / 2.0, only[0] ? only : "every switch");
         half = f / 2;
     }
-    if (!halves || (only[0] && !turn_same(only, name))) return 1;
+    if (!halves) return 1;
     long long a;
     QueryPerformanceCounter(&a);
     const long step = a > t0 ? (long)((a - t0) / half) : 0;
     const long turn = step / halves, last = seen;
-    if (step > last && __sync_bool_compare_and_swap(&seen, last, step))
+    if (step > last && __sync_bool_compare_and_swap(&seen, last, step)) {
+        /* the runtime's switches (rt: g_spu_rt_turn, spu_context.h) follow the same turns */
+        if (!only[0] || turn_same(only, "rt")) g_spu_rt_turn = (int)(turn & 1);
         fprintf(stderr, "[turns] step %ld turn %ld %s at %ld ms: %u flips, %lld kept jobs\n", step, turn,
                 turn & 1 ? "on" : "off", (long)clock(), cellGcm_flip_request_count(), (long long)s_hits);
-    return (int)(turn & 1);
+    }
+    return only[0] && !turn_same(only, name) ? 1 : (int)(turn & 1);
 }
 #else
 static inline int edge_turn_on(const char* name) { (void)name; return 1; }

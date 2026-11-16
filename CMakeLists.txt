@@ -376,6 +376,10 @@ target_sources(${PROJECT_NAME} PRIVATE ${ZLIB_INFLATE_SOURCES})
 #                          branch less at every lqd/stqd.
 option(PORT_SPU_AVX2 "Build the lifted SPU code with AVX2" ON)
 option(PORT_SPU_LINES "Line tables for the lifted SPU code, and a PDB (profiling)" OFF)
+# PORT_RT_LINES: line tables for the runtime library and a PDB, the lifted code as it is, so a PS3_SAMPLE_THREAD
+# profile names the runtime's lines (llvm-symbolizer on the samples' RVAs) without building the lifted code again.
+# Line tables do not change the generated code. gowa.py build -D PORT_RT_LINES=ON.
+option(PORT_RT_LINES "Line tables for the runtime library, and a PDB (profiling)" OFF)
 option(PORT_SPU_FLOAT_RZ_ONLY "Lifted SPU code with the round-toward-zero float forms only" ON)
 option(PORT_SPU_FLOAT_APPROX "Lifted SPU code: a zero float result may be -0 (SPU_FLOAT_APPROX)" OFF)
 option(PORT_SPU_LS_DIAG "Local-store diagnostics in the lifted SPU code (a gate per lqd/stqd)" OFF)
@@ -438,8 +442,11 @@ if(SPU_SOURCES)
         endif()
         set_source_files_properties(${SPU_SOURCES} PROPERTIES COMPILE_OPTIONS "${spu_opts}")
     endif()
-    if(PORT_SPU_LINES AND MSVC)
+    if((PORT_SPU_LINES OR PORT_RT_LINES) AND MSVC)
         target_link_options(${PROJECT_NAME} PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+    endif()
+    if(PORT_RT_LINES)
+        target_compile_options(ps3recomp_runtime PRIVATE -gline-tables-only)
     endif()
     if(PORT_SPU_PGO STREQUAL "gen" OR PORT_PPU_PGO STREQUAL "gen")
         # The profile runtime of the clang that builds the port, next to its linker.
