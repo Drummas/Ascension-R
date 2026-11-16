@@ -57,6 +57,26 @@ up, so the gaps last longer.
 | off | clean | 30.39 |
 | on, after | clean | 32.61 |
 
+## Looked at and not done: a program the GPU interprets, and unoptimized first builds
+
+Asked for after the fix, to take the stops away as well.
+
+- **An interpreter on the GPU** (RPCS3's way): one pixel shader that reads a fragment program's ucode from a buffer and
+  runs it. Left undone, before any code:
+  - it has to do all of `rsx_fp_decompiler.c` (2,057 lines) on the GPU, bit for bit: ~70 opcodes, the fp16 and fx12
+    precisions with H registers aliasing R ones, condition codes, the texture forms (projective, bias, lod, gradients,
+    shadow compare), WPOS and the comparison helpers;
+  - a unit's texture type is fixed by each program (`Texture2D rsx_tex[16]`, cube and volume units declared one by one):
+    one shader for every program needs a root signature with each unit's 2D, cube and 3D views, and the draw code to bind
+    them;
+  - its pipelines are still built per state, from a shader that size: on the reporter's AMD driver, which cannot be tried
+    here, that may stop the picture as long as the builds it replaces, and a long program interpreted per pixel at render
+    scale 1.5 may run at a few frames a second meanwhile;
+  - weeks of work against stops of ~74 ms a new program, each place's first time only.
+- **Unoptimized builds first** (`D3D12_SHADER_OPT=skip`), with the optimized ones later: the same reproduction gave
+  builds no faster (the 25 KB program 215 ms against 225), 48.2 s of solid draws waiting against 18.8, and a median of
+  4.18 flips/s from 20 to 100 s against 32.6. Not taken.
+
 ## What can be done
 
 - **Now, for the reporter:** "Build shaders in the background" off. No broken geometry; a short stop the first time
