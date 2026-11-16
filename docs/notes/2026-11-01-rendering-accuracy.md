@@ -334,6 +334,11 @@ of the reports, the clears and the counter switches, in time order; 40,000 event
   (`rsx_fp_apply_wpos_grid`). `RSX_AA_GRID=0` turns it off.
 - Measured: two runs of seven screenshots (8-14 s): the x = 640 edge is gone from every shot;
   the few hits left on the tile grid fall on scene edges (the floor's stone joints, by eye).
+- 2026-11-16 (fork `9548dd2e`): a target can be up to 4096 wide or high, the RSX's own limit,
+  not 2048. God of War HD's 2x scene (1216x684 pixels, 2432x684 samples) passed 2048, fell back
+  to the window's size in pixels, and its resolve came out squeezed into the left half of the
+  frame. No target here reaches 2048: a 231 s replay of play1 with a temporary log on sizes
+  between 2048 and 4096 logged none.
 
 ## 7. P1b tried (2026-11-02): counts in place at the title's synchronisation, not kept
 
