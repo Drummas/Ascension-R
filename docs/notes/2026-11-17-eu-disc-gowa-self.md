@@ -33,20 +33,29 @@ the EU disc's game at 1.12 is the program the port is built from, `GOWA.elf` of 
 | segments in the SELF | uncompressed, our GOWA.elf's sizes | the same |
 
 The ELF also holds every region's title ids and save names (`BCES01741_00`, `BCUS98232_00`, ... at 0x6764483), the
-table the game picks its region from while it runs: one program for all regions. The same headers, addresses and sizes
-of all 31 sections make it near certain that the EU 1.12 program is ours. Not proven byte for byte yet.
+table the game picks its region from while it runs: one program for all regions.
 
-## Not done yet: the bytes
+## The bytes: the same file
 
-`rpcs3 --decrypt` on a copy of the EU `GOWA.SELF` (RPCS3 0.0.43, its configuration pointed at a folder of ours) wrote
-nothing: `SELF: Failed to decrypt SELF metadata info!`. A free-license SELF that another program starts is decrypted
-with the klicensee that program hands to `sceNpDrmIsAvailable2`, here the 71 KB `EBOOT.BIN`; RPCS3 learns it, and logs
-it, only when the game boots. Next: boot the EU game once in RPCS3, decrypt the copy with that KLIC, compare SHA-256.
+**The EU 1.12 `GOWA.elf` is our `GOWA.elf`: SHA-256 `4bf75c89...62b5` for both, and `cmp` finds no byte that differs.**
+
+- RPCS3 named its PPU cache for the EU game `ppu-CZX99Q7PX8cN5P8LbjdjNq35CjvH-GOWA.SELF`, the name it has for NPUA80918
+  (the name is a hash of the program), and the 71 KB launchers share theirs too (`ppu-6CYHxcJx...-EBOOT.BIN`).
+- How it was decrypted. `rpcs3 --decrypt` on a copy (RPCS3 0.0.43, `RPCS3_CONFIG_DIR` pointed at a folder of ours)
+  fails without a key, `SELF: Failed to decrypt SELF metadata info!`: a free-license SELF that another program starts
+  is decrypted with the klicensee that program hands to `sceNpDrmIsAvailable2`, here the 71 KB `EBOOT.BIN`. RPCS3
+  logs it when the game boots, `sceNp: npDrmIsAvailable(): KLicense key or KLIC=0x...` beside
+  `drm_path=".../BCES01741/USRDIR/GOWA.SELF"`. After one boot of the EU game, the same `--decrypt` with that KLIC on
+  its **standard input** (it asks `Enter KLIC of GOWA.SELF`, and reads stdin, not the console) wrote `GOWA.elf`.
+  The key was kept in an ignored local file for the run and deleted after.
 
 ## What it means for EU support
 
-If the bytes match, the lifted code, the hooks, the patches and the native SPU work all apply as they are, and EU
-support is the disc layout: the extracted disc plus the update's folder, BCES01741 as title and boot path, the disc's
-archive lists, saves under BCES01741, the launcher finding both. One thing the launcher cannot do as it does for
-NPUA80918: decrypt the EU `GOWA.SELF`, whose key comes from the game's own `EBOOT.BIN` at run time and which the port
-does not ship.
+The lifted code, the hooks, the patches and the native SPU work all apply as they are: the Kit builds the same DLL from
+an EU copy. EU support is the disc layout: the extracted disc plus the update's folder (`dev_hdd0/game/BCES01741`),
+BCES01741 as title and boot path, the disc's archive lists (ten languages, `TPPS*` patch archives), saves under
+BCES01741, and the launcher finding both. The US disc (BCUS98232) likely the same; not checked.
+
+Decrypting an EU copy cannot use a `.rap` as NPUA80918 does, and the port ships no keys. What works with what the
+player already has: boot the game once in their RPCS3, read the KLIC from that RPCS3's log (the line above, for
+`GOWA.SELF`), and give it to `rpcs3 --decrypt` on standard input.
