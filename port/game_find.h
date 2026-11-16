@@ -19,11 +19,25 @@ enum GameState {
     GAME_OK             /* what this port was lifted from */
 };
 
+/* What a disc lacks, for GAME_INCOMPLETE (game_files_text says it to the player). */
+enum DiscLack {
+    DISC_WHOLE,         /* nothing: the disc and its update are both there */
+    DISC_NO_UPDATE,     /* the disc, but not its update to 1.12 (RPCS3 installs it in dev_hdd0\game\<id>) */
+    DISC_NO_GAME,       /* the update, but not the disc it updates */
+    DISC_ISO,           /* the disc only as an ISO (iso says where): it has to be extracted to a folder */
+    DISC_ENCRYPTED,     /* the disc's files are encrypted: a dump that was never decrypted */
+};
+
 struct GameInfo {
-    wchar_t dir[GAME_PATH_MAX];   /* the folder holding PARAM.SFO and USRDIR */
-    char title[128], title_id[16], app_ver[16];
+    wchar_t dir[GAME_PATH_MAX];   /* the folder holding PARAM.SFO and USRDIR; for a disc, its PS3_GAME */
+    wchar_t update[GAME_PATH_MAX];/* a disc's update, <RPCS3>\dev_hdd0\game\<id>; "" for a digital release */
+    wchar_t iso[GAME_PATH_MAX];   /* DISC_ISO: the ISO RPCS3 has for the disc */
+    char title[128], title_id[16], app_ver[16];   /* for a disc, APP_VER is its update's */
+    char category[4];             /* PARAM.SFO's: HG a digital release, DG a disc, GD a disc's update */
     GameState state;
     int other_version;            /* GAME_OTHER_BUILD: PARAM.SFO says another version than 1.12 */
+    int disc;                     /* a disc: dir its PS3_GAME, update its update (game_title.h's GAME_KIND_DISC) */
+    DiscLack disc_lack;           /* GAME_INCOMPLETE of a disc: what it lacks */
     /* The game's files (game_files.inc), looked at when the folder is this release: how many there are, how many of
      * them are not in the folder and their bytes, how many are there but not as 1.12 has them, and the first of each.
      * base_bad: how many of those two are the base game's; none, and only the updates' files are at fault. */
@@ -50,8 +64,16 @@ int game_elf_ok(const wchar_t* path);
 /* A file's SHA-256 in lower-case hex. 1 = read. */
 int game_file_sha256(const wchar_t* path, char hex[65]);
 
-/* What a folder given as it is holds. */
+/* What a folder given as it is holds. A disc's PS3_GAME is paired with its update, and an update with its disc,
+ * from the RPCS3 folders known (game_note_rpcs3, its games.yml and dev_hdd0) and the copies a search saw. */
 GameState game_probe(const wchar_t* dir, GameInfo* g);
+
+/* The same with the update given (the launcher's link to it); NULL or "": looked for as game_probe does. */
+GameState game_probe_pair(const wchar_t* dir, const wchar_t* update, GameInfo* g);
+
+/* An RPCS3 folder (the one holding rpcs3.exe) to look in for a disc's update (dev_hdd0\game\<id>) and for where it
+ * keeps a disc (config\games.yml). The usual places RPCS3 keeps its files are looked in anyway. */
+void game_note_rpcs3(const wchar_t* root);
 
 /* Only the title's id and version, from the folder's PARAM.SFO; no hash of the game's code. 1 = read. */
 int game_read_info(const wchar_t* dir, GameInfo* g);

@@ -73,7 +73,7 @@ APP_VER = "01.12"
 # (docs/notes/2026-11-17-eu-support-plan.md).
 TITLES = {
     "NPUA80918": {"name": "US digital", "kind": "hdd", "enabled": True},
-    "BCES01741": {"name": "EU disc", "kind": "disc", "enabled": False},
+    "BCES01741": {"name": "EU disc", "kind": "disc", "enabled": True},
     "BCUS98232": {"name": "US disc", "kind": "disc", "enabled": False},
 }
 

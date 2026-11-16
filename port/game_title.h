@@ -30,8 +30,9 @@ struct GameTitle {
 
 static const GameTitle k_game_titles[] = {
     { "NPUA80918", L"US digital", GAME_KIND_HDD, L"UP9000-NPUA80918_00-GOWADIGITALVERS1.rap", 1 },
-    /* Runs (phase 1 of the plan); the launcher takes it once it finds a disc and its update and decrypts them. */
-    { "BCES01741", L"EU disc", GAME_KIND_DISC, NULL, 0 },
+    /* Runs (phase 1 of the plan) and is found with its update (phase 3); its GOWA.SELF is decrypted with the KLIC of
+     * the update's EBOOT.BIN (phase 4). */
+    { "BCES01741", L"EU disc", GAME_KIND_DISC, NULL, 1 },
     /* Not looked at yet: its GOWA.elf at 1.12 and its files. */
     { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 0 },
 };

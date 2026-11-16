@@ -740,10 +740,11 @@ static const wchar_t* game_titles_line(void)
 static void game_refresh(void)
 {
     game_links();
-    wchar_t dir[GAME_PATH_MAX];
+    wchar_t dir[GAME_PATH_MAX], upd[GAME_PATH_MAX];
     if (!game_link_target(s_game.link_vfs, dir, GAME_PATH_MAX))
         swprintf(dir, GAME_PATH_MAX, L"%ls", s_game.link_vfs);   /* a real folder, or none */
-    game_probe(dir, &s_game.g);
+    if (!game_link_target(s_game.link_hdd0, upd, GAME_PATH_MAX)) upd[0] = 0;   /* a disc's update */
+    game_probe_pair(dir, upd, &s_game.g);
     if (s_game.g.state == GAME_NO_ELF) {   /* decrypted here: the game's folder is only read */
         wchar_t p[GAME_PATH_MAX + 16];
         data_file(p, sizeof p / sizeof p[0], L"GOWA.elf");
@@ -776,7 +777,11 @@ static const char* game_needed_toast(void)
 
 static const wchar_t* game_path_shown(void)
 {
-    return GetFileAttributesW(s_game.link_vfs) == INVALID_FILE_ATTRIBUTES ? L"Not set" : s_game.g.dir;
+    if (GetFileAttributesW(s_game.link_vfs) == INVALID_FILE_ATTRIBUTES) return L"Not set";
+    if (!s_game.g.disc || !s_game.g.update[0]) return s_game.g.dir;
+    static wchar_t b[2 * GAME_PATH_MAX + 32];   /* a disc: its folder and its update's */
+    swprintf(b, sizeof b / sizeof b[0], L"%ls  \x00B7  update: %ls", s_game.g.dir, s_game.g.update);
+    return b;
 }
 
 /* 1.12, from the 01.12 of PARAM.SFO. */
@@ -2559,15 +2564,20 @@ static void game_paths_fill(void)
 }
 
 /* Both links to a folder, checked before either changes. */
-static int game_use(const wchar_t* dir)
+static int game_use(const GameInfo& b)
 {
     wchar_t err[GAME_PATH_MAX + 64] = L"";
     const size_t n = sizeof err / sizeof err[0];
     s_game.note[0] = 0;
-    /* The second link is named for the title of the folder picked. */
-    swprintf(s_game.link_hdd0, GAME_PATH_MAX, L"%ls\\game\\%hs", s_game.hdd0, game_title_of_folder(dir)->id);
-    if (!game_link_possible(s_game.link_vfs, dir, err, n) || !game_link_possible(s_game.link_hdd0, dir, err, n) ||
-        !game_link(s_game.link_vfs, dir, err, n) || !game_link(s_game.link_hdd0, dir, err, n)) {
+    /* The second link is named for the title found. A digital release's two links lead to its folder; a disc's lead
+     * to the disc's PS3_GAME and to its update, which a disc that lacks it does not get. */
+    const GameTitle* t = game_title_find(b.title_id);
+    swprintf(s_game.link_hdd0, GAME_PATH_MAX, L"%ls\\game\\%hs", s_game.hdd0, (t ? t : game_title_default())->id);
+    const wchar_t* dir = b.dir;
+    const wchar_t* second = b.disc ? b.update : b.dir;
+    if (!game_link_possible(s_game.link_vfs, dir, err, n) ||
+        (second[0] && !game_link_possible(s_game.link_hdd0, second, err, n)) ||
+        !game_link(s_game.link_vfs, dir, err, n) || (second[0] && !game_link(s_game.link_hdd0, second, err, n))) {
         swprintf(s_game.note, sizeof s_game.note / sizeof s_game.note[0], L"%ls", err);
         return 0;
     }
@@ -2635,9 +2645,11 @@ static DWORD WINAPI prepare_thread(LPVOID)
 static void prepare_begin(void)
 {
     if (s_prep.thread || s_game.g.state != GAME_NO_ELF) return;
-    if (!s_prep.rpcs3[0]) game_find_rpcs3(s_game.g.dir, s_prep.rpcs3, GAME_PATH_MAX);
+    /* GOWA.SELF is in the game's folder, or in a disc's update: its RPCS3 is the one that folder is in. */
+    const wchar_t* exe_dir = s_game.g.disc ? s_game.g.update : s_game.g.dir;
+    if (!s_prep.rpcs3[0]) game_find_rpcs3(exe_dir, s_prep.rpcs3, GAME_PATH_MAX);
     if (!s_prep.rap[0])
-        game_find_rap(s_prep.rpcs3[0] ? s_prep.rpcs3 : game_rpcs3_slot(s_game.g.dir), s_game.g.title_id, s_prep.rap,
+        game_find_rap(s_prep.rpcs3[0] ? s_prep.rpcs3 : game_rpcs3_slot(exe_dir), s_game.g.title_id, s_prep.rap,
                       GAME_PATH_MAX);
     s_prep.err[0] = 0;
     if (!s_prep.rap[0] || (!s_prep.rpcs3[0] && !s_prep.download)) return;
@@ -2685,7 +2697,7 @@ static void find_done(void)
     const int picked = s_find.under[0] != 0;
     const size_t n = sizeof s_game.note / sizeof s_game.note[0];
     if (b.state >= GAME_NO_ELF && (picked || b.state >= s_game.g.state)) {
-        if (game_use(b.dir)) {
+        if (game_use(b)) {
             toast(b.state == GAME_OK ? "Game found" : "Game folder set");
             prepare_begin();
         }
@@ -2693,9 +2705,17 @@ static void find_done(void)
     } else if (b.state == GAME_OTHER_TITLE) {
         swprintf(s_game.note, n, L"Found %ls in %ls. This port runs %ls 1.12", W(b.title_id), b.dir, game_titles_line());
         toast_bad("Another release of the game");
+    } else if (b.state == GAME_INCOMPLETE && b.disc && (b.disc_lack == DISC_NO_GAME || b.disc_lack == DISC_ISO) &&
+               (picked || s_game.g.state < GAME_NO_ELF)) {
+        /* A disc's update without the disc: nothing to link the game's folder to; the line says what to do. */
+        game_files_text(&b, s_game.note, n);
+        toast_bad(b.disc_lack == DISC_ISO ? "The disc is an ISO" : "Found the update, not the disc");
     } else if (b.state == GAME_INCOMPLETE && (picked || s_game.g.state < GAME_NO_ELF)) {
         /* Set, so the System tab says what the folder lacks: with the rest copied in, it is the game. */
-        if (game_use(b.dir)) toast_bad(b.files_missing ? "Found the game, but not all of it" : "Found the game, but not 1.12's files");
+        if (game_use(b))
+            toast_bad(b.disc && b.disc_lack == DISC_NO_UPDATE ? "Found the disc, not its update"
+                      : b.disc && b.disc_lack == DISC_ENCRYPTED ? "The disc's files are encrypted"
+                      : b.files_missing ? "Found the game, but not all of it" : "Found the game, but not 1.12's files");
         else toast_bad("The game's folder could not be set");
     } else if (picked) {
         swprintf(s_game.note, n, L"No game in %ls", s_find.under);
@@ -3199,7 +3219,7 @@ static void act(int id)
 #endif
             /* The second link, if only the first was made. */
             if (s_game.g.state >= GAME_NO_ELF && GetFileAttributesW(s_game.link_hdd0) == INVALID_FILE_ATTRIBUTES)
-                game_link(s_game.link_hdd0, s_game.g.dir, NULL, 0);
+                game_link(s_game.link_hdd0, s_game.g.disc ? s_game.g.update : s_game.g.dir, NULL, 0);
             if (save_all()) s_done = 1;
             break;
         case H_SAVE: if (save_all()) toast("Saved"); break;

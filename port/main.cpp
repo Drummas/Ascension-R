@@ -1317,6 +1317,7 @@ static LONG WINAPI crash_report(EXCEPTION_POINTERS* ep)
 extern "C" void gowa_port_defaults(void);
 extern "C" int  gowa_launcher(void);   /* 1 = play, 0 = quit */
 extern "C" int  gowa_prepare_cli(const char* game, const char* rpcs3, const char* rap, const char* settings);   /* game_prepare.cpp */
+extern "C" int  gowa_find_game_cli(const char* under);   /* game_find.cpp */
 /* patches.cpp: the title patches switched on in [patches], applied once the
  * ELF is in guest memory and before the title runs. */
 extern "C" void gowa_title_patches_apply(void);
@@ -1650,7 +1651,8 @@ int main(int argc, char** argv)
     char settings_buf[1100];
     const char* sets[32];
     int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0;
-    const char* prepare = NULL, *prep_rpcs3 = NULL, *prep_rap = NULL;
+    const char* prepare = NULL, *prep_rpcs3 = NULL, *prep_rap = NULL, *find_under = NULL;
+    int find_game = 0;   /* --find-game [folder]: what Auto detect, or Browse to the folder, finds (game_find.cpp) */
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--settings") && i + 1 < argc)            settings = argv[++i];
         else if (!strcmp(argv[i], "--set") && i + 1 < argc)            { if (nsets < 32) sets[nsets++] = argv[++i]; else ++i; }
@@ -1661,10 +1663,15 @@ int main(int argc, char** argv)
         else if (!strcmp(argv[i], "--prepare-game") && i + 1 < argc)   prepare = argv[++i];
         else if (!strcmp(argv[i], "--rpcs3") && i + 1 < argc)          prep_rpcs3 = argv[++i];
         else if (!strcmp(argv[i], "--rap") && i + 1 < argc)            prep_rap = argv[++i];
+        else if (!strcmp(argv[i], "--find-game")) {
+            find_game = 1;
+            if (i + 1 < argc && argv[i + 1][0] != '-') find_under = argv[++i];
+        }
         else if (!elf)                                                 elf = argv[i];
     }
     if (!settings) { default_settings_path(settings_buf, sizeof settings_buf, argv[0]); settings = settings_buf; }
     if (prepare) return gowa_prepare_cli(prepare, prep_rpcs3, prep_rap, settings);
+    if (find_game) return gowa_find_game_cli(find_under);
 #ifdef _WIN32
     if (!precompile && !report) {
         session_log(settings);

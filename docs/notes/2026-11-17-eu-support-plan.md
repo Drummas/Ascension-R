@@ -136,6 +136,27 @@ Replace the single title with a table, so every place that says NPUA80918 asks i
 - **Done when:** a new portable Kit on this PC finds the EU install by itself (through `E:\PS3\rpcs3`) and by Browse to
   either folder, and each wrong state above, made in a test folder, shows its message.
 
+**Done (2026-11-17).** BCES01741 is on in both tables.
+
+- `GameInfo` has the update (`update`), whether it is a disc, PARAM.SFO's CATEGORY, and for an incomplete disc what
+  it lacks (`DiscLack`: the update, the disc, an ISO, encrypted). `game_probe_pair(dir, update)` is `game_probe` with
+  the update given (the launcher's hdd0 link). A disc's PS3_GAME (DG) finds its update in an RPCS3 noted
+  (`game_note_rpcs3`; a search notes every folder holding rpcs3.exe), the usual places (`%LOCALAPPDATA%\rpcs3` ...),
+  one beside the disc (a folder with rpcs3.exe in, or next to, the disc's folder or the three above it), or one a
+  search saw; an update (GD with GOWA.SELF; a GD folder without it is the game's data) finds its disc in its RPCS3's
+  `config\games.yml` (older RPCS3s: `games.yml`), another RPCS3's, or one a search saw. An encrypted disc is told by
+  GAME.PSARC not starting with `PSAR`; APP_VER is the update's.
+- The launcher links `<vfs>\PS3_GAME` to the disc's PS3_GAME and `<hdd0>\game\<id>` to the update, and the folder
+  line shows both; an update found without its disc, or a disc RPCS3 has as an ISO, is said and nothing is linked.
+- `Ascension-R --find-game [folder]`: what Auto detect (every disk) or Browse (that folder) comes to, a line each.
+- **Checked:** `test_game_find` (40: nine for discs and updates, with made-up RPCS3 folders and the usual places moved
+  into the test's folder); `--find-game` on this PC's EU copy from `E:\PS3\rpcs3`, `E:\PS3\Games\BCES01741` and the
+  update folder, and every disk of E: (125 s); a fresh settings file: the launcher found and linked the EU copy by
+  itself (E: is searched first here) and shows `BCES01741 · 1.12`; the dev settings still show NPUA80918 1.12 as
+  ready.
+- **Not done:** listing two copies for the player to pick (Auto detect takes the first one it can set up; Browse picks
+  the other); the disc's file list (phase 5). Until phase 4 the System tab still asks a disc for a `.rap`.
+
 ## Phase 4: decrypting an EU copy without keys (1 day)
 
 `game_prepare.cpp`, for a disc title:

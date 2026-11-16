@@ -29,6 +29,8 @@
 #include <string.h>
 #include <deque>
 #include <string>
+#include <utility>
+#include <vector>
 #pragma comment(lib, "bcrypt.lib")
 
 static const char k_app_ver[] = "01.12";
@@ -96,6 +98,7 @@ static int sfo_read(const wchar_t* path, GameInfo* g)
                 const char* key = (const char*)d + ko;
                 if (!strcmp(key, "TITLE_ID")) { copy_value(g->title_id, sizeof g->title_id, d + vo, len); found = 1; }
                 else if (!strcmp(key, "APP_VER")) copy_value(g->app_ver, sizeof g->app_ver, d + vo, len);
+                else if (!strcmp(key, "CATEGORY")) copy_value(g->category, sizeof g->category, d + vo, len);
                 else if (!strcmp(key, "TITLE")) copy_value(g->title, sizeof g->title, d + vo, len);
             }
         }
@@ -254,6 +257,26 @@ static void bytes_text(unsigned long long b, wchar_t* out, size_t n)
  * the System tab holds about a hundred characters. */
 void game_files_text(const GameInfo* g, wchar_t* out, size_t n)
 {
+    switch (g->disc ? g->disc_lack : DISC_WHOLE) {
+    case DISC_NO_UPDATE:
+        swprintf(out, n, L"The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 "
+                         L"(File, Install Packages, in that order), then Auto detect", g->title_id);
+        return;
+    case DISC_NO_GAME:
+        swprintf(out, n, L"The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding "
+                         L"PS3_GAME)", g->title_id, g->update);
+        return;
+    case DISC_ISO:
+        swprintf(out, n, L"RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse "
+                         L"to that folder", g->iso);
+        return;
+    case DISC_ENCRYPTED:
+        swprintf(out, n, L"The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed",
+                 g->dir);
+        return;
+    default:
+        break;
+    }
     const int one = (g->files_missing ? g->files_missing : g->files_wrong) == 1;
     if (!g->base_bad && g->files_missing) {
         swprintf(out, n, L"Not every update is installed: %d %ls missing, %hs first. Install 1.04 to 1.12, in order",
@@ -300,7 +323,270 @@ int game_file_update(const char* path)
     return name_is(path, "USRDIR/TPPS", 0) || name_is(path, "USRDIR/PATCHES", 1);
 }
 
+/* --- discs ---------------------------------------------------------------------- */
+/* A disc runs from two folders: the disc's PS3_GAME (the base game, CATEGORY DG) and its update to 1.12, which RPCS3
+ * installs in <RPCS3>\dev_hdd0\game\<id> (CATEGORY GD, with GOWA.SELF and the TPPS archives). Each is found from the
+ * other: the update's RPCS3 names the disc's folder in its games.yml, and a disc's update is in the dev_hdd0 of an
+ * RPCS3 known (game_note_rpcs3, the usual places, one beside the disc's folder) or one a search saw
+ * (docs/notes/2026-11-17-eu-support-plan.md, phase 3). */
+
+static SRWLOCK s_seen_lock = SRWLOCK_INIT;
+static std::vector<std::wstring> s_rpcs3;                                     /* RPCS3 folders noted */
+static std::vector<std::pair<std::string, std::wstring>> s_discs, s_updates;   /* what probes saw: id, folder */
+
+static void seen_add(std::vector<std::pair<std::string, std::wstring>>& v, const char* id, const wchar_t* dir)
+{
+    AcquireSRWLockExclusive(&s_seen_lock);
+    int there = 0;
+    for (const auto& x : v) there |= x.first == id && !_wcsicmp(x.second.c_str(), dir);
+    if (!there) v.push_back({ id, dir });
+    ReleaseSRWLockExclusive(&s_seen_lock);
+}
+
+static std::vector<std::wstring> seen_of(const std::vector<std::pair<std::string, std::wstring>>& v, const char* id)
+{
+    std::vector<std::wstring> out;
+    AcquireSRWLockShared(&s_seen_lock);
+    for (const auto& x : v)
+        if (x.first == id) out.push_back(x.second);
+    ReleaseSRWLockShared(&s_seen_lock);
+    return out;
+}
+
+static int has_rpcs3(const wchar_t* dir)
+{
+    wchar_t p[GAME_PATH_MAX + 32];
+    swprintf(p, sizeof p / sizeof p[0], L"%ls\\rpcs3.exe", dir);
+    return is_file(p);
+}
+
+void game_note_rpcs3(const wchar_t* root)
+{
+    if (!root || !*root) return;
+    wchar_t r[GAME_PATH_MAX];
+    folder_copy(r, GAME_PATH_MAX, root);
+    AcquireSRWLockExclusive(&s_seen_lock);
+    int there = 0;
+    for (const std::wstring& x : s_rpcs3) there |= !_wcsicmp(x.c_str(), r);
+    if (!there) s_rpcs3.push_back(r);
+    ReleaseSRWLockExclusive(&s_seen_lock);
+}
+
+/* The RPCS3 folders to look in: those noted, the usual places, and the ones beside a folder: an RPCS3 in it, or in a
+ * folder next to it or next to one of the three above it (E:\PS3\Games\<disc> finds E:\PS3\rpcs3). */
+static std::vector<std::wstring> rpcs3_roots(const wchar_t* beside)
+{
+    std::vector<std::wstring> out;
+    auto add = [&out](const std::wstring& r) {
+        for (const std::wstring& x : out)
+            if (!_wcsicmp(x.c_str(), r.c_str())) return;
+        out.push_back(r);
+    };
+    AcquireSRWLockShared(&s_seen_lock);
+    const std::vector<std::wstring> noted = s_rpcs3;
+    ReleaseSRWLockShared(&s_seen_lock);
+    for (const std::wstring& r : noted) add(r);
+    static const wchar_t* const vars[] = { L"LOCALAPPDATA", L"APPDATA", L"USERPROFILE" };
+    for (const wchar_t* v : vars) {
+        wchar_t e[GAME_PATH_MAX], p[GAME_PATH_MAX + 16];
+        if (!GetEnvironmentVariableW(v, e, GAME_PATH_MAX)) continue;
+        swprintf(p, sizeof p / sizeof p[0], L"%ls\\rpcs3", e);
+        if (has_rpcs3(p)) add(p);
+    }
+    if (beside && *beside) {
+        std::wstring up(beside);
+        for (int level = 0; level < 4; level++) {
+            const size_t s = up.find_last_of(L'\\');
+            if (s == std::wstring::npos || s < 2) break;
+            up.resize(s);
+            if (has_rpcs3(up.c_str())) add(up);
+            WIN32_FIND_DATAW fd;
+            HANDLE h = FindFirstFileExW((up + L"\\*").c_str(), FindExInfoBasic, &fd, FindExSearchLimitToDirectories, NULL, 0);
+            if (h == INVALID_HANDLE_VALUE) continue;
+            do {
+                if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || fd.cFileName[0] == L'.') continue;
+                const std::wstring c = up + L"\\" + fd.cFileName;
+                if (has_rpcs3(c.c_str())) add(c);
+            } while (FindNextFileW(h, &fd));
+            FindClose(h);
+        }
+    }
+    return out;
+}
+
+/* Where RPCS3's games.yml (config\games.yml; games.yml in older versions) says a title's disc is, as a folder of this PC
+ * without the closing backslash. 1 = it names one. */
+static int games_yml_dir(const wchar_t* root, const char* id, wchar_t* out, size_t n)
+{
+    static const wchar_t* const where[] = { L"\\config\\games.yml", L"\\games.yml" };
+    const size_t idn = strlen(id);
+    for (const wchar_t* w : where) {
+        wchar_t p[GAME_PATH_MAX + 32];
+        swprintf(p, sizeof p / sizeof p[0], L"%ls%ls", root, w);
+        HANDLE h = CreateFileW(p, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h == INVALID_HANDLE_VALUE) continue;
+        std::string d(1 << 20, '\0');
+        DWORD got = 0;
+        const BOOL ok = ReadFile(h, &d[0], (DWORD)d.size(), &got, NULL);
+        CloseHandle(h);
+        if (!ok) continue;
+        d.resize(got);
+        size_t pos = 0;
+        while (pos < d.size()) {
+            size_t end = d.find('\n', pos);
+            if (end == std::string::npos) end = d.size();
+            std::string line = d.substr(pos, end - pos);
+            pos = end + 1;
+            size_t a = line.find_first_not_of(" \t");
+            if (a == std::string::npos || line.compare(a, idn, id) || line.size() <= a + idn || line[a + idn] != ':')
+                continue;
+            std::string v = line.substr(a + idn + 1);
+            while (!v.empty() && (v.back() == '\r' || v.back() == ' ' || v.back() == '\t')) v.pop_back();
+            const size_t b = v.find_first_not_of(" \t");
+            v = b == std::string::npos ? "" : v.substr(b);
+            if (v.size() >= 2 && (v[0] == '"' || v[0] == '\'') && v.back() == v[0]) v = v.substr(1, v.size() - 2);
+            if (v.empty()) continue;
+            if (!MultiByteToWideChar(CP_UTF8, 0, v.c_str(), -1, out, (int)n)) continue;
+            for (wchar_t* c = out; *c; c++)
+                if (*c == L'/') *c = L'\\';
+            folder_copy(out, n, std::wstring(out).c_str());
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Whether a folder is that title's disc (PS3_GAME, CATEGORY DG) or its update (CATEGORY GD, and the game's executable
+ * in USRDIR: a GD folder without it is the game's data, <id>-DATA). */
+static int is_disc_of(const wchar_t* dir, const char* id)
+{
+    GameInfo t;
+    return game_read_info(dir, &t) && !strcmp(t.title_id, id) && !strcmp(t.category, "DG");
+}
+
+static int is_update_of(const wchar_t* dir, const char* id)
+{
+    GameInfo t;
+    if (!game_read_info(dir, &t) || strcmp(t.title_id, id) || strcmp(t.category, "GD")) return 0;
+    wchar_t p[GAME_PATH_MAX + 32];
+    swprintf(p, sizeof p / sizeof p[0], L"%ls\\USRDIR\\GOWA.SELF", dir);
+    if (is_file(p)) return 1;
+    swprintf(p, sizeof p / sizeof p[0], L"%ls\\USRDIR\\GOWA.elf", dir);
+    return is_file(p);
+}
+
+/* Whether a disc's archives are encrypted: GAME.PSARC, which every release has, does not start with PSAR, as the files
+ * of a dump that was never decrypted do. */
+static int disc_encrypted(const wchar_t* disc)
+{
+    wchar_t p[GAME_PATH_MAX + 32];
+    swprintf(p, sizeof p / sizeof p[0], L"%ls\\USRDIR\\GAME.PSARC", disc);
+    HANDLE h = CreateFileW(p, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+                           FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    char b[4] = { 0 };
+    DWORD got = 0;
+    const BOOL ok = ReadFile(h, b, 4, &got, NULL);
+    CloseHandle(h);
+    return ok && got == 4 && memcmp(b, "PSAR", 4) != 0;
+}
+
+/* The disc's update: the one given, or in an RPCS3 known or beside the disc, or one a search saw. */
+static int find_update(const char* id, const wchar_t* disc, const wchar_t* given, wchar_t* out, size_t n)
+{
+    if (given && *given && is_update_of(given, id)) { folder_copy(out, n, given); return 1; }
+    for (const std::wstring& r : rpcs3_roots(disc)) {
+        wchar_t p[GAME_PATH_MAX + 64];
+        swprintf(p, sizeof p / sizeof p[0], L"%ls\\dev_hdd0\\game\\%hs", r.c_str(), id);
+        if (is_update_of(p, id)) { folder_copy(out, n, p); return 1; }
+    }
+    for (const std::wstring& u : seen_of(s_updates, id))
+        if (is_update_of(u.c_str(), id)) { folder_copy(out, n, u.c_str()); return 1; }
+    return 0;
+}
+
+/* The update's disc: from its RPCS3's games.yml (or another RPCS3's), or one a search saw. An ISO there goes in iso. */
+static int find_disc(const char* id, const wchar_t* update, wchar_t* out, size_t n, wchar_t* iso, size_t isn)
+{
+    std::vector<std::wstring> roots;
+    std::wstring up(update);
+    for (int i = 0; i < 3; i++) {
+        const size_t s = up.find_last_of(L'\\');
+        if (s == std::wstring::npos) break;
+        up.resize(s);
+    }
+    roots.push_back(up);   /* <RPCS3>\dev_hdd0\game\<id>: three folders up */
+    for (const std::wstring& r : rpcs3_roots(NULL)) roots.push_back(r);
+    for (const std::wstring& r : roots) {
+        wchar_t v[GAME_PATH_MAX];
+        if (!games_yml_dir(r.c_str(), id, v, GAME_PATH_MAX)) continue;
+        const size_t k = wcslen(v);
+        if (k > 4 && !_wcsicmp(v + k - 4, L".iso")) {
+            if (is_file(v)) swprintf(iso, isn, L"%ls", v);
+            continue;
+        }
+        wchar_t p[GAME_PATH_MAX + 16];
+        swprintf(p, sizeof p / sizeof p[0], L"%ls\\PS3_GAME", v);
+        if (is_disc_of(p, id)) { folder_copy(out, n, p); return 1; }
+        if (is_disc_of(v, id)) { folder_copy(out, n, v); return 1; }
+    }
+    for (const std::wstring& d : seen_of(s_discs, id))
+        if (is_disc_of(d.c_str(), id)) { folder_copy(out, n, d.c_str()); return 1; }
+    return 0;
+}
+
+/* A disc title's folder, the disc's PS3_GAME or its update, with the other found. */
+static GameState disc_probe(const wchar_t* update_given, GameInfo* g)
+{
+    const char* id = g->title_id;
+    g->disc = 1;
+    wchar_t disc[GAME_PATH_MAX] = L"", upd[GAME_PATH_MAX] = L"";
+    if (!strcmp(g->category, "DG")) {
+        folder_copy(disc, GAME_PATH_MAX, g->dir);
+        seen_add(s_discs, id, disc);
+        find_update(id, disc, update_given, upd, GAME_PATH_MAX);
+    } else if (!strcmp(g->category, "GD")) {
+        if (!is_update_of(g->dir, id)) return g->state = GAME_NONE;   /* the game's data, not its update */
+        folder_copy(upd, GAME_PATH_MAX, g->dir);
+        seen_add(s_updates, id, upd);
+        std::wstring root(upd);   /* <RPCS3>\dev_hdd0\game\<id>: three folders up */
+        for (int i = 0; i < 3; i++) {
+            const size_t s = root.find_last_of(L'\\');
+            if (s != std::wstring::npos) root.resize(s);
+        }
+        if (has_rpcs3(root.c_str())) game_note_rpcs3(root.c_str());
+        find_disc(id, upd, disc, GAME_PATH_MAX, g->iso, GAME_PATH_MAX);
+    } else {
+        return g->state = GAME_OTHER_TITLE;
+    }
+    swprintf(g->update, GAME_PATH_MAX, L"%ls", upd);
+    if (!disc[0]) {   /* the update alone: dir stays the update's, for the line that says so */
+        g->disc_lack = g->iso[0] ? DISC_ISO : DISC_NO_GAME;
+        return g->state = GAME_INCOMPLETE;
+    }
+    swprintf(g->dir, GAME_PATH_MAX, L"%ls", disc);
+    if (disc_encrypted(disc)) { g->disc_lack = DISC_ENCRYPTED; return g->state = GAME_INCOMPLETE; }
+    if (!upd[0]) { g->disc_lack = DISC_NO_UPDATE; return g->state = GAME_INCOMPLETE; }
+    GameInfo u;
+    if (game_read_info(upd, &u)) snprintf(g->app_ver, sizeof g->app_ver, "%s", u.app_ver);
+    if (strcmp(g->app_ver, k_app_ver)) {
+        g->other_version = 1;
+        return g->state = GAME_OTHER_BUILD;
+    }
+    /* The disc's and its update's files are checked by a list of their own: phase 5 of the plan. */
+    wchar_t elf[GAME_PATH_MAX + 32];
+    swprintf(elf, sizeof elf / sizeof elf[0], L"%ls\\USRDIR\\GOWA.elf", upd);
+    if (!is_file(elf)) return g->state = GAME_NO_ELF;
+    return g->state = game_elf_ok(elf) ? GAME_OK : GAME_OTHER_BUILD;
+}
+
 GameState game_probe(const wchar_t* dir, GameInfo* g)
+{
+    return game_probe_pair(dir, NULL, g);
+}
+
+GameState game_probe_pair(const wchar_t* dir, const wchar_t* update, GameInfo* g)
 {
     memset(g, 0, sizeof *g);
     folder_copy(g->dir, GAME_PATH_MAX, dir);
@@ -309,6 +595,7 @@ GameState game_probe(const wchar_t* dir, GameInfo* g)
     if (!sfo_read(p, g)) return g->state = GAME_NONE;
     const GameTitle* t = game_title_find(g->title_id);
     if (!t || !t->enabled) return g->state = GAME_OTHER_TITLE;
+    if (t->kind == GAME_KIND_DISC) return disc_probe(update, g);
     /* The game's data folder, <id>-DATA beside the game in RPCS3, has this title in its PARAM.SFO and neither
      * GOWA.elf nor GOWA.SELF: it is not the game, and the search goes on past it. */
     swprintf(elf, sizeof elf / sizeof elf[0], L"%ls\\USRDIR\\GOWA.elf", g->dir);
@@ -483,6 +770,7 @@ GameState game_search(GameSearch* s, GameInfo* best)
             const wchar_t* n = fd.cFileName;
             if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
                 if (!_wcsicmp(n, L"PARAM.SFO")) game_here = 1;
+                else if (!_wcsicmp(n, L"rpcs3.exe")) game_note_rpcs3(d.path.c_str());   /* where a disc's update is */
                 continue;
             }
             if (!wcscmp(n, L".") || !wcscmp(n, L"..")) continue;
@@ -651,6 +939,31 @@ int game_link(const wchar_t* link, const wchar_t* target, wchar_t* err, size_t n
         return 0;
     }
     return make_junction(link, target, err, n);
+}
+
+/* Ascension-R --find-game [folder]: what Auto detect (every disk) or Browse (under the folder) comes to, a line each,
+ * for a report or a test. 0 = a copy the launcher can take. */
+extern "C" int gowa_find_game_cli(const char* under)
+{
+    static const char* const names[] = { "none", "other_title", "incomplete", "no_elf", "other_build", "ok" };
+    static wchar_t u[GAME_PATH_MAX];
+    u[0] = 0;
+    if (under && *under) MultiByteToWideChar(CP_UTF8, 0, under, -1, u, GAME_PATH_MAX);
+    volatile long stop = 0;
+    GameSearch s = { u[0] ? u : NULL, &stop, NULL, 180, 0, 0 };
+    static GameInfo g;
+    game_search(&s, &g);
+    printf("[find] state %s\n[find] title %s %s, %s\n[find] disc %d lacks %d\n", names[g.state],
+           g.title_id[0] ? g.title_id : "-", g.app_ver[0] ? g.app_ver : "-", g.category[0] ? g.category : "-", g.disc,
+           (int)g.disc_lack);
+    printf("[find] dir %ls\n[find] update %ls\n[find] copies %d\n", g.dir[0] ? g.dir : L"-", g.update[0] ? g.update : L"-",
+           s.copies);
+    if (g.state == GAME_INCOMPLETE) {
+        wchar_t t[600];
+        game_files_text(&g, t, sizeof t / sizeof t[0]);
+        printf("[find] says %ls\n", t);
+    }
+    return g.state >= GAME_NO_ELF ? 0 : 1;
 }
 
 #endif /* _WIN32 */

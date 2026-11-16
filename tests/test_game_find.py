@@ -55,6 +55,17 @@ int wmain(int argc, wchar_t** argv)
         printf("needed %d\n", game_file_needed(p));
     }
     else if (!wcscmp(argv[1], L"locate")) { game_locate(argv[2], &g); out(L"locate", g, 0); }
+    else if (!wcscmp(argv[1], L"pair") || !wcscmp(argv[1], L"pairsearch")) {
+        /* a disc and its update: what locate (Browse to a folder) or a search under it pairs */
+        if (!wcscmp(argv[1], L"pair")) game_locate(argv[2], &g);
+        else {
+            volatile long stop = 0;
+            GameSearch s = { argv[2], &stop, NULL, 20, 0, 0 };
+            game_search(&s, &g);
+        }
+        printf("pair %s %d %s %ls %ls\n", name(g.state), (int)g.disc_lack, g.app_ver[0] ? g.app_ver : "-",
+               g.dir[0] ? g.dir : L"-", g.update[0] ? g.update : L"-");
+    }
     else if (!wcscmp(argv[1], L"title")) {
         wchar_t ids[96];
         game_titles_text(ids, 96);
@@ -78,9 +89,10 @@ int wmain(int argc, wchar_t** argv)
 '''
 
 
-def sfo(title_id="NPUA80918", app_ver="01.12", title="God of War: Ascension"):
-    """A PARAM.SFO with three text entries."""
-    items = [("APP_VER", app_ver), ("TITLE", title), ("TITLE_ID", title_id)]
+def sfo(title_id="NPUA80918", app_ver="01.12", title="God of War: Ascension", category=None):
+    """A PARAM.SFO with three text entries, and CATEGORY when given (DG a disc, GD its update or game data)."""
+    items = [("APP_VER", app_ver)] + ([("CATEGORY", category)] if category else []) + \
+            [("TITLE", title), ("TITLE_ID", title_id)]
     keys = b""
     data = b""
     table = b""
@@ -106,6 +118,38 @@ def file_bytes(rel, size):
 
 
 TEST_DATA = {rel: file_bytes(rel, size) for rel, size in TEST_FILES}
+
+
+def make_disc(root, title_id="BCES01741", encrypted=False):
+    """A disc as extracted: <root>\\PS3_GAME with PARAM.SFO (DG, 01.00), EBOOT.BIN and GAME.PSARC (whose first bytes
+    are PSAR, or not for a dump never decrypted). The PS3_GAME folder."""
+    g = Path(root) / "PS3_GAME"
+    (g / "USRDIR").mkdir(parents=True)
+    (g / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver="01.00", category="DG"))
+    (g / "USRDIR" / "EBOOT.BIN").write_bytes(b"self")
+    (g / "USRDIR" / "GAME.PSARC").write_bytes((b"\x9a\x13\x77\x02" if encrypted else b"PSAR") + bytes(60))
+    return str(g)
+
+
+def make_rpcs3(root, title_id="BCES01741", app_ver="01.12", disc=None, update=True, yml="config"):
+    """An RPCS3 folder: rpcs3.exe, the disc's update in dev_hdd0\\game\\<id> (GD, GOWA.SELF), the game's data beside it
+    (<id>-DATA, GD, no GOWA.SELF), and games.yml naming disc (in config\\, or the folder itself as older RPCS3s did)."""
+    r = Path(root)
+    r.mkdir(parents=True, exist_ok=True)
+    (r / "rpcs3.exe").write_bytes(b"MZ")
+    if update:
+        u = r / "dev_hdd0" / "game" / title_id
+        (u / "USRDIR").mkdir(parents=True)
+        (u / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver=app_ver, category="GD"))
+        (u / "USRDIR" / "GOWA.SELF").write_bytes(b"self")
+    d = r / "dev_hdd0" / "game" / (title_id + "-DATA")
+    (d / "USRDIR").mkdir(parents=True)
+    (d / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver="01.00", category="GD"))
+    if disc:
+        y = r / "config" / "games.yml" if yml == "config" else r / "games.yml"
+        y.parent.mkdir(parents=True, exist_ok=True)
+        y.write_text('%s: "%s/"\n' % (title_id, disc.replace("\\", "/")))
+    return str(r)
 
 
 def make_game(path, elf=True, files=True, **kw):
@@ -159,7 +203,10 @@ class GameFind(unittest.TestCase):
         self.d = tempfile.mkdtemp(prefix="tree-", dir=self.tmp)
 
     def run_t(self, *a):
-        r = subprocess.run([self.exe, *a], capture_output=True, text=True)
+        # The usual places RPCS3 keeps its files (%LOCALAPPDATA%\rpcs3 ...) point into the test's folder: a disc's
+        # update is looked for there, and this PC's own RPCS3 must not be found.
+        env = dict(os.environ, LOCALAPPDATA=self.tmp, APPDATA=self.tmp, USERPROFILE=self.tmp)
+        r = subprocess.run([self.exe, *a], capture_output=True, text=True, env=env)
         self.assertEqual(r.returncode, 0, r.stderr)
         if a[0] in ("files", "needed"):
             first, _, text = r.stdout.strip().partition("\n")
@@ -193,12 +240,77 @@ class GameFind(unittest.TestCase):
         make_game(self.p("other"), title_id="BLES99999")
         out = self.run_t("title", self.p("eu"))
         self.assertEqual(out[1], "BCES01741")
-        self.assertEqual(" ".join(out[2:]), "NPUA80918")
+        self.assertEqual(" ".join(out[2:]), "NPUA80918 or BCES01741")
         self.assertEqual(self.run_t("title", self.p("other"))[1], "NPUA80918")
         self.assertEqual(self.run_t("title", self.p("nothing"))[1], "NPUA80918")
         self.assertEqual([self.gowa.title_of(self.p(d)) for d in ("eu", "other", "nothing")],
                          ["BCES01741", "NPUA80918", "NPUA80918"])
+        # A disc's title in a folder that is neither its disc (DG) nor its update (GD) is not the game.
         self.assertEqual(self.run_t("probe", self.p("eu"))[1], "other_title")
+
+    # --- a disc and its update (docs/notes/2026-11-17-eu-support-plan.md, phase 3) ---
+    # pair: state, what the disc lacks (0 nothing, 1 its update, 2 the disc, 3 an ISO, 4 encrypted), APP_VER, the
+    # disc's PS3_GAME, the update.
+
+    def test_an_rpcs3_folder_gives_the_update_and_its_games_yml_the_disc(self):
+        disc = make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        out = self.run_t("pair", emu)
+        self.assertEqual(out[1:4], ["no_elf", "0", "01.12"])
+        self.assertEqual(out[4], disc)
+        self.assertEqual(out[5], os.path.join(emu, "dev_hdd0", "game", "BCES01741"))
+
+    def test_the_update_finds_its_disc_and_an_older_rpcs3s_games_yml_too(self):
+        disc = make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"), yml="root")
+        out = self.run_t("pair", os.path.join(emu, "dev_hdd0", "game", "BCES01741"))
+        self.assertEqual(out[1:5], ["no_elf", "0", "01.12", disc])
+
+    def test_a_disc_finds_the_rpcs3_beside_it(self):
+        # E:\PS3\Games\BCES01741 and E:\PS3\rpcs3, no games.yml
+        disc = make_disc(self.p("PS3", "Games", "BCES01741"))
+        make_rpcs3(self.p("PS3", "rpcs3"))
+        out = self.run_t("pair", self.p("PS3", "Games", "BCES01741"))
+        self.assertEqual(out[1:5], ["no_elf", "0", "01.12", disc])
+        self.assertTrue(out[5].endswith(os.path.join("rpcs3", "dev_hdd0", "game", "BCES01741")), out)
+
+    def test_a_disc_without_its_update(self):
+        disc = make_disc(self.p("dumps", "BCES01741"))
+        out = self.run_t("pair", self.p("dumps", "BCES01741"))
+        self.assertEqual(out[1:3], ["incomplete", "1"])
+        self.assertEqual(out[4:6], [disc, "-"])
+
+    def test_an_update_without_its_disc(self):
+        emu = make_rpcs3(self.p("emu"))
+        out = self.run_t("pair", emu)
+        self.assertEqual(out[1:3], ["incomplete", "2"])
+        self.assertEqual(out[5], os.path.join(emu, "dev_hdd0", "game", "BCES01741"))
+
+    def test_rpcs3_has_the_disc_as_an_iso(self):
+        iso = self.p("isos", "God of War - Ascension (Europe).iso")
+        Path(iso).parent.mkdir(parents=True)
+        Path(iso).write_bytes(b"\0" * 2048)
+        emu = make_rpcs3(self.p("emu"))
+        Path(emu, "config").mkdir()
+        Path(emu, "config", "games.yml").write_text("BCES01741: %s\n" % iso.replace("\\", "/"))
+        self.assertEqual(self.run_t("pair", emu)[1:3], ["incomplete", "3"])
+
+    def test_a_disc_never_decrypted(self):
+        make_disc(self.p("dumps", "BCES01741"), encrypted=True)
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        self.assertEqual(self.run_t("pair", emu)[1:3], ["incomplete", "4"])
+
+    def test_an_update_before_1_12(self):
+        make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), app_ver="01.11", disc=self.p("dumps", "BCES01741"))
+        self.assertEqual(self.run_t("pair", emu)[1:4], ["other_build", "0", "01.11"])
+
+    def test_a_search_pairs_a_disc_and_an_update_it_saw_apart(self):
+        # The disc in one place, an RPCS3 with its update elsewhere, no games.yml: the search sees both and pairs them.
+        disc = make_disc(self.p("a", "games", "BCES01741"))
+        make_rpcs3(self.p("b", "emulators", "RPCS3"))
+        out = self.run_t("pairsearch", self.d)
+        self.assertEqual(out[1:5], ["no_elf", "0", "01.12", disc])
 
     def test_a_broken_param_sfo(self):
         (Path(self.d) / "PARAM.SFO").write_bytes(b"\0PSF" + b"\xff" * 40)
