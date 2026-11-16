@@ -31,6 +31,25 @@ import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TITLE_ID = "NPUA80918"
+# The releases whose folder holds the text (gowa.py's TITLES, which imports this file): a digital release's own folder,
+# or a disc's update folder; a mod goes under that title's folder.
+TITLES = ("NPUA80918", "BCES01741", "BCUS98232")
+
+
+def title_of(game_dir):
+    """PARAM.SFO's TITLE_ID in the game's folder when it is one of TITLES, else TITLE_ID."""
+    try:
+        with open(os.path.join(game_dir, "PARAM.SFO"), "rb") as f:
+            d = f.read()
+        keys, data, count = struct.unpack_from("<III", d, 8)
+        for i in range(count):
+            koff, _, ln, _, doff = struct.unpack_from("<HHIII", d, 20 + 16 * i)
+            if d[keys + koff:d.index(b"\0", keys + koff)] == b"TITLE_ID":
+                t = d[data + doff:data + doff + ln].rstrip(b"\0").decode("ascii", "replace")
+                return t if t in TITLES else TITLE_ID
+    except (OSError, ValueError, struct.error):
+        pass
+    return TITLE_ID
 WAD_DIR = "/WAD/PS3_BE/"
 BLOCK = 65536
 
@@ -240,7 +259,7 @@ class Table:
 # ---------------------------------------------------------------------------
 
 def default_game_dir():
-    cands = [os.path.join(ROOT, "gamedata", "dev_hdd0", "game", TITLE_ID)]
+    cands = [os.path.join(ROOT, "gamedata", "dev_hdd0", "game", t) for t in TITLES]
     local = os.path.join(ROOT, "local.json")
     if os.path.isfile(local):
         import json
@@ -393,7 +412,7 @@ def cmd_build(args):
             apply(t, tr)
         files[name] = patch_with_msgs(patch, t.raw())
     root = os.path.abspath(args.out or os.path.join(ROOT, "build", "mods"))
-    dst = os.path.join(root, "dev_hdd0", "game", TITLE_ID, "USRDIR")
+    dst = os.path.join(root, "dev_hdd0", "game", title_of(args.game_dir), "USRDIR")
     os.makedirs(dst, exist_ok=True)
     arc = os.path.join(dst, "TPPS%d.PSARC" % (n + 1))
     with open(arc, "wb") as f:

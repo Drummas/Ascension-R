@@ -97,6 +97,29 @@ Replace the single title with a table, so every place that says NPUA80918 asks i
 - **Done when:** NPUA80918 behaves exactly as before (tests, a bench run, the Kit's DLL hash unchanged) and the
   Phase 1 setup runs from settings alone.
 
+**Done (2026-11-17).**
+
+- `port/game_title.h`: NPUA80918 (US digital, on), BCES01741 (EU disc) and BCUS98232 (US disc), off for the launcher
+  until it finds and decrypts a disc (phases 3 and 4); each with its kind and its `.rap` (none for a disc).
+  `game_title_find`, `game_titles_text` (the ids the launcher takes, for its lines), and in `game_find.cpp`
+  `game_title_of_folder` / `game_title_of_vfs`. `scripts/gowa.py` has the same table (`TITLES`, `title_of`);
+  `scripts/gametext.py`, which gowa.py imports, keeps a list of the ids and its own reader.
+- **No `[game] title` setting**, as planned at first: the title is what PARAM.SFO under `<vfs>\PS3_GAME` names, the
+  folder the launcher links, read there by `main.cpp`, `precompile.cpp`, the launcher and `kit_train`. One place,
+  nothing to fall out of step.
+- What asks it now: `game_find.cpp` (the titles taken, the folders tried, the search's hint), `game_prepare.cpp`
+  (the `.rap` by title; a title without one is not decrypted that way), the launcher (the hdd0 link is
+  `<hdd0>\game\<id>` of the folder linked or picked, and its lines name the ids it takes), `main.cpp`,
+  `precompile.cpp`, `gowa.py` (`doctor`, `game-files` and `setup` for a digital release, `kit_train`'s link and
+  their removal), `gametext.py` (the mod folder).
+- `precompile.cpp` now takes every PSARC of its folders, one per name from the first folder that has it: a disc's
+  base archives and its update's TPPS ones. For NPUA80918 the two folders are one and the list is the same.
+- **Checked:** the port's tests (`test_game_find`: 31, one for the table); NPUA80918's precompile read no archive
+  (its list of 6,911 programs is keyed by the archives' count and bytes, so the list is the same) and the fight bench
+  as before; the EU copy's precompile, from settings alone, read its 83 archives (the disc's and the update's) and
+  found 6,907 vertex programs, all already in the cache NPUA80918's run had made. The game's DLL is built from none of
+  the files changed.
+
 ## Phase 3: the launcher finds an EU install (1 to 1.5 days)
 
 - **From RPCS3:** `config/games.yml` names each disc's folder (`BCES01741: E:/PS3/Games/BCES01741/`), and the same

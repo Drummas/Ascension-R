@@ -51,6 +51,7 @@
 #include "ps3emu/ps3_settings.h"
 #include "rsx_d3d12_backend.h"
 #include "version.h"
+#include "game_title.h"
 
 static uint32_t be16(const uint8_t* p) { return (uint32_t)p[0] << 8 | p[1]; }
 static uint32_t be32(const uint8_t* p) { return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3]; }
@@ -286,14 +287,14 @@ extern "C" int gowa_precompile(void)
      * (loading_screen.cpp) the player is waiting for it. */
     if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
     const DWORD t0 = GetTickCount();
-    /* The archives where the game opens them, /dev_hdd0/game/NPUA80918/USRDIR, then through the vfs link, then beside
+    /* The archives where the game opens them, /dev_hdd0/game/<id>/USRDIR (game_title.h), then through the vfs link, then beside
      * the ELF. Not the ELF's folder first: a game folder with only GOWA.SELF has it decrypted into the port's own
      * folder (launcher.cpp, game_refresh), and paths.elf names that copy, beside no archive (issue #9's Kit). */
     const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
     const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
     const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
     std::vector<std::string> dirs;
-    if (hdd0 && *hdd0) dirs.push_back(std::string(hdd0) + "\\game\\NPUA80918\\USRDIR");
+    if (hdd0 && *hdd0) dirs.push_back(std::string(hdd0) + "\\game\\" + game_title_of_vfs(vfs)->id + "\\USRDIR");
     if (vfs && *vfs) dirs.push_back(std::string(vfs) + "\\PS3_GAME\\USRDIR");
     if (elf && *elf) {
         const std::string e(elf);
@@ -304,22 +305,30 @@ extern "C" int gowa_precompile(void)
         printf("precompile: error the game's folder is not set\n");
         return 1;
     }
-    std::string dir;
-    std::vector<std::string> arcs;
-    for (const std::string& d : dirs) {
-        WIN32_FIND_DATAA fd;
-        HANDLE fh = FindFirstFileA((d + "\\*.PSARC").c_str(), &fd);
-        if (fh == INVALID_HANDLE_VALUE) continue;
-        do {
-            if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) arcs.push_back(fd.cFileName);
-        } while (FindNextFileA(fh, &fd));
-        FindClose(fh);
-        if (!arcs.empty()) {
-            dir = d;
-            break;
+    /* Every PSARC of those folders, one of each name, from the first folder that has it: a disc's base archives are
+     * on the disc and its update's TPPS ones in the update's folder; for an HDD game the two are one folder. */
+    std::vector<std::string> arcs, arc_dir;   /* the names, sorted, and the folder of each */
+    {
+        std::vector<std::pair<std::string, std::string>> all;
+        std::unordered_set<std::string> seen;
+        for (const std::string& d : dirs) {
+            WIN32_FIND_DATAA fd;
+            HANDLE fh = FindFirstFileA((d + "\\*.PSARC").c_str(), &fd);
+            if (fh == INVALID_HANDLE_VALUE) continue;
+            do {
+                if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+                std::string key(fd.cFileName);
+                for (char& c : key) c = (char)toupper((unsigned char)c);
+                if (seen.insert(key).second) all.push_back({ fd.cFileName, d });
+            } while (FindNextFileA(fh, &fd));
+            FindClose(fh);
+        }
+        std::sort(all.begin(), all.end());
+        for (const auto& x : all) {
+            arcs.push_back(x.first);
+            arc_dir.push_back(x.second);
         }
     }
-    std::sort(arcs.begin(), arcs.end());
     if (arcs.empty()) {
         std::string where;
         for (const std::string& d : dirs) where += (where.empty() ? "" : ", ") + d;
@@ -346,9 +355,9 @@ extern "C" int gowa_precompile(void)
     } vp_join = { vp_thread };
     const std::string sc = cache_file();
     uint64_t arc_bytes = 0;
-    for (const std::string& a : arcs) {
+    for (size_t a = 0; a < arcs.size(); a++) {
         WIN32_FILE_ATTRIBUTE_DATA fa;
-        if (GetFileAttributesExA((dir + "\\" + a).c_str(), GetFileExInfoStandard, &fa))
+        if (GetFileAttributesExA((arc_dir[a] + "\\" + arcs[a]).c_str(), GetFileExInfoStandard, &fa))
             arc_bytes += (uint64_t)fa.nFileSizeHigh << 32 | fa.nFileSizeLow;
     }
     std::unordered_set<std::string> found;
@@ -356,7 +365,7 @@ extern "C" int gowa_precompile(void)
     std::vector<uint8_t> buf, span;
     for (size_t a = 0; !listed && a < arcs.size(); a++) {
         printf("precompile: read %u %u %s\n", (unsigned)a + 1, (unsigned)arcs.size(), arcs[a].c_str());
-        HANDLE f = CreateFileA((dir + "\\" + arcs[a]).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+        HANDLE f = CreateFileA((arc_dir[a] + "\\" + arcs[a]).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
                                FILE_FLAG_SEQUENTIAL_SCAN, NULL);
         if (f == INVALID_HANDLE_VALUE) continue;
         std::vector<PsarcEntry> ents;

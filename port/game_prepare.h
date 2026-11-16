@@ -23,14 +23,15 @@ struct GameProgress {
 /* Asks the work to stop, a download at once. */
 void game_progress_stop(GameProgress* p);
 
-/* rpcs3.exe of the RPCS3 a game folder is installed in: <RPCS3>\dev_hdd0\game\NPUA80918. 1 = there is one. */
+/* rpcs3.exe of the RPCS3 a game folder is installed in: <RPCS3>\dev_hdd0\game\<id>. 1 = there is one. */
 int game_find_rpcs3(const wchar_t* game_dir, wchar_t* exe, size_t n);
 
 /* Where rpcs3.exe would be for a game folder under <RPCS3>\dev_hdd0\game, whether it is there or not. */
 const wchar_t* game_rpcs3_slot(const wchar_t* game_dir);
 
-/* This game's license file in that RPCS3. 1 = there is one. */
-int game_find_rap(const wchar_t* rpcs3_exe, wchar_t* rap, size_t n);
+/* The license file of that title (game_title.h) in that RPCS3. 1 = there is one; 0 also for a title decrypted
+ * without one. */
+int game_find_rap(const wchar_t* rpcs3_exe, const char* title_id, wchar_t* rap, size_t n);
 
 /* GOWA.SELF of the game's folder, decrypted to <data>\GOWA.elf by that RPCS3 and checked against the
  * build this port was made from. It works on copies in a folder of its own: neither the game's folder

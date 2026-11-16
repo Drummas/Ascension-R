@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 DRIVER = r'''
 #include "game_find.h"
+#include "game_title.h"
 #include <stdio.h>
 #include <string.h>
 #include <windows.h>
@@ -54,6 +55,11 @@ int wmain(int argc, wchar_t** argv)
         printf("needed %d\n", game_file_needed(p));
     }
     else if (!wcscmp(argv[1], L"locate")) { game_locate(argv[2], &g); out(L"locate", g, 0); }
+    else if (!wcscmp(argv[1], L"title")) {
+        wchar_t ids[96];
+        game_titles_text(ids, 96);
+        printf("title %s %ls\n", game_title_of_folder(argv[2])->id, ids);
+    }
     else if (!wcscmp(argv[1], L"search") || !wcscmp(argv[1], L"search_first")) {
         /* search_first: as the launcher looks, the first copy that is this release will do */
         volatile long stop = 0;
@@ -179,6 +185,20 @@ class GameFind(unittest.TestCase):
     def test_another_title(self):
         make_game(self.p("g"), title_id="BCUS98232", title="God of War: Ascension")
         self.assertEqual(self.run_t("probe", self.p("g"))[1], "other_title")
+
+    def test_the_titles(self):
+        # game_title.h: a folder's title when the table has it, else the default (the C++ and gowa.py alike), and the
+        # ids the launcher takes for its lines. A disc the launcher does not take yet is another release to it.
+        make_game(self.p("eu"), title_id="BCES01741")
+        make_game(self.p("other"), title_id="BLES99999")
+        out = self.run_t("title", self.p("eu"))
+        self.assertEqual(out[1], "BCES01741")
+        self.assertEqual(" ".join(out[2:]), "NPUA80918")
+        self.assertEqual(self.run_t("title", self.p("other"))[1], "NPUA80918")
+        self.assertEqual(self.run_t("title", self.p("nothing"))[1], "NPUA80918")
+        self.assertEqual([self.gowa.title_of(self.p(d)) for d in ("eu", "other", "nothing")],
+                         ["BCES01741", "NPUA80918", "NPUA80918"])
+        self.assertEqual(self.run_t("probe", self.p("eu"))[1], "other_title")
 
     def test_a_broken_param_sfo(self):
         (Path(self.d) / "PARAM.SFO").write_bytes(b"\0PSF" + b"\xff" * 40)

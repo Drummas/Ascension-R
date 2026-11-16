@@ -2,8 +2,8 @@
  * Ascension-R -- finding the game on this PC
  *
  * The game's folder reaches the port through two directory junctions, <vfs>\PS3_GAME and
- * <hdd0>\game\NPUA80918, as `gowa.py setup` makes them. The launcher reads the first to show where
- * the game is, and sets both when the player picks another folder or Auto detect finds one.
+ * <hdd0>\game\<id> (NPUA80918, the titles in game_title.h), as `gowa.py setup` makes them. The launcher reads the
+ * first to show where the game is, and sets both when the player picks another folder or Auto detect finds one.
  *
  * What a folder holds comes from its PARAM.SFO, the game's files and its GOWA.elf: the port is lifted
  * from one release, so another version or another GOWA.elf is told apart (scripts/gowa.py has the same
@@ -11,6 +11,7 @@
  * (game_files.inc). The search only reads. No game file is copied or changed.
  */
 #include "game_find.h"
+#include "game_title.h"
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -30,10 +31,20 @@
 #include <string>
 #pragma comment(lib, "bcrypt.lib")
 
-static const char k_title_id[] = "NPUA80918";
 static const char k_app_ver[] = "01.12";
 static const char k_elf_sha256[] = "4bf75c897b82d1beb25514cbadaff3d03e1b0c7bf849fa5d289be4f9183462b5";
-static const wchar_t k_title_dir[] = L"NPUA80918";
+
+/* Whether a folder's name is the id of a title the launcher takes. */
+static int is_title_dir(const wchar_t* name)
+{
+    for (int i = 0; i < GAME_TITLES; i++) {
+        if (!k_game_titles[i].enabled) continue;
+        wchar_t w[16];
+        swprintf(w, sizeof w / sizeof w[0], L"%hs", k_game_titles[i].id);
+        if (!_wcsicmp(name, w)) return 1;
+    }
+    return 0;
+}
 
 /* The game's files: USRDIR's archives and the three lists that name them, each with its size and the SHA-256 of its
  * first and last 64 KiB (game_files.inc, made by `gowa.py game-files` from a whole copy of 1.12). The game opens
@@ -296,8 +307,9 @@ GameState game_probe(const wchar_t* dir, GameInfo* g)
     wchar_t p[GAME_PATH_MAX + 32], elf[GAME_PATH_MAX + 32];
     swprintf(p, sizeof p / sizeof p[0], L"%ls\\PARAM.SFO", g->dir);
     if (!sfo_read(p, g)) return g->state = GAME_NONE;
-    if (strcmp(g->title_id, k_title_id)) return g->state = GAME_OTHER_TITLE;
-    /* The game's data folder, NPUA80918-DATA beside the game in RPCS3, has this title in its PARAM.SFO and neither
+    const GameTitle* t = game_title_find(g->title_id);
+    if (!t || !t->enabled) return g->state = GAME_OTHER_TITLE;
+    /* The game's data folder, <id>-DATA beside the game in RPCS3, has this title in its PARAM.SFO and neither
      * GOWA.elf nor GOWA.SELF: it is not the game, and the search goes on past it. */
     swprintf(elf, sizeof elf / sizeof elf[0], L"%ls\\USRDIR\\GOWA.elf", g->dir);
     swprintf(p, sizeof p / sizeof p[0], L"%ls\\USRDIR\\GOWA.SELF", g->dir);
@@ -330,18 +342,47 @@ GameState game_locate(const wchar_t* path, GameInfo* g)
     /* USRDIR, or anything in it picked by mistake: the folder above. */
     const wchar_t* end = wcsrchr(base, L'\\');
     if (end && !_wcsicmp(end + 1, L"USRDIR")) base[end - base] = 0;
-    static const wchar_t* const under[] = {
-        L"", L"\\PS3_GAME", L"\\NPUA80918", L"\\game\\NPUA80918", L"\\dev_hdd0\\game\\NPUA80918",
-    };
+    /* The folder, its PS3_GAME, and for each title the launcher takes <id>, game\<id> and dev_hdd0\game\<id>. */
+    std::wstring under[2 + 3 * GAME_TITLES];
+    size_t nu = 0;
+    under[nu++] = L"";
+    under[nu++] = L"\\PS3_GAME";
+    for (int i = 0; i < GAME_TITLES; i++) {
+        if (!k_game_titles[i].enabled) continue;
+        wchar_t id[16];
+        swprintf(id, sizeof id / sizeof id[0], L"%hs", k_game_titles[i].id);
+        under[nu++] = std::wstring(L"\\") + id;
+        under[nu++] = std::wstring(L"\\game\\") + id;
+        under[nu++] = std::wstring(L"\\dev_hdd0\\game\\") + id;
+    }
     memset(g, 0, sizeof *g);
-    for (size_t i = 0; i < sizeof under / sizeof under[0]; i++) {
+    for (size_t i = 0; i < nu; i++) {
         wchar_t p[GAME_PATH_MAX + 32];
-        swprintf(p, sizeof p / sizeof p[0], L"%ls%ls", base, under[i]);
+        swprintf(p, sizeof p / sizeof p[0], L"%ls%ls", base, under[i].c_str());
         GameInfo t;
         if (game_probe(p, &t) > g->state) *g = t;
         if (g->state == GAME_OK) break;
     }
     return g->state;
+}
+
+const GameTitle* game_title_of_folder(const wchar_t* dir)
+{
+    GameInfo g;
+    if (!dir || !*dir || !game_read_info(dir, &g)) return game_title_default();
+    const GameTitle* t = game_title_find(g.title_id);
+    return t ? t : game_title_default();
+}
+
+const GameTitle* game_title_of_vfs(const char* vfs)
+{
+    if (!vfs || !*vfs) return game_title_default();
+    wchar_t w[GAME_PATH_MAX];
+    if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, vfs, -1, w, GAME_PATH_MAX - 16) &&
+        !MultiByteToWideChar(CP_ACP, 0, vfs, -1, w, GAME_PATH_MAX - 16))
+        return game_title_default();
+    wcscat_s(w, GAME_PATH_MAX, L"\\PS3_GAME");
+    return game_title_of_folder(w);
 }
 
 /* --- the search ------------------------------------------------------------- */
@@ -448,7 +489,7 @@ GameState game_search(GameSearch* s, GameInfo* best)
             /* A link leads to a folder found on its own way, or round in a circle. */
             if (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) continue;
             if (d.depth >= max_depth || not_worth_it(n)) continue;
-            if (sounds_like_games(n) || !_wcsicmp(n, k_title_dir) || !_wcsicmp(n, L"PS3_GAME"))
+            if (sounds_like_games(n) || is_title_dir(n) || !_wcsicmp(n, L"PS3_GAME"))
                 found_hot.push_back({ prefix + n, d.depth + 1 });
             else
                 found_cold.push_back({ prefix + n, d.depth + 1 });

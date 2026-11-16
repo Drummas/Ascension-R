@@ -10,6 +10,7 @@
  */
 #include "game_prepare.h"
 #include "game_find.h"
+#include "game_title.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -22,8 +23,7 @@
 
 #pragma comment(lib, "winhttp.lib")
 
-/* The name RPCS3 looks the license up by: the content id inside the SELF. */
-static const wchar_t k_rap_name[] = L"UP9000-NPUA80918_00-GOWADIGITALVERS1.rap";
+/* The license RPCS3 looks up by the content id inside the SELF: each title's .rap name is in game_title.h. */
 static const DWORD k_decrypt_ms = 60000, k_unpack_ms = 300000, k_stall_ms = 30000, k_read_ms = 8000, k_slow_ms = 5000;
 
 /* The version of RPCS3 this was tried with. */
@@ -115,8 +115,11 @@ const wchar_t* game_rpcs3_slot(const wchar_t* game_dir)
     return p;
 }
 
-int game_find_rap(const wchar_t* rpcs3_exe, wchar_t* rap, size_t n)
+int game_find_rap(const wchar_t* rpcs3_exe, const char* title_id, wchar_t* rap, size_t n)
 {
+    const GameTitle* t = game_title_find(title_id);
+    rap[0] = 0;
+    if (!t || !t->rap) return 0;
     wchar_t root[GAME_PATH_MAX], pat[GAME_PATH_MAX + 32];
     swprintf(root, GAME_PATH_MAX, L"%ls", rpcs3_exe);
     wchar_t* s = wcsrchr(root, L'\\');
@@ -129,7 +132,7 @@ int game_find_rap(const wchar_t* rpcs3_exe, wchar_t* rap, size_t n)
     int found = 0;
     do {
         if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || fd.cFileName[0] == L'.') continue;
-        swprintf(rap, n, L"%ls\\dev_hdd0\\home\\%ls\\exdata\\%ls", root, fd.cFileName, k_rap_name);
+        swprintf(rap, n, L"%ls\\dev_hdd0\\home\\%ls\\exdata\\%ls", root, fd.cFileName, t->rap);
         found = is_file(rap);
     } while (!found && FindNextFileW(h, &fd));
     FindClose(h);
@@ -200,6 +203,7 @@ int game_prepare(const wchar_t* game_dir, const wchar_t* rpcs3_exe, const wchar_
     wchar_t work[P], input[P], config[P], exdata[P], from[P], self[P], to_rap[P], made[P], final_elf[P];
     swprintf(from, P, L"%ls\\USRDIR\\GOWA.SELF", game_dir);
     if (!is_file(from)) return fail(err, n, L"No USRDIR\\GOWA.SELF in the game's folder");
+    const GameTitle* title;
     {
         /* GOWA.SELF and a license alone are not the game: nothing is decrypted for a folder that lacks its files. */
         GameInfo g;
@@ -208,7 +212,11 @@ int game_prepare(const wchar_t* game_dir, const wchar_t* rpcs3_exe, const wchar_
             game_files_text(&g, why, sizeof why / sizeof why[0]);
             return fail(err, n, why);
         }
+        title = game_title_find(g.title_id);
     }
+    /* A title whose GOWA.SELF the update's EBOOT.BIN holds the key to has no .rap (docs/notes/2026-11-17-eu-support-
+     * plan.md, phase 4). */
+    if (!title || !title->rap) return fail(err, n, L"This release of the game is not decrypted this way");
     if (!is_file(rpcs3_exe)) return fail(err, n, L"rpcs3.exe is not there");
     if (!is_file(rap)) return fail(err, n, L"The game's license file (.rap) is not there");
     work_folder(data, work, P);
@@ -216,7 +224,7 @@ int game_prepare(const wchar_t* game_dir, const wchar_t* rpcs3_exe, const wchar_
     swprintf(config, P, L"%ls\\rpcs3\\", work);
     swprintf(exdata, P, L"%ls\\rpcs3\\dev_hdd0\\home\\00000001\\exdata", work);
     swprintf(self, P, L"%ls\\GOWA.SELF", input);
-    swprintf(to_rap, P, L"%ls\\%ls", exdata, k_rap_name);
+    swprintf(to_rap, P, L"%ls\\%ls", exdata, title->rap);
     swprintf(made, P, L"%ls\\GOWA.elf", input);
     swprintf(final_elf, P, L"%ls\\GOWA.elf", data);
 
@@ -587,7 +595,7 @@ extern "C" int gowa_prepare_cli(const char* game, const char* rpcs3, const char*
     if (rpcs3) MultiByteToWideChar(CP_UTF8, 0, rpcs3, -1, r, GAME_PATH_MAX);
     else game_find_rpcs3(g, r, GAME_PATH_MAX);
     if (rap) MultiByteToWideChar(CP_UTF8, 0, rap, -1, l, GAME_PATH_MAX);
-    else if (r[0]) game_find_rap(r, l, GAME_PATH_MAX);
+    else if (r[0]) game_find_rap(r, game_title_of_folder(g)->id, l, GAME_PATH_MAX);
     if (!game_prepare(g, r, l, d, e, sizeof e / sizeof e[0], NULL)) {
         char m[1024];
         WideCharToMultiByte(CP_UTF8, 0, e, -1, m, sizeof m, NULL, NULL);

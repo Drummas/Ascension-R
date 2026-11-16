@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""gowa.py - one entry point for the God of War: Ascension (NPUA80918) port pipeline.
+"""gowa.py - one entry point for the God of War: Ascension port pipeline (NPUA80918, and the releases in TITLES).
 
     python scripts/gowa.py doctor                  check tools, submodule and game files
     python scripts/gowa.py setup --game-dir DIR    link your installed game into vfs/ and gamedata/
@@ -67,6 +67,25 @@ HDD0 = os.path.join(ROOT, "gamedata", "dev_hdd0")
 # be wrong for it.
 TITLE_ID = "NPUA80918"
 APP_VER = "01.12"
+# The releases the port knows (port/game_title.h has the same table): each runs this same GOWA.elf at 1.12 and differs
+# in where its files are. "hdd": the whole game in /dev_hdd0/game/<id>; "disc": the disc's PS3_GAME, and the update
+# to 1.12 in /dev_hdd0/game/<id>. "enabled": the launcher finds, decrypts and plays it
+# (docs/notes/2026-11-17-eu-support-plan.md).
+TITLES = {
+    "NPUA80918": {"name": "US digital", "kind": "hdd", "enabled": True},
+    "BCES01741": {"name": "EU disc", "kind": "disc", "enabled": False},
+    "BCUS98232": {"name": "US disc", "kind": "disc", "enabled": False},
+}
+
+
+def title_of(folder):
+    """The title id PARAM.SFO in a folder names when TITLES has it, else TITLE_ID (game_title_of_folder)."""
+    sfo = os.path.join(folder or "", "PARAM.SFO")
+    if folder and os.path.isfile(sfo):
+        t = parse_sfo(sfo).get("TITLE_ID")
+        if t in TITLES:
+            return t
+    return TITLE_ID
 GAME_ELF = "GOWA.elf"
 GAME_ELF_SHA256 = "4bf75c897b82d1beb25514cbadaff3d03e1b0c7bf849fa5d289be4f9183462b5"
 # The game's files the launcher checks before it decrypts or builds anything (port/game_files.inc, `game-files`):
@@ -499,7 +518,7 @@ def cmd_doctor(args):
     sfo = os.path.join(VFS_GAME, "PARAM.SFO")
     if os.path.exists(sfo):
         s = parse_sfo(sfo)
-        check("title", s.get("TITLE_ID") == TITLE_ID, "%s %s" % (s.get("TITLE_ID"), s.get("TITLE")))
+        check("title", s.get("TITLE_ID") in TITLES, "%s %s" % (s.get("TITLE_ID"), s.get("TITLE")))
         check("version", s.get("APP_VER") == APP_VER, "APP_VER %s (port targets %s)"
               % (s.get("APP_VER"), APP_VER))
         if s.get("APP_VER") == APP_VER:
@@ -530,14 +549,17 @@ def cmd_doctor(args):
 
 
 def cmd_game_files(args):
-    """port/game_files.inc, from a copy of the game that is NPUA80918 1.12 and whole. Names, sizes and hashes only."""
+    """port/game_files.inc, from a copy of the game that is NPUA80918 1.12 and whole. Names, sizes and hashes only.
+    (A disc's list, its disc and its update together, is phase 5 of docs/notes/2026-11-17-eu-support-plan.md.)"""
     game = os.path.abspath(args.game_dir or VFS_GAME)
     sfo = os.path.join(game, "PARAM.SFO")
     if not os.path.isfile(sfo):
         die("no PARAM.SFO in %s" % game)
     s = parse_sfo(sfo)
-    if s.get("TITLE_ID") != TITLE_ID or s.get("APP_VER") != APP_VER:
-        die("%s is %s %s; the list is made from %s %s" % (game, s.get("TITLE_ID"), s.get("APP_VER"), TITLE_ID, APP_VER))
+    title = s.get("TITLE_ID")
+    if TITLES.get(title, {}).get("kind") != "hdd" or s.get("APP_VER") != APP_VER:
+        die("%s is %s %s; the list is made from a digital release at %s (%s)"
+            % (game, title, s.get("APP_VER"), APP_VER, ", ".join(t for t, v in TITLES.items() if v["kind"] == "hdd")))
     usr = os.path.join(game, "USRDIR")
     if not os.path.isfile(os.path.join(usr, "PATCHES")):
         die("no PATCHES in %s: the list is made from a whole copy, with update %s" % (usr, APP_VER))
@@ -554,9 +576,9 @@ def cmd_game_files(args):
         size = os.path.getsize(p)
         rows.append('{ "%s", %dull, "%s" },' % (rel, size, ends_sha256(p, size)))
         total += size
-    text = ("/* NPUA80918 %s: USRDIR's archives and the three lists that name them, in the order the game opens them, each\n"
+    text = ("/* %s %s: USRDIR's archives and the three lists that name them, in the order the game opens them, each\n"
             " * with its size and the SHA-256 of its first and last 64 KiB (game_find.cpp). Made by `gowa.py game-files`\n"
-            " * from a whole copy; names, sizes and hashes only. */\n" % APP_VER) + "\n".join(rows) + "\n"
+            " * from a whole copy; names, sizes and hashes only. */\n" % (title, APP_VER)) + "\n".join(rows) + "\n"
     with open(args.out, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     say("%s: %d files, %.1f GB" % (os.path.relpath(args.out, ROOT), len(rows), total / 1e9))
@@ -569,13 +591,17 @@ def cmd_setup(args):
         die("no PARAM.SFO in %r; pass the installed game folder, e.g. "
             "<RPCS3>/dev_hdd0/game/%s" % (game, TITLE_ID))
     s = parse_sfo(os.path.join(game, "PARAM.SFO"))
-    if s.get("TITLE_ID") != TITLE_ID:
-        die("that folder is %s, not %s" % (s.get("TITLE_ID"), TITLE_ID))
+    title = s.get("TITLE_ID")
+    if title not in TITLES:
+        die("that folder is %s, not one of %s" % (title, ", ".join(TITLES)))
+    if TITLES[title]["kind"] != "hdd":
+        die("%s is a disc (%s): setup links a digital release's folder; a disc and its update are phase 3 of "
+            "docs/notes/2026-11-17-eu-support-plan.md" % (title, TITLES[title]["name"]))
     local = load_local()
     local["game_dir"] = game
     json.dump(local, open(LOCAL, "w"), indent=1)
     link_dir(VFS_GAME, game)
-    link_dir(os.path.join(HDD0, "game", TITLE_ID), game)
+    link_dir(os.path.join(HDD0, "game", title), game)
     os.makedirs(os.path.join(HDD0, "home", "00000001", "savedata"), exist_ok=True)
     if not os.path.exists(game_elf()):
         say("note: USRDIR/GOWA.elf is missing; decrypt GOWA.SELF with RPCS3 next")
@@ -2388,7 +2414,7 @@ def kit_build(out, jobs, args, t0):
     if not args.keep_work:
         for name in KIT_WORK_MADE:
             p = os.path.join(WORK, name)
-            if name == "train" and not junction_off(os.path.join(p, "hdd0", "game", "NPUA80918")):
+            if name == "train" and not all(junction_off(os.path.join(p, "hdd0", "game", t)) for t in TITLES):
                 continue   # never removed through the junction to the player's game
             if os.path.isdir(p):
                 shutil.rmtree(p, ignore_errors=True)
@@ -2553,12 +2579,15 @@ def kit_train(out, dll, train):
     ini = ini_read(src)
     paths = ini.get("paths", {})
     hdd0 = paths.get("hdd0") or os.path.join(os.path.dirname(src), "gamedata", "dev_hdd0")
-    game = os.path.join(hdd0, "game", "NPUA80918")
+    # The title the settings' vfs folder holds: its folder in hdd0 is the game (a digital release) or its update (a
+    # disc, whose base game the run reads through the same vfs folder).
+    title = title_of(os.path.join(paths.get("vfs") or os.path.join(os.path.dirname(src), "vfs"), "PS3_GAME"))
+    game = os.path.join(hdd0, "game", title)
     if not os.path.isdir(os.path.join(game, "USRDIR")):
         return None, "the game's folder is not at %s" % game
     cache = ini.get("graphics", {}).get("shader_cache") or os.path.join(os.path.dirname(src), "d3d12_shader_cache.bin")
     PROGRESS.phase("train", "Optimising for this PC: the game plays by itself (leave it open)")
-    link = os.path.join(train, "hdd0", "game", "NPUA80918")
+    link = os.path.join(train, "hdd0", "game", title)
     raw = os.path.join(train, "game.profraw")
     t_start, why = time.monotonic(), None
     for attempt in range(1, TRAIN_TRIES + 1):
@@ -3206,7 +3235,7 @@ def main():
     p = sub.add_parser("setup", help="link the installed game into vfs/ and gamedata/")
     p.add_argument("--game-dir", help="installed game folder (holds PARAM.SFO and USRDIR/)")
     p = sub.add_parser("game-files", help="port/game_files.inc: the game's files the launcher checks, from a whole copy")
-    p.add_argument("--game-dir", help="the game's folder, NPUA80918 1.12 (default vfs/PS3_GAME)")
+    p.add_argument("--game-dir", help="the game's folder, a digital release (NPUA80918) at 1.12 (default vfs/PS3_GAME)")
     p.add_argument("--out", default=GAME_FILES_INC, help="where it goes (default port/game_files.inc)")
     sub.add_parser("analyze", help="loader, SPU images, HLE coverage -> analysis/")
     sub.add_parser("patches", help="list the switchable title patches and check them against the ELF")

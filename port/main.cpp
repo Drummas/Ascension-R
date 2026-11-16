@@ -41,6 +41,7 @@
 #include "ps3emu/ps3_ftrace.h"    /* ps3_ft_dump: write a PS3_FTRACE trace on quitting */
 #include "report.h"               /* what a session leaves behind */
 #include "game_find.h"            /* game_file_needed: the files the game cannot start without */
+#include "game_title.h"           /* the releases, and which one the vfs folder holds */
 #include "loading_screen.h"       /* the precompile gate: the vertex shaders first, on a screen of their own */
 #include "precompile_music.h"     /* its music: --music-preview */
 #include "ps3emu/ps3_settings.h"  /* ascension-r.ini: the player's settings and this machine's paths */
@@ -1348,24 +1349,6 @@ static void env_default(const char* name, const char* value)
  * measured; they describe how libgcm and lv2 behave rather than that title, so
  * they are the starting point here. Check each when this title shows a problem
  * near it. */
-/* The TITLE_ID of <vfs>\PS3_GAME\PARAM.SFO when it looks like one (four capitals, five digits), else NPUA80918. */
-static void boot_title_id(const char* vfs, char* id, size_t n)
-{
-    snprintf(id, n, "NPUA80918");
-    if (!vfs || !*vfs) return;
-    wchar_t w[GAME_PATH_MAX];
-    if (!MultiByteToWideChar(CP_UTF8, 0, vfs, -1, w, GAME_PATH_MAX - 16) &&
-        !MultiByteToWideChar(CP_ACP, 0, vfs, -1, w, GAME_PATH_MAX - 16))
-        return;
-    wcscat_s(w, GAME_PATH_MAX, L"\\PS3_GAME");
-    GameInfo g;
-    if (!game_read_info(w, &g)) return;
-    const char* t = g.title_id;
-    int ok = strlen(t) == 9;
-    for (int i = 0; ok && i < 9; i++) ok = i < 4 ? (t[i] >= 'A' && t[i] <= 'Z') : (t[i] >= '0' && t[i] <= '9');
-    if (ok) snprintf(id, n, "%s", t);
-}
-
 static void title_environment(void)
 {
     /* Fire the flip handler when the flip completes, as hardware does, not when
@@ -1524,14 +1507,13 @@ static void title_environment(void)
      * executable is GOWA.SELF, which the title's own EBOOT.BIN launcher starts from /dev_hdd0/game/<id>/USRDIR;
      * argv[0] is that path, not the disc path the runtime defaults to (docs/notes/2026-11-17-eu-support-plan.md). */
     {
-        char id[16];
-        boot_title_id(getenv("PS3_VFS_ROOT"), id, sizeof id);
+        const char* id = game_title_of_vfs(getenv("PS3_VFS_ROOT"))->id;   /* a title of game_title.h */
         env_default("PS3_TITLE", id);
         char boot[96];
         snprintf(boot, sizeof boot, "/dev_hdd0/game/%s/USRDIR/GOWA.SELF", id);
         env_default("PS3_BOOT_PATH", boot);
     }
-    /* A mod folder, laid out like the PS3's paths (dev_hdd0\game\NPUA80918\USRDIR\...): a file
+    /* A mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...): a file
      * there replaces the game's or adds one. Empty (the default): none. */
     env_default("PS3_MODS_ROOT", ps3_settings_str("paths", "mods", "PS3_MODS_ROOT", NULL));
     /* FFmpeg's DLLs are loaded when the first movie plays, from PATH. */
@@ -1602,7 +1584,7 @@ static void game_open_failed(const char* gpath, const char* hpath)
     /* The title's folder (an HDD game, or a disc's update), or the disc's PS3_GAME. */
     char root[64];
     const char* id = getenv("PS3_TITLE");
-    snprintf(root, sizeof root, "/dev_hdd0/game/%s/", id && *id ? id : "NPUA80918");
+    snprintf(root, sizeof root, "/dev_hdd0/game/%s/", id && *id ? id : game_title_default()->id);
     size_t k = strlen(root);
     if (_strnicmp(gpath, root, k)) {
         static const char disc[] = "/dev_bdvd/PS3_GAME/";

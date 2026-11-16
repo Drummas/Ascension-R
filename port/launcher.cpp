@@ -38,6 +38,7 @@
 #include "ps3emu/ps3_settings.h"
 #include "game_find.h"
 #include "game_prepare.h"
+#include "game_title.h"
 #include "report.h"
 #include "version.h"
 #include "update_check.h"
@@ -516,7 +517,7 @@ static const char* U8(const wchar_t* s);
 static struct {
     GameInfo g;                        /* what <vfs>\PS3_GAME leads to */
     wchar_t vfs[GAME_PATH_MAX], hdd0[GAME_PATH_MAX];              /* [paths], else next to the exe */
-    wchar_t link_vfs[GAME_PATH_MAX], link_hdd0[GAME_PATH_MAX];    /* <vfs>\PS3_GAME, <hdd0>\game\NPUA80918 */
+    wchar_t link_vfs[GAME_PATH_MAX], link_hdd0[GAME_PATH_MAX];    /* <vfs>\PS3_GAME, <hdd0>\game\<id> (game_title.h) */
     wchar_t note[GAME_PATH_MAX + 128]; /* what the last search or Browse came to, if no folder was set */
 } s_game;
 
@@ -723,7 +724,16 @@ static void game_links(void)
     path_slashes(s_game.vfs);
     path_slashes(s_game.hdd0);
     swprintf(s_game.link_vfs, GAME_PATH_MAX, L"%ls\\PS3_GAME", s_game.vfs);
-    swprintf(s_game.link_hdd0, GAME_PATH_MAX, L"%ls\\game\\NPUA80918", s_game.hdd0);
+    /* The second link is named for the title the first leads to (the default's, with none yet). */
+    swprintf(s_game.link_hdd0, GAME_PATH_MAX, L"%ls\\game\\%hs", s_game.hdd0, game_title_of_folder(s_game.link_vfs)->id);
+}
+
+/* The ids the launcher takes, for a line to the player. */
+static const wchar_t* game_titles_line(void)
+{
+    static wchar_t b[96];
+    game_titles_text(b, sizeof b / sizeof b[0]);
+    return b;
 }
 
 /* What the links lead to now, and whether the game can start. */
@@ -808,7 +818,7 @@ static int game_status(wchar_t* b, size_t n)
                                              : L"To decrypt the game this needs RPCS3");
         return -1;
     case GAME_OTHER_TITLE:
-        swprintf(b, n, L"That is %ls %ls. This port runs NPUA80918 1.12", W(g.title_id), game_version());
+        swprintf(b, n, L"That is %ls %ls. This port runs %ls 1.12", W(g.title_id), game_version(), game_titles_line());
         return -1;
     default:
         swprintf(b, n, L"No game there. Auto detect looks on every disk, or Browse to its folder");
@@ -1956,7 +1966,7 @@ static void draw_play(void)
         float cx = px + 18;
         const float cy = py + 94 + sh;
         if (s_game.g.title_id[0]) swprintf(b, 80, L"%ls \x00B7 %ls", W(s_game.g.title_id), game_version());
-        else swprintf(b, 80, L"NPUA80918 \x00B7 1.12");
+        else swprintf(b, 80, L"%hs \x00B7 1.12", game_title_default()->id);
         cx += draw_chip(UP(b), cx, cy) + 8;
         cx += draw_chip(L"DIRECT3D 12", cx, cy) + 8;
         const Opt* rs = opt_find("graphics", "render_scale");
@@ -2554,6 +2564,8 @@ static int game_use(const wchar_t* dir)
     wchar_t err[GAME_PATH_MAX + 64] = L"";
     const size_t n = sizeof err / sizeof err[0];
     s_game.note[0] = 0;
+    /* The second link is named for the title of the folder picked. */
+    swprintf(s_game.link_hdd0, GAME_PATH_MAX, L"%ls\\game\\%hs", s_game.hdd0, game_title_of_folder(dir)->id);
     if (!game_link_possible(s_game.link_vfs, dir, err, n) || !game_link_possible(s_game.link_hdd0, dir, err, n) ||
         !game_link(s_game.link_vfs, dir, err, n) || !game_link(s_game.link_hdd0, dir, err, n)) {
         swprintf(s_game.note, sizeof s_game.note / sizeof s_game.note[0], L"%ls", err);
@@ -2624,7 +2636,9 @@ static void prepare_begin(void)
 {
     if (s_prep.thread || s_game.g.state != GAME_NO_ELF) return;
     if (!s_prep.rpcs3[0]) game_find_rpcs3(s_game.g.dir, s_prep.rpcs3, GAME_PATH_MAX);
-    if (!s_prep.rap[0]) game_find_rap(s_prep.rpcs3[0] ? s_prep.rpcs3 : game_rpcs3_slot(s_game.g.dir), s_prep.rap, GAME_PATH_MAX);
+    if (!s_prep.rap[0])
+        game_find_rap(s_prep.rpcs3[0] ? s_prep.rpcs3 : game_rpcs3_slot(s_game.g.dir), s_game.g.title_id, s_prep.rap,
+                      GAME_PATH_MAX);
     s_prep.err[0] = 0;
     if (!s_prep.rap[0] || (!s_prep.rpcs3[0] && !s_prep.download)) return;
     data_file(s_prep.data, GAME_PATH_MAX, L"");
@@ -2677,7 +2691,7 @@ static void find_done(void)
         }
         else toast_bad("The game's folder could not be set");
     } else if (b.state == GAME_OTHER_TITLE) {
-        swprintf(s_game.note, n, L"Found %ls in %ls. This port runs NPUA80918 1.12", W(b.title_id), b.dir);
+        swprintf(s_game.note, n, L"Found %ls in %ls. This port runs %ls 1.12", W(b.title_id), b.dir, game_titles_line());
         toast_bad("Another release of the game");
     } else if (b.state == GAME_INCOMPLETE && (picked || s_game.g.state < GAME_NO_ELF)) {
         /* Set, so the System tab says what the folder lacks: with the rest copied in, it is the game. */
@@ -2689,7 +2703,7 @@ static void find_done(void)
     } else if (s_game.g.state >= GAME_NO_ELF) {
         toast("No better copy found");
     } else {
-        swprintf(s_game.note, n, L"Not found on this PC. Browse to its folder (NPUA80918)");
+        swprintf(s_game.note, n, L"Not found on this PC. Browse to its folder (%ls)", game_titles_line());
         toast_bad("Game not found");
     }
 }
@@ -3109,7 +3123,11 @@ static void game_browse(void)
     DWORD o = 0;
     d->GetOptions(&o);
     d->SetOptions(o | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
-    d->SetTitle(L"The game's folder: NPUA80918, or a folder it is under");
+    {
+        wchar_t t[160];
+        swprintf(t, sizeof t / sizeof t[0], L"The game's folder: %ls, or a folder it is under", game_titles_line());
+        d->SetTitle(t);
+    }
     IShellItem* start = NULL;
     if (s_game.g.state != GAME_NONE && SUCCEEDED(SHCreateItemFromParsingName(s_game.g.dir, NULL, IID_PPV_ARGS(&start)))) {
         d->SetFolder(start);
