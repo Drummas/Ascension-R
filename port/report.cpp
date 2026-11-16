@@ -916,6 +916,91 @@ static void add_saves(Zip& z, std::string& note)
     note += strf("Saves: %d files, %llu bytes\n", files, total);
 }
 
+/* A folder's subfolders, sorted by name. */
+static std::vector<std::string> subfolders(const std::string& dir)
+{
+    std::vector<std::string> out;
+    WIN32_FIND_DATAA d;
+    HANDLE h = FindFirstFileA((dir + "\\*").c_str(), &d);
+    if (h == INVALID_HANDLE_VALUE) return out;
+    do {
+        if ((d.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) && d.cFileName[0] != '.') out.push_back(d.cFileName);
+    } while (FindNextFileA(h, &d));
+    FindClose(h);
+    std::sort(out.begin(), out.end());
+    return out;
+}
+
+/* The saves as each session found them. cellSaveData keeps the newest copies of a save before it is written over
+ * (Save backups, system.save_backups), in <savedata>_backup/<folder>/<YYYYMMDD-HHMMSS>: for a folder written since a
+ * session began, the first copy made after its start holds it as the session found it, and a folder with none is as
+ * save/ has it. A session's pad recording played back on that starts where the session started: issue #9's report held
+ * the profile as its last session left it, and the game loaded another checkpoint. The copies go once each under
+ * save-backup/<folder>/<copy>/, their times in save-backup/times.txt, and save-backup/starts.txt says for each session
+ * which copies make its start ("<session> <folder> <copy>", "oldest-kept" when older ones may have been dropped).
+ * Copies made before 0.1.0-alpha.12 have the time of the copy: their DATFEST says when the save was written. */
+static void add_save_starts(Zip& z, std::string& note, const std::vector<std::string>& sessions)
+{
+    enum : unsigned long long { MOST = 64ull << 20 };
+    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    if (!hdd0 || !*hdd0 || sessions.empty()) return;
+    std::string root = std::string(hdd0) + "\\home\\00000001\\savedata_backup";
+    std::replace(root.begin(), root.end(), '/', '\\');
+    const std::vector<std::string> folders = subfolders(root);
+    if (folders.empty()) {
+        note += "Saves at the sessions' starts: no backups (Save backups off, or nothing saved over)\n";
+        return;
+    }
+    const int keep = atoi(ps3_settings_str("system", "save_backups", NULL, "5"));
+    std::vector<std::string> packed;
+    std::string starts, times, lines;
+    unsigned long long total = 0;
+    int files = 0;
+    for (const std::string& s : sessions) {
+        std::string from;
+        for (const std::string& f : folders) {
+            const std::vector<std::string> copies = subfolders(root + "\\" + f);
+            const auto it = std::lower_bound(copies.begin(), copies.end(), s);
+            if (it == copies.end()) continue;             /* not saved over since: as save/ has it */
+            const std::string key = f + "/" + *it;
+            const bool oldest = it == copies.begin() && keep > 0 && (int)copies.size() >= keep;
+            starts += s + " " + f + " " + *it + (oldest ? " oldest-kept" : "") + "\n";
+            from += strf("%s%s from the copy of %s%s", from.empty() ? "" : ", ", f.c_str(), it->c_str(),
+                         oldest ? " (the oldest kept: an older one may be gone)" : "");
+            if (std::find(packed.begin(), packed.end(), key) != packed.end()) continue;
+            packed.push_back(key);
+            const std::string dir = root + "\\" + f + "\\" + *it;
+            WIN32_FIND_DATAA d;
+            HANDLE h = FindFirstFileA((dir + "\\*").c_str(), &d);
+            if (h == INVALID_HANDLE_VALUE) continue;
+            do {
+                if (d.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+                const char* ext = strrchr(d.cFileName, '.');
+                if (ext && _stricmp(d.cFileName, "ICON0.PNG") &&
+                    (!_stricmp(ext, ".png") || !_stricmp(ext, ".pam") || !_stricmp(ext, ".at3")))
+                    continue;
+                if (total + d.nFileSizeLow > MOST) continue;
+                std::string data;
+                if (!read_capped(dir + "\\" + d.cFileName, data, MOST, 0)) continue;
+                zip_add(z, "save-backup/" + key + "/" + d.cFileName, data, &d.ftLastWriteTime);
+                const unsigned long long ft = (unsigned long long)d.ftLastWriteTime.dwHighDateTime << 32 |
+                                              d.ftLastWriteTime.dwLowDateTime;
+                times += strf("%s/%s %llu\n", key.c_str(), d.cFileName, (ft - 116444736000000000ull) / 10000000ull);
+                total += data.size();
+                files++;
+            } while (FindNextFileA(h, &d));
+            FindClose(h);
+        }
+        lines += "  " + s + ": " + (from.empty() ? std::string("as save/ has them") : from) + "\n";
+    }
+    if (!starts.empty()) {
+        zip_add(z, "save-backup/starts.txt", starts);
+        zip_add(z, "save-backup/times.txt", times);
+    }
+    note += strf("Saves at the sessions' starts (%d files from %d backup%s, %llu bytes):\n", files, (int)packed.size(),
+                 packed.size() == 1 ? "" : "s", total) + lines;
+}
+
 int gowa_report_create(int with_saves, char* out, size_t n)
 {
     enum { MAX_SESSIONS = 3 };
@@ -955,6 +1040,7 @@ int gowa_report_create(int with_saves, char* out, size_t n)
 
     /* The sessions the game ran in; with none, the newest there is. */
     const std::vector<std::string> logs = session_logs();
+    std::vector<std::string> stamps;   /* the sessions' starts, "YYYYMMDD-HHMMSS" from "session-<it>.log" */
     int added = 0;
     for (int pass = 0; pass < 2 && !added; pass++) {
         for (const std::string& name : logs) {
@@ -974,6 +1060,7 @@ int gowa_report_create(int with_saves, char* out, size_t n)
                 hide_in(pad);
                 zip_add(z, "logs/" + pad_name, pad);
             }
+            if (name.size() >= 27 && !name.compare(0, 8, "session-")) stamps.push_back(name.substr(8, 15));
             added++;
         }
     }
@@ -1002,7 +1089,10 @@ int gowa_report_create(int with_saves, char* out, size_t n)
         hide_in(events);
         zip_add(z, "windows_events.txt", events);
     }
-    if (with_saves) add_saves(z, note);
+    if (with_saves) {
+        add_saves(z, note);
+        add_save_starts(z, note, stamps);
+    }
     hide_in(note);
     zip_add(z, "report.txt", note);
     if (zip_end(z)) {

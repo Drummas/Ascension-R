@@ -136,7 +136,8 @@ without the window.
 The zip holds the logs and pad recordings of the last three sessions the game ran in, your settings, the build, your hardware and
 driver versions, and Windows' records of crashes and hangs of this exe in the last two weeks. Folder paths and your Windows account
 and PC names are hidden. The game sends nothing by itself and no game file goes in. Saves go in only if you tick the box, without
-the game's images and sounds.
+the game's images and sounds; with them go the backups (Save backups, in the System tab) that hold your saves as each of those
+sessions found them, so that a session can be played again here from where it started.
 
 If no new frame comes for 15 seconds, the log gets what each thread was doing, and again at 60 (`GOWA_FREEZE_WATCH=<seconds>`,
 `0` = off).
