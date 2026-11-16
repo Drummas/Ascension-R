@@ -1,0 +1,50 @@
+# Issue #18: broken geometry the first time a scene plays (2026-11-16)
+
+SoreteNuclear, 0.1.0-alpha.11, i3-10105F (four cores, eight threads), RX 5700 XT, 16 GB. "The same glitch happens in every
+scene the first time you play it. But if you die and restart it's fixed." The screenshot (the opening chapter, the bridge
+past the gate): rock and buildings torn into spikes and floating shards, a translucent shape over the sky, black gaps.
+The report: two sessions of the opening chapter (HECA100 to HECA500, ~21 minutes), the settings, the Kit's build log.
+
+## What the logs say
+
+- Nothing about geometry: no `[edge-*]` warning, no `[vram]` cut, no dropped record, no index buffer full.
+- Shaders were built during play: `guest shaders built by 2 worker threads`, `slow shader compile: guest_fp ... took
+  107 ms` (up to 225 ms). The disk cache had 7,542 programs at the second session's start, and the vertex pass came
+  from it (`read from the shader cache in 0.0 s`).
+- Both sessions ran the game's code built without the profile; the Kit built the profiled DLL after them (`build.log`).
+  The profile is not the cause.
+
+## Reproduced
+
+The bench route (Megaera's fight, the same chapter) on four cores (`GOWA_CPU_MASK=0xFF`), the reporter's graphics settings,
+and a new, empty shader cache, one run each:
+
+| background shaders | 22-38 s after the load | 45 s and later | frames |
+|---|---|---|---|
+| on (`async_shaders=2`, the default) | smeared, stacked copies of walls and floor, shards in the sky, gaps showing old frames, "Compiling shaders" | clean | 30-42 flips/s |
+| off (`async_shaders=0`) | clean | clean | 1 and 16 flips/s at 26 and 34 s: the game waits for each build |
+
+In both runs the vertex pass was being compiled for the first ~40 s and the CPU lit its draws meanwhile; the run with the
+shaders built first was clean all the same, so that fallback is right.
+
+## Why
+
+`D3D12_ASYNC_SHADERS` (the launcher's "Build shaders in the background", on by default) builds a new guest program and
+its pipeline on worker threads, and **skips the draws that need it** until it is ready (`rsx_d3d12_backend.c`, the draw
+loop: `s_sj_stat_skipped`), rather than stop the picture or draw with another program. The game never clears its colour
+target between frames: each frame draws over every pixel. A skipped draw leaves its pixels as an earlier frame had them,
+and as the camera moves those show as copies smeared across the screen: [the prison's trails](2026-11-08-prison-trails.md)
+again, from another cause. Every program is kept in the disk cache once built, so a place does it only the first time,
+and a restart from a checkpoint comes back with the programs ready. Two workers on a four-core CPU take longer to catch
+up, so the gaps last longer.
+
+## What can be done
+
+- **Now, for the reporter:** "Build shaders in the background" off. No broken geometry; a short stop the first time
+  something new is drawn.
+- **Wait for solid geometry, skip effects:** a draw that writes depth and is not blended waits for its program (a longer
+  budget than the 3 ms of `D3D12_ASYNC_WAIT_MS`); blended draws (fire, smoke, sparks) are still skipped, which leaves no
+  gap. Stops instead of trails, only where a hole would show.
+- **More workers on CPUs with eight threads or more,** so the window is shorter.
+- **A program the GPU interprets** while the real one builds (as RPCS3's shader interpreter): no gaps and no stops, and
+  the largest piece of work.
