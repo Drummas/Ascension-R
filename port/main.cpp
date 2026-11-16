@@ -1621,6 +1621,14 @@ int main(int argc, char** argv)
     if (argc == 3 && !strcmp(argv[1], "--loading-preview")) return gowa_loading_preview(argv[2]);
     if ((argc == 3 || argc == 4) && !strcmp(argv[1], "--music-preview"))
         return gowa_music_preview(argv[2], argc == 4 ? atof(argv[3]) : 100.0);
+    /* GOWA_CPU_MASK=<mask>: the process on those logical CPUs only, set before any thread starts, as a CPU with fewer
+     * cores would run it (0xFF on a six-core laptop: four cores, eight threads). For benches: what a change gives a
+     * smaller CPU, where the CPU is full and every millisecond of work counts (docs/notes/2026-11-16-s-j-review.md). */
+    if (const char* m = getenv("GOWA_CPU_MASK")) {
+        const DWORD_PTR mask = (DWORD_PTR)strtoull(m, NULL, 0);
+        fprintf(stderr, "[gowa] GOWA_CPU_MASK 0x%llx: %s\n", (unsigned long long)mask,
+                mask && SetProcessAffinityMask(GetCurrentProcess(), mask) ? "set" : "not set");
+    }
 #endif
     const char* elf = NULL;
     const char* settings = NULL;

@@ -43,9 +43,13 @@ A run that never reaches the level (fewer than 3 windows, or a median of 30
 flips/s or more: stuck on a menu or loading screen; --menu-fps sets that
 figure, as the fight runs above 30 with Disable Shadows) or freezes in it (median
 of 3 or less, or no flips for a minute) is reported as failed and run once
-more. A run at the title's own 30 flips/s lock (the median at 29.8-30.6, no
-window above 31) is in the level, not on a menu: it counts, and the summary
-says that there the builds cannot be told apart (at_lock). Variants are run in ABBA order (a b, then b a, ...), the way A/Bs are
+more. A run held at 30 flips/s (the median at 29.8-30.6, no window above 31)
+is in the level, not on a menu: it counts, and the summary says that there the
+builds cannot be told apart (at_lock). Mostly that is the settings' frame
+generation, which holds the game at 30 on a 60 Hz display (the summary says
+so when the log does): to measure the CPU, run the variants with --set
+graphics.frame_generation=off --set display.vsync=off, and --menu-fps 45.
+Variants are run in ABBA order (a b, then b a, ...), the way A/Bs are
 judged: compare medians, two runs a side at least. In plain alternation
 (a b a b) the first variant of each round came out ahead 6 times in 6, by
 1.7-2.6%, for builds the ABBA order then found within 1% of each other.
@@ -79,6 +83,8 @@ def rel(path):
 CROSS, SQUARE, DOWN = 0x4000, 0x8000, 0x0040
 MENU = (6, 12, 18)                  # Cross: Single Player, Profile 1, Continue Game (s after the movie)
 LOADING = b"SaveDataUtil::LoadFileSaveProfile"   # the thread Continue Game starts
+# The settings' frame generation was on: it holds the game at half the display's rate, 30 flips/s on a 60 Hz one.
+FRAME_GENERATION = b"[gowa] frame generation: "
 CINEMATIC_PRESS = 24                # s after the load: the old route's fourth Cross
 WM_CLOSE, WM_KEYDOWN, VK_F12 = 0x0010, 0x0100, 0x7B
 
@@ -407,6 +413,7 @@ def run_once(exe, env_extra, a, out, tag):
     elif len(vals) < 3 or not 3 < statistics.median(vals) < a.menu_fps:
         if len(vals) >= 3 and at_lock(vals):
             rec["at_lock"] = True
+            rec["frame_generation"] = seen(log_err, FRAME_GENERATION)()
         else:
             rec["failed"] = ("never reached the level" if len(vals) < 3 or statistics.median(vals) >= a.menu_fps
                              else "frozen")
@@ -414,11 +421,12 @@ def run_once(exe, env_extra, a, out, tag):
 
 
 def at_lock(vals):
-    """The windows (sorted) of a run in the level at the title's own 30 flips/s. The title holds some scenes there,
-    the route's fight among them once a build is fast enough: the median at 29.8-30.6 and no window above 31 (the
-    menus run near 40). Failing such a run as "never reached the level" took the faster build's runs out of an A/B
-    and made the slower one's median (docs/notes/2026-11-14-kit-pgo.md): it counts, and the summary says that at the
-    lock the A/B cannot tell the builds apart."""
+    """The windows (sorted) of a run in the level held at 30 flips/s: the median at 29.8-30.6 and no window above 31
+    (the menus run near 40). Frame generation holds the game there on a 60 Hz display (the runs of
+    docs/notes/2026-11-14-kit-pgo.md were held by it, not by the title, docs/notes/2026-11-16-s-j-review.md), and the
+    title may hold some scenes there too. Failing such a run as "never reached the level" took the faster build's
+    runs out of an A/B and made the slower one's median: it counts, and the summary says that at the lock the A/B
+    cannot tell the builds apart."""
     return 29.8 <= statistics.median(vals) <= 30.6 and vals[-1] <= 31.0
 
 
@@ -543,7 +551,7 @@ def line(rec):
     if "skipped" in rec:
         s += ", skipped %.2f" % rec["skipped"]
     if rec.get("at_lock"):
-        s += " AT THE TITLE'S 30 FPS LOCK"
+        s += " HELD AT 30 BY FRAME GENERATION" if rec.get("frame_generation") else " AT THE TITLE'S 30 FPS LOCK"
     if rec.get("failed"):
         s += " FAILED: " + rec["failed"]
     return s
@@ -621,9 +629,15 @@ def main(a):
         else:
             print("  %-10s no good run" % name)
     locked = [r["tag"] for r in result["runs"] if r.get("at_lock")]
-    if locked:
+    held = [r["tag"] for r in result["runs"] if r.get("at_lock") and r.get("frame_generation")]
+    if held:
+        print("== held at 30 flips/s by frame generation: %s. There the builds cannot be told apart; add --set "
+              "graphics.frame_generation=off --set display.vsync=off to the variants' arguments (and --menu-fps 45, "
+              "as the fight then runs above 30 at times)." % ", ".join(held))
+    if [t for t in locked if t not in held]:
         print("== at the title's 30 fps lock: %s. There the builds cannot be told apart; a heavier scene can "
-              "(a --replay of a later level)." % ", ".join(locked))
+              "(a --replay of a later level)." % ", ".join(t for t in locked if t not in held))
+    if locked:
         result["at_lock"] = locked
     result["summary"] = summary
     if a.baseline and variants and variants[0][0] in summary:
