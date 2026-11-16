@@ -1348,6 +1348,24 @@ static void env_default(const char* name, const char* value)
  * measured; they describe how libgcm and lv2 behave rather than that title, so
  * they are the starting point here. Check each when this title shows a problem
  * near it. */
+/* The TITLE_ID of <vfs>\PS3_GAME\PARAM.SFO when it looks like one (four capitals, five digits), else NPUA80918. */
+static void boot_title_id(const char* vfs, char* id, size_t n)
+{
+    snprintf(id, n, "NPUA80918");
+    if (!vfs || !*vfs) return;
+    wchar_t w[GAME_PATH_MAX];
+    if (!MultiByteToWideChar(CP_UTF8, 0, vfs, -1, w, GAME_PATH_MAX - 16) &&
+        !MultiByteToWideChar(CP_ACP, 0, vfs, -1, w, GAME_PATH_MAX - 16))
+        return;
+    wcscat_s(w, GAME_PATH_MAX, L"\\PS3_GAME");
+    GameInfo g;
+    if (!game_read_info(w, &g)) return;
+    const char* t = g.title_id;
+    int ok = strlen(t) == 9;
+    for (int i = 0; ok && i < 9; i++) ok = i < 4 ? (t[i] >= 'A' && t[i] <= 'Z') : (t[i] >= '0' && t[i] <= '9');
+    if (ok) snprintf(id, n, "%s", t);
+}
+
 static void title_environment(void)
 {
     /* Fire the flip handler when the flip completes, as hardware does, not when
@@ -1494,18 +1512,25 @@ static void title_environment(void)
     /* The runtime logs every lv2 wait and SPURS poll whenever stderr is not a
      * terminal; the diagnostics have their own switches. */
     env_default("PS3_VERBOSE", "0");
-    /* An HDD (PSN) title. The executable is GOWA.SELF, which the title's own
-     * EBOOT.BIN launcher starts from /dev_hdd0/game/<id>/USRDIR; argv[0] is that
-     * path, not the disc path the runtime defaults to. */
     /* The runtime halts an SPU that repeats one transfer for 30 s, as wedged. The job policy
      * modules poll for work that way, and building pipelines on a first start can hold the game
      * up for longer, so the halt stopped idle workers and the next load hung. */
     env_default("SPU_DMA_REPEAT_SECS", "604800");
-    env_default("PS3_TITLE", "NPUA80918");
-    env_default("PS3_BOOT_PATH", "/dev_hdd0/game/NPUA80918/USRDIR/GOWA.SELF");
     /* This machine's paths, written into [paths] by `gowa.py build`. */
     env_default("PS3_VFS_ROOT", ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL));
     env_default("PS3_HDD0_ROOT", ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL));
+    /* The title is the one PARAM.SFO under the vfs root's PS3_GAME names: NPUA80918, an HDD (PSN) game, or a
+     * disc such as BCES01741, whose update in /dev_hdd0/game/<id> holds the game at 1.12. Either way the
+     * executable is GOWA.SELF, which the title's own EBOOT.BIN launcher starts from /dev_hdd0/game/<id>/USRDIR;
+     * argv[0] is that path, not the disc path the runtime defaults to (docs/notes/2026-11-17-eu-support-plan.md). */
+    {
+        char id[16];
+        boot_title_id(getenv("PS3_VFS_ROOT"), id, sizeof id);
+        env_default("PS3_TITLE", id);
+        char boot[96];
+        snprintf(boot, sizeof boot, "/dev_hdd0/game/%s/USRDIR/GOWA.SELF", id);
+        env_default("PS3_BOOT_PATH", boot);
+    }
     /* A mod folder, laid out like the PS3's paths (dev_hdd0\game\NPUA80918\USRDIR\...): a file
      * there replaces the game's or adds one. Empty (the default): none. */
     env_default("PS3_MODS_ROOT", ps3_settings_str("paths", "mods", "PS3_MODS_ROOT", NULL));
@@ -1574,9 +1599,17 @@ static int s_open_failed_says;
 
 static void game_open_failed(const char* gpath, const char* hpath)
 {
-    static const char root[] = "/dev_hdd0/game/NPUA80918/";
-    const size_t k = sizeof root - 1;
-    if (_strnicmp(gpath, root, k) || !game_file_needed(gpath + k)) return;
+    /* The title's folder (an HDD game, or a disc's update), or the disc's PS3_GAME. */
+    char root[64];
+    const char* id = getenv("PS3_TITLE");
+    snprintf(root, sizeof root, "/dev_hdd0/game/%s/", id && *id ? id : "NPUA80918");
+    size_t k = strlen(root);
+    if (_strnicmp(gpath, root, k)) {
+        static const char disc[] = "/dev_bdvd/PS3_GAME/";
+        k = sizeof disc - 1;
+        if (_strnicmp(gpath, disc, k)) return;
+    }
+    if (!game_file_needed(gpath + k)) return;
     static volatile LONG once = 0;
     if (InterlockedExchange(&once, 1)) Sleep(INFINITE);   /* another thread says it, and ends the game */
     char host[1100];

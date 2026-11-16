@@ -56,6 +56,32 @@ Prove the game itself before building the launcher around it. Dev build, a test 
 - **Done when:** title screen, a new game through the opening chapter's first fight, a save made and loaded after a
   restart, the game in French and in German (`system.language`), screenshots clean.
 
+**Done (2026-11-17).** The dev build on the user's EU copy: a vfs folder of ours whose `PS3_GAME` is a junction to the
+extracted disc's, a test hdd0 with a copy of the update folder, nothing else set.
+
+- **What was missing:** `cellGamePatchCheck` always answered "not a patch". The game's sequence is the one RPCS3
+  logs (BootCheck, ContentPermit, DataCheck of `BCES01741-DATA` and of `BCES01741`, PatchCheck, ContentPermit); with
+  "not a patch" it looked for `PATCHES` in the disc's USRDIR, ran 1.12's code on 1.00's data and sat on a loading
+  screen. RPCS3 answers a GD boot (the update's PARAM.SFO) as a patch. Now `cellGame.c` does too: a disc game whose
+  `PS3_BOOT_PATH` is under `/dev_hdd0/game/<id>/` and whose PARAM.SFO there says GD is a patch boot: BootCheck gives
+  the PATCH attribute, PatchCheck answers OK and the next ContentPermit gives `/dev_hdd0/game/<id>`, APP_VER and
+  VERSION come from the update (01.12). `main.cpp` takes `PS3_TITLE` and the boot path from the vfs PARAM.SFO.
+- **What runs:** the base archives from `/dev_bdvd/PS3_GAME/USRDIR`, `PATCHES` and `TPPS*` from the update, as in
+  RPCS3; the menu shows `01.12F0.1`; a new game on Normal into `R_MEGAERA03`, its cinematic and the first fight
+  (Megaera, 44 to 54 flips/s at 1600x900 here), saves `BCES01741-SYSDATA` and `BCES01741-PROFDATA-0`; after a
+  restart the profile shows its time and Continue Game loads the checkpoint. French and German: their archives and
+  their text, from a new hdd0 each.
+- **Learnt:**
+  - The first boot asks **LANGUAGE: Triangle Greek, Cross Default**: that is how Greek is chosen (Phase 5's question).
+  - The game keeps the language its first start had (in `BCES01741-SYSDATA`): a later `system.language` changes the
+    boot logos' language only. The launcher should say so beside the setting.
+  - On the first boot the opening movie cannot be skipped; later ones can.
+  - **Never make a player's disc folder the vfs root.** The first try did, and the runtime wrote into it: the
+    game's FIOS cache (`/dev_hdd1`, 1 GB, mapped under the vfs root when `PS3_HDD1_ROOT` is not set) and
+    ContentPermit's folders under `<vfs>/game` (now only made when `PS3_HDD0_ROOT` is not set). Both were moved to the
+    Recycle Bin. The launcher's own vfs folder with a `PS3_GAME` junction (Phase 3) keeps every write in our folder.
+- **Not done here:** finishing the first fight (its tutorial wants the right stick, which the test input lacks).
+
 ## Phase 2: one table of titles (1 day)
 
 Replace the single title with a table, so every place that says NPUA80918 asks it instead.
