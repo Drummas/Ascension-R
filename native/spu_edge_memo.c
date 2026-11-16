@@ -288,6 +288,12 @@ static int memo_unpack_mode(void)
 __declspec(dllimport) int __stdcall QueryPerformanceCounter(long long* count);
 __declspec(dllimport) int __stdcall QueryPerformanceFrequency(long long* freq);
 extern unsigned cellGcm_flip_request_count(void);
+static int turn_same(const char* a, const char* b)
+{
+    while (*a && *a == *b) { a++; b++; }
+    return *a == *b;
+}
+/* (only the C runtime the Kit's DLL has, tests/test_game_module_crt.py, though this is not in it) */
 static int edge_turn_on(const char* name)
 {
     static long long half = -1, t0;
@@ -296,18 +302,28 @@ static int edge_turn_on(const char* name)
     static volatile long seen = -1;
     if (half < 0) {
         const char* e = getenv("GOWA_TURNS");
-        const double secs = e ? atof(e) : 0;
-        const char* sw = e ? strchr(e, ':') : NULL;
-        if (sw) strncpy(only, sw + 1, sizeof only - 1);
+        long tenths = 0;
+        if (e) {
+            int i = 0;
+            for (; e[i] >= '0' && e[i] <= '9'; i++) tenths = tenths * 10 + (e[i] - '0');
+            tenths *= 10;
+            if (e[i] == '.' && e[i + 1] >= '0' && e[i + 1] <= '9') tenths += e[++i] - '0';
+            while (e[i] && e[i] != ':') i++;
+            if (e[i] == ':') {
+                int k = 0;
+                for (i++; e[i] && k < (int)sizeof only - 1; i++) only[k++] = e[i];
+                only[k] = 0;
+            }
+        }
         long long f = 0, t = 0;
         QueryPerformanceFrequency(&f);
         QueryPerformanceCounter(&t);
         t0 = t;
-        halves = secs >= 1 ? (long)(secs * 2 + 0.5) : 0;
+        halves = tenths >= 10 ? (tenths + 2) / 5 : 0;
         if (halves) fprintf(stderr, "[turns] turns of %.1f s, %s\n", halves / 2.0, only[0] ? only : "every switch");
         half = f / 2;
     }
-    if (!halves || (only[0] && strcmp(only, name))) return 1;
+    if (!halves || (only[0] && !turn_same(only, name))) return 1;
     long long a;
     QueryPerformanceCounter(&a);
     const long step = a > t0 ? (long)((a - t0) / half) : 0;
