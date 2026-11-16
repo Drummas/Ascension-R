@@ -38,6 +38,25 @@ again, from another cause. Every program is kept in the disk cache once built, s
 and a restart from a checkpoint comes back with the programs ready. Two workers on a four-core CPU take longer to catch
 up, so the gaps last longer.
 
+## Fixed (options 2 and 3 below, decided with the user)
+
+- **A solid draw waits for its builds** (`D3D12_ASYNC_SOLID`, on; `=0` skips it as before): no blending, or blending
+  that keeps only what it draws (ONE, ZERO, ADD). Its job moves to the front of the queue and the workers run at normal
+  priority while it waits (below normal they lost the cores to the game's threads), up to `D3D12_ASYNC_SOLID_MS` (2000).
+  A blended draw is still skipped. The log counts the waits at each power of two:
+  `[d3d12] background shaders: N solid draws waited for their builds, S s in all`.
+- **Workers by the CPU** when background shaders are on (`async_shaders=2`): 2 below eight threads, 3 at eight to eleven,
+  4 at twelve and more, counted from the threads the process may run on.
+- **The same reproduction again** (four cores, the reporter's settings, an empty cache): every shot clean, 3 workers;
+  a stop at 26 s (one frame of 537 ms) while the programs built; 256 solid draws waited, 18.8 s in all over the run, an
+  empty cache's worst case. The reporter's cache already held 7,542 programs, so far fewer of them come up there.
+
+| background shaders | the shots at 22-45 s | flips/s, 20-100 s |
+|---|---|---|
+| on, before | smeared copies and shards | 34.87 |
+| off | clean | 30.39 |
+| on, after | clean | 32.61 |
+
 ## What can be done
 
 - **Now, for the reporter:** "Build shaders in the background" off. No broken geometry; a short stop the first time
