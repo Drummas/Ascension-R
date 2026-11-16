@@ -109,6 +109,9 @@ static SPU_THREAD_LOCAL struct {
     int skin;                   /* a skinned job's (spu_edge_gpuskin.c) */
     int rigid;                  /* an unskinned job's, its transforms left to the pass (GOWA_EDGE_RIGID) */
     int vel;                    /* a velocity job's: lit arrays and the previous position (GOWA_EDGE_VEL) */
+    int u;                      /* an unskinned result's arrays left unpacked (GOWA_EDGE_UNPACK) */
+    int udec;                   /* and they were: a revoke gives them back */
+    int ucheck;                 /* GOWA_EDGE_UNPACK=2: revoked at the packing, which is then checked */
     int ring;                   /* a result that goes out whole after all */
     uint32_t nverts, nidx;      /* the segment's exact counts */
     uint64_t k0, k1;
@@ -185,14 +188,15 @@ static int memo_resident_mode(void)
  *    coming anew and filled the arena. With culling left to the RSX the check found every kept list
  *    the same as the job's without it;
  *  - a result keeps what 0xF538 reads (er_note);
- *  - a job with a result still unpacks, then leaves 0xF538 and 0xBBC8 out, taking the constants
- *    0xF538's set-up makes from each matrix (edge_xf_consts) and which arrays 0xBBC8 normalizes, and
- *    hands them over in the record's part, where a skinned job has its palette (er_rec);
+ *  - a job with a result leaves the decoding out (GOWA_EDGE_UNPACK, below), and 0xF538 and 0xBBC8,
+ *    taking the constants 0xF538's set-up makes from each matrix (edge_xf_consts) and which arrays
+ *    0xBBC8 normalizes, and hands them over in the record's part, where a skinned job has its
+ *    palette (er_rec);
  *  - the vertex pass does 0xF538, 0xBBC8 and the packing (spu_edge_gpulight.c), the position the SPU's
  *    way, bit for bit: the game's depth pass and lit pass test EQUAL, and either may be done there or
  *    on the SPU. The CPU's version is er_xf and er_vertex_lit (spu_edge_gpuskin.c).
- * A result given up later (edge_memo_revoke) runs what was left out, in its order: the arrays are
- * still there. The check: every unskinned job's vertexes worked out on the CPU from what 0xF538 read,
+ * A result given up later (edge_memo_revoke) runs what was left out, in its order, on the arrays given
+ * back from the result. The check: every unskinned job's vertexes worked out on the CPU from what 0xF538 read,
  * against what the job packs, its list against a kept result's, and a kept result's inputs against
  * the job's own; the stages all run. In the fight: 4.85 million jobs, 1.34 billion vertexes, nothing
  * different (docs/notes/2026-11-11-edge-rigid.md). */
@@ -241,6 +245,78 @@ static int memo_vel_mode(void)
     m = v;
     return v;
 }
+
+/* GOWA_EDGE_UNPACK: 1 on (the default), 0 off, 2 the check.
+ *
+ * An unskinned job with a result went on unpacking its stream (GOWA_EDGE_RIGID): only for the case that
+ * the result is given up later, when 0xF538 and 0xBBC8 run on the SPU after all and read the arrays.
+ * Unpacking was 8.5% of EDGE's samples in the fight, 93% of the jobs had a result, and the result
+ * keeps those arrays as 0xF538 reads them (er_note). So, as a skinned result does (K):
+ *  - a job with a result leaves the decoding out: the natives of 0x75BD10 and 0x764D10 still fill the
+ *    attribute list and the context, those of 0x30310 and 0x304A0 run one pass;
+ *  - a revoke gives the arrays back from the result (er_give) before the calls left out run. The
+ *    places are the context's (0x107A0): the position's at + 0x5C, the normal's + 0x64, the tangent's
+ *    + 0x68, which the unpacking pieces fill and 0xF538 reads (the check counts any other);
+ *  - the vertexes past the segment's count are not given back. 0xF538 transforms eight at a time and
+ *    the packing reads only the segment's.
+ * The check: every result's arrays left unpacked and given back at the packing, which runs on the
+ * SPU and is compared with what the CPU makes of the result (er_check). Draws look wrong there: the
+ * lit bytes are not made. In the fight: 7.0 million results, 2.0 billion vertexes, none different, and
+ * no array away from the context's place. GOWA_TURNS switches it by turns: the fight 2.0% faster on
+ * four cores, 0.9% on six (docs/notes/2026-11-16-s-j-review.md). */
+static int memo_unpack_mode(void)
+{
+    static volatile int m = -1;
+    int v = m;
+    if (v >= 0) return v;
+    const char* e = getenv("GOWA_EDGE_UNPACK");
+    v = e ? atoi(e) : 1;
+    if (v < 0 || v > 2) v = 0;
+    m = v;
+    return v;
+}
+
+/* GOWA_TURNS=<seconds> (benches): what a switch gives, measured within one run, both halves in the same
+ * scene and at the same heat. A switch that asks (GOWA_EDGE_UNPACK) is off for the first turn from
+ * the first kept job, on for the next, and so on. Every half second is logged with its turn, the flips
+ * and the kept jobs so far: scripts/turns.py leaves out each turn's first half second, while the
+ * frames in flight change over, and fits a turn's frame time to its kept jobs a flip and the switch
+ * (docs/notes/2026-11-16-s-j-review.md). Unset: always on. Not in the Kit's DLL. */
+#ifndef PS3_GAME_MODULE
+__declspec(dllimport) int __stdcall QueryPerformanceCounter(long long* count);
+__declspec(dllimport) int __stdcall QueryPerformanceFrequency(long long* freq);
+extern unsigned cellGcm_flip_request_count(void);
+static int edge_turn_on(void)
+{
+    static long long half = -1, t0;
+    static long halves;
+    static volatile long seen = -1;
+    if (half < 0) {
+        const char* e = getenv("GOWA_TURNS");
+        const double secs = e ? atof(e) : 0;
+        long long f = 0, t = 0;
+        QueryPerformanceFrequency(&f);
+        QueryPerformanceCounter(&t);
+        t0 = t;
+        halves = secs >= 1 ? (long)(secs * 2 + 0.5) : 0;
+        if (halves) fprintf(stderr, "[turns] turns of %.1f s\n", halves / 2.0);
+        half = f / 2;
+    }
+    if (!halves) return 1;
+    long long a;
+    QueryPerformanceCounter(&a);
+    const long step = a > t0 ? (long)((a - t0) / half) : 0;
+    const long turn = step / halves, last = seen;
+    if (step > last && __sync_bool_compare_and_swap(&seen, last, step))
+        fprintf(stderr, "[turns] step %ld turn %ld %s at %ld ms: %u flips, %lld kept jobs\n", step, turn,
+                turn & 1 ? "on" : "off", (long)clock(), cellGcm_flip_request_count(), (long long)s_hits);
+    return (int)(turn & 1);
+}
+#else
+static inline int edge_turn_on(void) { return 1; }
+#endif
+
+static volatile long long s_u_left, s_u_given, s_u_place, s_u_checked;
 
 static void memo_report(void)
 {
@@ -464,13 +540,38 @@ static void er_report(void)
             "the check: %lld jobs, %lld vertexes, position words differing %lld (this frame's and the previous), "
             "normal and tangent bytes differing %lld\n",
             s_v_jobs, s_v_hits, s_v_kept, s_v_declined, s_v_revoked, s_vc_jobs, s_vc_vtx, s_vc_pos, s_vc_nt);
+    fprintf(stderr, "[edge-unpack] %lld results' arrays left unpacked, %lld given back; %lld packings checked; "
+            "arrays not where the context has them %lld\n", s_u_left, s_u_given, s_u_checked, s_u_place);
 }
 
-/* the local store's quadword as host words */
+/* the local store's quadword as host words (and back) */
 static inline __m128i er_q(const uint8_t* p)
 {
     return _mm_shuffle_epi8(_mm_loadu_si128((const __m128i*)p),
                             _mm_setr_epi8(3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12));
+}
+
+/* where the context (0x107A0) has array a: the position's at + 0x5C, the normal's + 0x64, the tangent's + 0x68 */
+static inline uint32_t er_place(const uint8_t* ls, int a)
+{
+    static const uint16_t off[3] = { 0x5C, 0x64, 0x68 };
+    return ej_be32_at(ls + 0x107A0u + off[a]);
+}
+
+/* A result given up whose arrays were left unpacked: they come back from it, as 0xF538 read them,
+ * where the job's 0xF538 reads them (the context's places for those it has not reached) */
+static void er_give(spu_context* ctx)
+{
+    const memo_entry* e = t_m.e;
+    const uint8_t* in = memo_records(e);
+    const uint32_t stride = t_m.lit ? ER_IN_LIT : ER_IN_POS, n = e->nverts;
+    for (int a = 0; a < (t_m.lit ? 3 : 1); a++) {
+        const uint32_t p = t_r.rec && (t_r.rec->arrays & (1u << a)) ? t_r.addr[a] : er_place(ctx->ls, a);
+        if ((p & 15) || (uint64_t)p + 16ull * n > SPU_LS_SIZE) continue;
+        for (uint32_t v = 0; v < n; v++)
+            _mm_storeu_si128((__m128i*)(ctx->ls + p + 16u * v), er_q(in + (size_t)v * stride + 16u * a));
+    }
+    __atomic_add_fetch(&s_u_given, 1, __ATOMIC_RELAXED);
 }
 
 static inline uint32_t er_need(void) { return t_m.vel ? 15u : t_m.lit ? 7u : 1u; }
@@ -527,6 +628,8 @@ static int er_note(spu_context* ctx)
     edge_xf_consts(ctx->ls, ctx->gpr[6]._u32[0], t_r.rec->c[a]);
     t_r.rec->arrays |= 1u << a;
     t_r.addr[a] = src;
+    /* a revoke before this call gives the array back to the context's place */
+    if ((t_m.state == 3 || t_m.udec) && src != er_place(ctx->ls, a)) __atomic_add_fetch(&s_u_place, 1, __ATOMIC_RELAXED);
     const uint32_t stride = t_m.lit ? ER_IN_LIT : ER_IN_POS;
     const uint8_t* s = ctx->ls + src;
     if (t_m.state == 1) {
@@ -574,14 +677,14 @@ int edge_memo_rigid_bbc8(spu_context* ctx)
 
 /* the check: the job's n packed vertexes at stride against the CPU's, from what 0xF538 read (a
  * result's inputs when it had one) and this job's constants */
-static void er_check(const uint8_t* src, uint32_t n, uint32_t stride)
+static void er_check(const uint8_t* src, uint32_t n, uint32_t stride, int from_result)
 {
     if ((t_r.rec->arrays & er_need()) != er_need()) return;
-    const uint8_t* in = t_m.state == 3 ? memo_records(t_m.e) : t_r.in;
+    const uint8_t* in = from_result ? memo_records(t_m.e) : t_r.in;
     const uint32_t is = t_m.lit ? ER_IN_LIT : ER_IN_POS;
     uint32_t m = t_m.nverts < n ? t_m.nverts : n;
-    if (t_m.state == 3 && t_m.e->nverts < m) m = t_m.e->nverts;
-    if (t_m.state == 1) for (int a = 0; a < 3; a++) if (((er_need() >> a) & 1u) && t_r.got[a] < m) m = t_r.got[a];
+    if (from_result && t_m.e->nverts < m) m = t_m.e->nverts;
+    if (!from_result) for (int a = 0; a < 3; a++) if (((er_need() >> a) & 1u) && t_r.got[a] < m) m = t_r.got[a];
     long long pos = 0, nt = 0;
     for (uint32_t v = 0; v < m; v++) {
         uint8_t o[ER_VEL_STRIDE];
@@ -730,6 +833,7 @@ void edge_memo_job(void)
     t_m.skin = 0;
     t_m.rigid = 0;
     t_m.vel = 0;
+    t_m.u = t_m.udec = t_m.ucheck = 0;
     if (t_r.rec) t_r.rec->arrays = t_r.rec->flags = 0;
     t_r.got[0] = t_r.got[1] = t_r.got[2] = t_r.got[3] = 0;
     t_r.prev_src = 0;
@@ -803,6 +907,10 @@ void gowa_edge_memo_9a40(spu_context* ctx)
         const long long rj = __atomic_add_fetch(t_m.vel ? &s_v_jobs : &s_r_jobs, 1, __ATOMIC_RELAXED);
         if (t_m.e) __atomic_add_fetch(t_m.vel ? &s_v_hits : &s_r_hits, 1, __ATOMIC_RELAXED);
         if (rstats && !(rj & 0xFFFF)) er_report();
+        if (t_m.state == 2) {
+            const int um = memo_unpack_mode();
+            t_m.u = um == 2 || (um == 1 && edge_turn_on());
+        }
     }
     if (stats && !(s_jobs & 0xFFFF)) memo_report();
 }
@@ -823,7 +931,11 @@ int edge_memo_left_out(spu_context* ctx)
 
 int edge_memo_unpack(spu_context* ctx, int lit, uint32_t src, uint32_t cnt, uint32_t p0, uint32_t n0, uint32_t t0)
 {
-    if (t_m.rigid) return 0;                  /* it keeps what 0xF538 reads: unpack runs */
+    if (t_m.rigid) {                          /* it keeps what 0xF538 reads, which a revoke gives back */
+        if (t_m.state != 2 || !t_m.u) return 0;
+        if (!t_m.udec) { t_m.udec = 1; __atomic_add_fetch(&s_u_left, 1, __ATOMIC_RELAXED); }
+        return 1;
+    }
     if (t_m.state == 1 && lit) {              /* kept for a late unpack */
         const uint32_t n = 18u * cnt;
         if (n > MEMO_STREAM_MAX) { t_m.state = 0; return 0; }
@@ -877,8 +989,10 @@ void edge_memo_cancel(void)
 const uint8_t* edge_memo_vtx(uint32_t n, uint32_t rec)
 {
     if (t_m.skin) return t_m.state == 2 && t_m.e->nverts == n ? t_m.e->kb.tag : NULL;
-    if (t_m.rigid)      /* NULL gives it up: the output stage then revokes it */
+    if (t_m.rigid) {    /* NULL gives it up: the output stage then revokes it */
+        if (t_m.state == 2 && t_m.udec && memo_unpack_mode() == 2) { t_m.ucheck = 1; return NULL; }
         return t_m.state == 2 && t_m.e->nverts == n && (t_r.rec->arrays & er_need()) == er_need() ? t_m.e->kb.tag : NULL;
+    }
     if (t_m.state != 2 || t_m.e->nverts != n || t_m.e->rec != rec) return NULL;
     return memo_records(t_m.e);
 }
@@ -896,7 +1010,15 @@ void edge_memo_ring(spu_context* ctx)
     else t_m.ring = 1;
 }
 
-int edge_memo_skip_decode(void) { return t_m.state == 2 && t_m.skin; }
+/* the decoding of 0x30310 and 0x304A0: a skinned result's, or an unskinned one's left unpacked */
+int edge_memo_skip_decode(void)
+{
+    if (t_m.state != 2) return 0;
+    if (t_m.skin) return 1;
+    if (!t_m.rigid || !t_m.u) return 0;
+    if (!t_m.udec) { t_m.udec = 1; __atomic_add_fetch(&s_u_left, 1, __ATOMIC_RELAXED); }
+    return 1;
+}
 
 /* a skinned result's part of the record, or an unskinned one's transforms, or NULL */
 const void* edge_memo_skin_part(uint32_t* bytes)
@@ -929,9 +1051,15 @@ void edge_memo_publish(uint32_t vio, uint32_t nverts)
 
 void edge_memo_vtx_note(const uint8_t* src, uint32_t n, uint32_t stride, uint32_t rec)
 {
+    if (t_m.ucheck) {   /* GOWA_EDGE_UNPACK=2: the arrays given back, packed on the SPU */
+        t_m.ucheck = 0;
+        if (t_r.rec) er_check(src, n, stride, 1);
+        __atomic_add_fetch(&s_u_checked, 1, __ATOMIC_RELAXED);
+        return;
+    }
     if (t_m.skin && memo_skin_mode() == 2) { ek_check(src, n, stride); t_m.state = 0; return; }
     if (t_m.rigid && (t_m.state == 1 || t_m.state == 3) && (t_m.vel ? memo_vel_mode() : memo_rigid_mode()) == 2)
-        er_check(src, n, stride);
+        er_check(src, n, stride, t_m.state == 3);
     if (t_m.rigid && t_m.state == 3) { t_m.state = 0; return; }
     if (t_m.state == 3) {
         const uint8_t* d = memo_records(t_m.e);
@@ -1017,6 +1145,11 @@ void edge_memo_revoke(spu_context* ctx)
     const int rigid = t_m.rigid;
     t_m.rigid = 0;
     if (rigid) __atomic_add_fetch(t_m.vel ? &s_v_revoked : &s_r_revoked, 1, __ATOMIC_RELAXED);
+    /* its arrays left unpacked (GOWA_EDGE_UNPACK): back from the result first */
+    if (rigid && t_m.udec) {
+        er_give(ctx);
+        t_m.udec = 0;
+    }
     if (skin && t_k.taken && t_k.pa && (!t_m.lit || (t_k.na && t_k.ta))) {   /* the arrays as the input piece left them */
         const uint8_t* in = memo_records(t_m.e);
         uint8_t* const ls = ctx->ls;
