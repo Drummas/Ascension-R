@@ -2603,10 +2603,10 @@ static DWORD WINAPI find_thread(LPVOID)
     GameInfo close, best;
     memset(&close, 0, sizeof close);
     if (s.under) game_locate(s.under, &close);   /* the folder itself, or the usual places in it */
-    if (close.state >= GAME_NO_ELF) best = close;
+    if (close.state == GAME_OK || close.state == GAME_NO_ELF) best = close;
     else {
         game_search(&s, &best);
-        if (close.state > best.state) best = close;
+        if (game_rank(&close) > game_rank(&best)) best = close;
     }
     s_find.best = best;
     PostMessageA(s_main, WM_GAME_FOUND, 0, 0);
@@ -2705,7 +2705,7 @@ static void find_done(void)
     const GameInfo& b = s_find.best;
     const int picked = s_find.under[0] != 0;
     const size_t n = sizeof s_game.note / sizeof s_game.note[0];
-    if (b.state >= GAME_NO_ELF && (picked || b.state >= s_game.g.state)) {
+    if (b.state >= GAME_NO_ELF && (picked || game_rank(&b) >= game_rank(&s_game.g))) {
         if (game_use(b)) {
             toast(b.state == GAME_OK ? "Game found" : "Game folder set");
             prepare_begin();

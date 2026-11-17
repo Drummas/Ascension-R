@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <deque>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -528,18 +529,26 @@ static int disc_encrypted(const wchar_t* disc)
     return ok && got == 4 && memcmp(b, "PSAR", 4) != 0;
 }
 
-/* The disc's update: the one given, or in an RPCS3 known or beside the disc, or one a search saw. */
+/* The disc's update: the one given, or in an RPCS3 known or beside the disc, or one a search saw. Of several (one
+ * RPCS3 with an older update), the first at the port's version, else the first. */
 static int find_update(const char* id, const wchar_t* disc, const wchar_t* given, wchar_t* out, size_t n)
 {
     if (given && *given && is_update_of(given, id)) { folder_copy(out, n, given); return 1; }
+    std::vector<std::wstring> found;
     for (const std::wstring& r : rpcs3_roots(disc)) {
         wchar_t p[GAME_PATH_MAX + 64];
         swprintf(p, sizeof p / sizeof p[0], L"%ls\\dev_hdd0\\game\\%hs", r.c_str(), id);
-        if (is_update_of(p, id)) { folder_copy(out, n, p); return 1; }
+        if (is_update_of(p, id)) found.push_back(p);
     }
     for (const std::wstring& u : seen_of(s_updates, id))
-        if (is_update_of(u.c_str(), id)) { folder_copy(out, n, u.c_str()); return 1; }
-    return 0;
+        if (is_update_of(u.c_str(), id)) found.push_back(u);
+    if (found.empty()) return 0;
+    for (const std::wstring& u : found) {
+        GameInfo g;
+        if (game_read_info(u.c_str(), &g) && !strcmp(g.app_ver, k_app_ver)) { folder_copy(out, n, u.c_str()); return 1; }
+    }
+    folder_copy(out, n, found[0].c_str());
+    return 1;
 }
 
 /* The update's disc: from its RPCS3's games.yml (or another RPCS3's), or one a search saw. An ISO there goes in iso. */
@@ -683,7 +692,8 @@ GameState game_locate(const wchar_t* path, GameInfo* g)
         wchar_t p[GAME_PATH_MAX + 32];
         swprintf(p, sizeof p / sizeof p[0], L"%ls%ls", base, under[i].c_str());
         GameInfo t;
-        if (game_probe(p, &t) > g->state) *g = t;
+        game_probe(p, &t);
+        if (game_rank(&t) > game_rank(g)) *g = t;
         if (g->state == GAME_OK) break;
     }
     return g->state;
@@ -744,18 +754,39 @@ static int not_worth_it(const wchar_t* name)
 
 struct Dir { std::wstring path; int depth; };
 
-static void keep_best(GameSearch* s, GameInfo* best, const GameInfo& g)
+static void keep_best(GameSearch* s, GameInfo* best, const GameInfo& g, std::set<std::wstring>& seen)
 {
-    /* Another title counts only if it is this game: another release of it. */
+    /* Another title counts only if it is this game: another release of it. A disc and its update are one copy,
+     * whichever of the two the walk came to first: each probe pairs them. */
     if (g.state == GAME_OTHER_TITLE && !strstr(g.title, "Ascension")) return;
-    if (g.state >= GAME_OTHER_TITLE) s->copies++;
-    if (g.state > best->state) *best = g;
+    std::wstring key = std::wstring(g.dir) + L"|" + g.update;
+    for (wchar_t& c : key) c = c == L'/' ? L'\\' : towlower(c);
+    if (g.state >= GAME_OTHER_TITLE && seen.insert(key).second) s->copies++;
+    if (game_rank(&g) > game_rank(best)) *best = g;
+}
+
+static int state_rank(GameState s, int other_version)
+{
+    switch (s) {
+    case GAME_OK: return 6;
+    case GAME_NO_ELF: return 5;
+    case GAME_OTHER_BUILD: return other_version ? 3 : 4;
+    case GAME_INCOMPLETE: return 2;
+    case GAME_OTHER_TITLE: return 1;
+    default: return 0;
+    }
+}
+
+int game_rank(const GameInfo* g)
+{
+    return state_rank(g->state, g->other_version);
 }
 
 GameState game_search(GameSearch* s, GameInfo* best)
 {
     memset(best, 0, sizeof *best);
     s->copies = 0;
+    std::set<std::wstring> seen;
     const ULONGLONG until = GetTickCount64() + (ULONGLONG)(s->seconds > 0 ? s->seconds : 60) * 1000u;
     std::deque<Dir> hot, cold;
     if (s->under) {
@@ -768,7 +799,7 @@ GameState game_search(GameSearch* s, GameInfo* best)
             if (!GetEnvironmentVariableW(vars[i], v, GAME_PATH_MAX)) continue;
             swprintf(p, sizeof p / sizeof p[0], L"%ls\\rpcs3", v);
             GameInfo g;
-            if (game_locate(p, &g) > GAME_NONE) keep_best(s, best, g);
+            if (game_locate(p, &g) > GAME_NONE) keep_best(s, best, g, seen);
         }
         /* Every disk, the system's last: games are mostly on another one. */
         wchar_t sys[MAX_PATH] = L"C";
@@ -785,7 +816,7 @@ GameState game_search(GameSearch* s, GameInfo* best)
     }
     const int max_depth = s->under ? 12 : 9;
     const GameState enough = s->good_enough ? (GameState)s->good_enough : GAME_OK;
-    while (best->state < enough && (!hot.empty() || !cold.empty())) {
+    while (game_rank(best) < state_rank(enough, 0) && (!hot.empty() || !cold.empty())) {
         if ((s->stop && *s->stop) || GetTickCount64() >= until) break;
         Dir d;
         if (!hot.empty()) { d = std::move(hot.back()); hot.pop_back(); }
@@ -821,7 +852,7 @@ GameState game_search(GameSearch* s, GameInfo* best)
         FindClose(f);
         if (game_here) {
             GameInfo g;
-            if (game_probe(d.path.c_str(), &g) > GAME_NONE) keep_best(s, best, g);
+            if (game_probe(d.path.c_str(), &g) > GAME_NONE) keep_best(s, best, g, seen);
             continue;   /* nothing of interest under a game */
         }
         for (Dir& x : found_hot) hot.push_back(std::move(x));

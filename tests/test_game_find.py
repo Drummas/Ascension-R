@@ -411,12 +411,58 @@ class GameFind(unittest.TestCase):
         self.assertTrue(self.run_t("locate", self.p("dump"))[2].endswith("PS3_GAME"))
 
     def test_the_search_finds_it_deep_down_and_counts_copies(self):
-        make_game(self.p("a", "b", "c", "d", "e", "RPCS3", "dev_hdd0", "game", "NPUA80918"))
-        make_game(self.p("x", "renamed game"), elf=False)
+        # The copy deep down is the one to take: a renamed copy with another GOWA.elf in it comes after one still to
+        # decrypt (game_rank), and another game does not count.
+        make_game(self.p("a", "b", "c", "d", "e", "RPCS3", "dev_hdd0", "game", "NPUA80918"), elf=False)
+        make_game(self.p("x", "renamed game"))
         make_game(self.p("y", "BLES00000"), title_id="BLES00000", title="Another game")
         out = self.run_t("search", self.d)
-        self.assertEqual(out[1], "other_build")
+        self.assertEqual(out[1], "no_elf")
         self.assertTrue(out[2].endswith("NPUA80918"), out)
+        self.assertEqual(out[5], "2")
+
+    def test_two_releases_on_one_pc(self):
+        # The US digital release and the EU disc with its update in the same RPCS3: two copies (the disc once, though
+        # the walk comes to its folder and to its update's), and the search keeps the one further along.
+        make_game(self.p("emu", "dev_hdd0", "game", "NPUA80918"), elf=False)
+        make_disc(self.p("discs", "BCES01741"))
+        make_rpcs3(self.p("emu"), disc=self.p("discs", "BCES01741"))
+        out = self.run_t("search", self.d)
+        self.assertEqual(out[1], "no_elf")
+        self.assertIn(out[3], ("NPUA80918", "BCES01741"))
+        self.assertEqual(out[5], "2")
+        # The disc without its update: the US release is the one to take.
+        shutil.rmtree(self.p("emu", "dev_hdd0", "game", "BCES01741"))
+        out = self.run_t("search", self.d)
+        self.assertEqual(out[1:4], ["no_elf", self.p("emu", "dev_hdd0", "game", "NPUA80918"), "NPUA80918"])
+        self.assertEqual(out[5], "2")
+
+    def test_a_disc_with_an_old_update_and_a_new_one(self):
+        # Two RPCS3s with the disc's update, one at 1.11: the search ends on the pair with 1.12.
+        disc = make_disc(self.p("discs", "BCES01741"))
+        make_rpcs3(self.p("old"), app_ver="01.11")
+        new = make_rpcs3(self.p("new"))
+        out = self.run_t("pairsearch", self.d)
+        self.assertEqual(out[1:5], ["no_elf", "0", "01.12", disc])
+        self.assertEqual(out[5], os.path.join(new, "dev_hdd0", "game", "BCES01741"))
+
+    def test_a_disc_picked_takes_its_update_at_1_12(self):
+        # Browse to the disc, two RPCS3s beside it, the one walked first at 1.11.
+        disc = make_disc(self.p("PS3", "Games", "BCES01741"))
+        make_rpcs3(self.p("PS3", "a-old"), app_ver="01.11")
+        new = make_rpcs3(self.p("PS3", "b-new"))
+        out = self.run_t("pair", self.p("PS3", "Games", "BCES01741"))
+        self.assertEqual(out[1:5], ["no_elf", "0", "01.12", disc])
+        self.assertEqual(out[5], os.path.join(new, "dev_hdd0", "game", "BCES01741"))
+
+    def test_the_search_goes_past_another_version(self):
+        # As the launcher searches, stopping at the first copy of this release: a copy at 1.11, walked first, is not
+        # one, and the search goes on to the copy at 1.12.
+        make_game(self.p("a", "NPUA80918"), elf=False, app_ver="01.11")
+        make_game(self.p("b", "NPUA80918"), elf=False)
+        out = self.run_t("search_first", self.d)
+        self.assertEqual(out[1], "no_elf")
+        self.assertTrue(out[2].endswith(os.path.join("b", "NPUA80918")), out)
         self.assertEqual(out[5], "2")
 
     def test_the_games_data_folder_is_no_game(self):

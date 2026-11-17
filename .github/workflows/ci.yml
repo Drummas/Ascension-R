@@ -45,6 +45,7 @@ jobs:
         run: |
           set -e
           python tests/test_game_find.py
+          python tests/test_game_prepare.py
           python tests/test_dxc_guards.py
           python tests/test_gametext.py
           python tests/test_kit_paths.py

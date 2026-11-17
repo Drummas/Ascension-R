@@ -61,6 +61,12 @@ int game_file_needed(const char* title_id, const char* path);
 /* Whether a file is the GOWA.elf this port was made from. */
 int game_elf_ok(const wchar_t* path);
 
+/* How far along a copy is, to choose between two: the one to play (GAME_OK), one of this version still to decrypt
+ * (GAME_NO_ELF), one of this version with another GOWA.elf, another version, one that lacks files, another release.
+ * Higher is better. The states' own order puts another version above GAME_NO_ELF: a search for "this release, whole"
+ * stopped at a copy at 1.11 and never came to the one at 1.12. */
+int game_rank(const GameInfo* g);
+
 /* A file's SHA-256 in lower-case hex. 1 = read. */
 int game_file_sha256(const wchar_t* path, char hex[65]);
 
