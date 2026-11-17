@@ -174,6 +174,26 @@ Replace the single title with a table, so every place that says NPUA80918 asks i
 - **Done when:** on this PC, from a clean Kit, the EU copy is decrypted with no player step, the DLL the Kit builds is
   `f317f78f...` (the same as from NPUA80918), with RPCS3 0.0.43-20572 and -20607 and the one the launcher downloads.
 
+**Done (2026-11-17).** `game_prepare_disc(update, rpcs3, data)` does the steps above; `run_hidden_in` gives RPCS3 a
+standard input from a file and its output to NUL. The windows (`klic_windows`): 8-aligned, 16 bytes, from the
+PT_LOAD segments without PF_X, each once; narrow keeps 12 or more different bytes with at most 10 printable, wide
+every window with more than 3 different bytes. The RPCS3 log (`klic_logged`): every `KLIC=0x` of `log\RPCS3.log`
+(older RPCS3s: `RPCS3.log`). Logged: the step, how many keys of which kind, the time; never a key.
+`GOWA_KLIC_TRIES=narrow,wide,log` picks the tries, for tests. The launcher decrypts a disc with the RPCS3 its update is
+in, never asks it for a `.rap`, and says so; `--prepare-game` takes a disc, its PS3_GAME or its update folder.
+
+| on this PC's EU copy | keys tried | GOWA.SELF | in all |
+|---|---|---|---|
+| narrow, RPCS3 0.0.43-20607 (E:) | 2 | 0.5 s | 10.8 s (EBOOT.BIN 6.6 s, RPCS3's first start in its folder) |
+| wide only | 285 | 27.5 s | 29.3 s |
+| the RPCS3 log only | 1 | 0.5 s | 3.0 s |
+| narrow, RPCS3 0.0.43-20572 (D:) | 2 | 0.5 s | 8.1 s |
+
+Each made `4bf75c89...`, left no work folder, and no 32-hex run in the output. In the launcher, on the EU copy linked
+in phase 3 and not decrypted, Auto detect found it and decrypted it with no step: `BCES01741 · 1.12` ready, `paths.elf`
+the decrypted copy. The launcher's own download is RPCS3 0.0.43-20573, between the two tried; not downloaded for this.
+The Kit's DLL from this GOWA.elf is phase 6's whole run (the same file as NPUA80918's, so the same build).
+
 ## Phase 5: everything else that knew one title (1 day)
 
 - **The file check:** `port/game_files.inc` gets a BCES01741 list, the disc's 1.00 files and the update's 1.12 files,

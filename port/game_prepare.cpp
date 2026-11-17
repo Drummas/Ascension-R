@@ -17,9 +17,14 @@
 #endif
 #include <windows.h>
 #include <winhttp.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
+#include <set>
+#include <string>
+#include <vector>
 
 #pragma comment(lib, "winhttp.lib")
 
@@ -170,14 +175,37 @@ static void work_folder(const wchar_t* data, wchar_t* work, size_t n)
 }
 
 /* Runs a program with no window and waits for it. The exit code, or -1 if it did not start or end. */
-static int run_hidden(const wchar_t* exe, wchar_t* cmd, const wchar_t* cwd, DWORD wait_ms, const GameProgress* p)
+/* stdin_file, when given, is its standard input, and its output goes nowhere: RPCS3's --decrypt reads a KLIC from
+ * standard input when a SELF needs one (not from the console it opens). */
+static int run_hidden_in(const wchar_t* exe, wchar_t* cmd, const wchar_t* cwd, DWORD wait_ms, const GameProgress* p,
+                         const wchar_t* stdin_file)
 {
     STARTUPINFOW si = {};
     si.cb = sizeof si;
     si.dwFlags = STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
+    HANDLE in = INVALID_HANDLE_VALUE, nul = INVALID_HANDLE_VALUE;
+    BOOL inherit = FALSE;
+    if (stdin_file) {
+        SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
+        in = CreateFileW(stdin_file, GENERIC_READ, FILE_SHARE_READ, &sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        nul = CreateFileW(L"NUL", GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, OPEN_EXISTING, 0, NULL);
+        if (in == INVALID_HANDLE_VALUE || nul == INVALID_HANDLE_VALUE) {
+            if (in != INVALID_HANDLE_VALUE) CloseHandle(in);
+            if (nul != INVALID_HANDLE_VALUE) CloseHandle(nul);
+            return -1;
+        }
+        si.dwFlags |= STARTF_USESTDHANDLES;
+        si.hStdInput = in;
+        si.hStdOutput = nul;
+        si.hStdError = nul;
+        inherit = TRUE;
+    }
     PROCESS_INFORMATION pi = {};
-    if (!CreateProcessW(exe, cmd, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, cwd, &si, &pi)) return -1;
+    const BOOL started = CreateProcessW(exe, cmd, NULL, NULL, inherit, CREATE_NO_WINDOW, NULL, cwd, &si, &pi);
+    if (in != INVALID_HANDLE_VALUE) CloseHandle(in);
+    if (nul != INVALID_HANDLE_VALUE) CloseHandle(nul);
+    if (!started) return -1;
     DWORD code = (DWORD)-1;
     const ULONGLONG until = GetTickCount64() + wait_ms;
     for (;;) {
@@ -194,6 +222,222 @@ static int run_hidden(const wchar_t* exe, wchar_t* cmd, const wchar_t* cwd, DWOR
     CloseHandle(pi.hThread);
     CloseHandle(pi.hProcess);
     return (int)code;
+}
+
+static int run_hidden(const wchar_t* exe, wchar_t* cmd, const wchar_t* cwd, DWORD wait_ms, const GameProgress* p)
+{
+    return run_hidden_in(exe, cmd, cwd, wait_ms, p, NULL);
+}
+
+/* --- a disc's GOWA.SELF: the KLIC of its update's EBOOT.BIN ------------------------------------------------------ */
+/* A disc's update holds GOWA.SELF with a free license, decrypted with the KLIC the update's own EBOOT.BIN hands to
+ * sceNpDrmIsAvailable2 when the game starts: no .rap. That EBOOT.BIN is a free-license SELF RPCS3 decrypts with no
+ * key, and it keeps the KLIC in plain bytes in its data. So the 16-byte windows of that data are given to RPCS3's
+ * --decrypt of GOWA.SELF, which tries each one it reads on standard input, and the right one opens it. The port ships
+ * no key and keeps none: the windows come from the player's own EBOOT.BIN each time, go only to RPCS3's standard
+ * input through a file in the work folder, which goes with it, and are never logged (docs/notes/2026-11-17-eu-
+ * support-plan.md, phase 4; the EU disc's: 2 windows, 0.8 s). */
+
+static uint64_t be64(const unsigned char* b) { uint64_t v = 0; for (int i = 0; i < 8; i++) v = v << 8 | b[i]; return v; }
+static uint32_t be32(const unsigned char* b) { return (uint32_t)b[0] << 24 | (uint32_t)b[1] << 16 | (uint32_t)b[2] << 8 | b[3]; }
+
+/* The 8-aligned 16-byte windows of an ELF's file-backed data (PT_LOAD without PF_X), each once, in hex. narrow: those
+ * that look like a key, 12 or more different byte values and at most 10 printable; otherwise every window with more
+ * than 3 different bytes. */
+static std::vector<std::string> klic_windows(const std::vector<unsigned char>& e, int narrow)
+{
+    std::vector<std::string> out;
+    if (e.size() < 64 || memcmp(e.data(), "\x7F" "ELF", 4) || e[4] != 2 || e[5] != 2) return out;   /* ELF64, big-endian */
+    const uint64_t phoff = be64(&e[0x20]);
+    const unsigned phent = (unsigned)e[0x36] << 8 | e[0x37], phnum = (unsigned)e[0x38] << 8 | e[0x39];
+    std::set<std::string> seen;
+    static const char hex[] = "0123456789ABCDEF";
+    for (unsigned i = 0; i < phnum; i++) {
+        const uint64_t at = phoff + (uint64_t)i * phent;
+        if (phent < 56 || at + 56 > e.size()) break;
+        const unsigned char* h = &e[(size_t)at];
+        if (be32(h) != 1 || (be32(h + 4) & 1)) continue;   /* PT_LOAD, not executable */
+        const uint64_t off = be64(h + 8), filesz = be64(h + 32);
+        if (off > e.size() || filesz > e.size() - off) continue;
+        for (uint64_t o = off - off % 8; o + 16 <= off + filesz; o += 8) {
+            const unsigned char* w = &e[(size_t)o];
+            bool used[256] = {};
+            int distinct = 0, printable = 0;
+            for (int k = 0; k < 16; k++) {
+                distinct += !used[w[k]];
+                used[w[k]] = true;
+                printable += w[k] >= 32 && w[k] < 127;
+            }
+            if (narrow ? (distinct < 12 || printable > 10) : distinct <= 3) continue;
+            std::string s(32, '0');
+            for (int k = 0; k < 16; k++) { s[2 * k] = hex[w[k] >> 4]; s[2 * k + 1] = hex[w[k] & 15]; }
+            if (seen.insert(s).second) out.push_back(s);
+        }
+    }
+    return out;
+}
+
+/* The KLICs an RPCS3 logged when it ran the game (log\RPCS3.log; RPCS3.log of older versions):
+ * "npDrmIsAvailable(): KLicense key or KLIC=0x..." before the drm_path of GOWA.SELF. Only read. */
+static std::vector<std::string> klic_logged(const wchar_t* rpcs3_exe)
+{
+    std::vector<std::string> out;
+    wchar_t dir[GAME_PATH_MAX];
+    swprintf(dir, GAME_PATH_MAX, L"%ls", rpcs3_exe);
+    if (wchar_t* s = wcsrchr(dir, L'\\')) *s = 0;
+    static const wchar_t* const where[] = { L"\\log\\RPCS3.log", L"\\RPCS3.log" };
+    for (const wchar_t* w : where) {
+        wchar_t p[GAME_PATH_MAX + 32];
+        swprintf(p, sizeof p / sizeof p[0], L"%ls%ls", dir, w);
+        HANDLE h = CreateFileW(p, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (h == INVALID_HANDLE_VALUE) continue;
+        LARGE_INTEGER size = {};
+        GetFileSizeEx(h, &size);
+        std::string d((size_t)(std::min)(size.QuadPart, 256ll << 20), '\0');
+        DWORD got = 0;
+        if (!d.empty() && ReadFile(h, &d[0], (DWORD)d.size(), &got, NULL)) d.resize(got);
+        CloseHandle(h);
+        for (size_t at = d.find("KLIC=0x"); at != std::string::npos; at = d.find("KLIC=0x", at + 7)) {
+            std::string k = d.substr(at + 7, 32);
+            if (k.size() != 32 || k.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) continue;
+            for (char& c : k) c = (char)toupper((unsigned char)c);
+            if (std::find(out.begin(), out.end(), k) == out.end()) out.push_back(k);
+        }
+    }
+    return out;
+}
+
+/* RPCS3 --decrypt on a file of the work folder, the KLICs to try (if any) on its standard input. Its exit code. */
+static int rpcs3_decrypt(const wchar_t* exe_short, const wchar_t* cfg_short, const wchar_t* file_short,
+                         const wchar_t* keys, DWORD wait_ms, const GameProgress* p)
+{
+    static wchar_t cmd[2 * GAME_PATH_MAX + 64];
+    swprintf(cmd, sizeof cmd / sizeof cmd[0], L"\"%ls\" --decrypt \"%ls\"", exe_short, file_short);
+    SetEnvironmentVariableW(L"RPCS3_CONFIG_DIR", cfg_short);
+    const int code = run_hidden_in(exe_short, cmd, cfg_short, wait_ms, p, keys);
+    SetEnvironmentVariableW(L"RPCS3_CONFIG_DIR", NULL);
+    return code;
+}
+
+/* What RPCS3's exit says when it did not decrypt, for err; NULL when it ran. */
+static const wchar_t* rpcs3_trouble(int code, const GameProgress* p)
+{
+    if (stopped(p)) return L"Stopped";
+    /* RPCS3 refuses a copy of the Visual C++ runtime beside it: it has to be installed. */
+    if ((DWORD)code == 0xC0000135u) return L"RPCS3 needs the Microsoft Visual C++ Redistributable (x64). Install it and try again";
+    if (code == -1) return L"RPCS3 did not start or did not finish. Start it once by itself to see why";
+    return NULL;
+}
+
+static int write_lines(const wchar_t* file, const std::vector<std::string>& lines)
+{
+    HANDLE h = CreateFileW(file, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    std::string all;
+    for (const std::string& s : lines) all += s + "\n";
+    DWORD put = 0;
+    const BOOL ok = WriteFile(h, all.data(), (DWORD)all.size(), &put, NULL) && put == all.size();
+    CloseHandle(h);
+    return ok;
+}
+
+static int read_file(const wchar_t* file, std::vector<unsigned char>& out)
+{
+    HANDLE h = CreateFileW(file, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    LARGE_INTEGER size = {};
+    GetFileSizeEx(h, &size);
+    out.resize((size_t)(std::min)(size.QuadPart, 64ll << 20));
+    DWORD got = 0;
+    const BOOL ok = out.empty() || ReadFile(h, out.data(), (DWORD)out.size(), &got, NULL);
+    CloseHandle(h);
+    out.resize(got);
+    return ok;
+}
+
+int game_prepare_disc(const wchar_t* update_dir, const wchar_t* rpcs3_exe, const wchar_t* data, wchar_t* err, size_t n,
+                      GameProgress* p)
+{
+    enum { P = GAME_PATH_MAX + 128 };
+    wchar_t work[P], input[P], config[P], self_from[P], eboot_from[P], self[P], eboot[P], eboot_elf[P], made[P],
+        final_elf[P], keys[P], none[P];
+    swprintf(self_from, P, L"%ls\\USRDIR\\GOWA.SELF", update_dir);
+    swprintf(eboot_from, P, L"%ls\\USRDIR\\EBOOT.BIN", update_dir);
+    if (!is_file(self_from) || !is_file(eboot_from))
+        return fail(err, n, L"The update's folder has no USRDIR\\GOWA.SELF or EBOOT.BIN: install the updates again in RPCS3");
+    if (!is_file(rpcs3_exe)) return fail(err, n, L"rpcs3.exe is not there");
+    work_folder(data, work, P);
+    swprintf(input, P, L"%ls\\input", work);
+    swprintf(config, P, L"%ls\\rpcs3", work);
+    swprintf(self, P, L"%ls\\GOWA.SELF", input);
+    swprintf(eboot, P, L"%ls\\EBOOT.BIN", input);
+    swprintf(eboot_elf, P, L"%ls\\EBOOT.elf", input);
+    swprintf(made, P, L"%ls\\GOWA.elf", input);
+    swprintf(final_elf, P, L"%ls\\GOWA.elf", data);
+    swprintf(keys, P, L"%ls\\keys.txt", work);
+    swprintf(none, P, L"%ls\\none.txt", work);
+
+    set_phase(p, GP_COPY);
+    remove_tree(work);
+    make_path(input);
+    make_path(config);
+    int ok = 0;
+    if (!CopyFileW(self_from, self, FALSE) || !CopyFileW(eboot_from, eboot, FALSE)) {
+        fail(err, n, L"Could not copy the update's GOWA.SELF and EBOOT.BIN");
+    } else if (!write_lines(none, {})) {
+        fail(err, n, L"Could not write in the work folder");
+    } else {
+        wchar_t in_short[P], cfg_short[P], exe_short[P], arg[P + 16];
+        short_form(input, in_short, P);
+        swprintf(config, P, L"%ls\\rpcs3\\", work);
+        short_form(config, cfg_short, P);
+        short_form(rpcs3_exe, exe_short, P);
+        set_phase(p, GP_DECRYPT);
+        /* 1. The update's EBOOT.BIN: a free license, no key; nothing on its standard input. */
+        ULONGLONG t0 = GetTickCount64();
+        swprintf(arg, sizeof arg / sizeof arg[0], L"%ls\\EBOOT.BIN", in_short);
+        int code = rpcs3_decrypt(exe_short, cfg_short, arg, none, k_decrypt_ms, p);
+        fprintf(stderr, "[prepare] RPCS3 --decrypt of the update's EBOOT.BIN: exit 0x%08X, %.1f s\n", (unsigned)code,
+                (GetTickCount64() - t0) / 1000.0);
+        const wchar_t* why = rpcs3_trouble(code, p);
+        std::vector<unsigned char> elf;
+        if (why) fail(err, n, why);
+        else if (!is_file(eboot_elf) || !read_file(eboot_elf, elf))
+            fail(err, n, L"RPCS3 could not decrypt the update's EBOOT.BIN. Is the update installed whole?");
+        else {
+            /* 2. GOWA.SELF, with the windows of that EBOOT.BIN's data that look like a key, then every window, then
+             * the KLICs the RPCS3 logged when it ran the game. GOWA_KLIC_TRIES=narrow,wide,log picks some (tests). */
+            const char* only = getenv("GOWA_KLIC_TRIES");
+            struct Try { const char* name; std::vector<std::string> keys; DWORD wait; } tries[3] = {
+                { "narrow", {}, k_decrypt_ms }, { "wide", {}, 4 * k_decrypt_ms }, { "log", {}, k_decrypt_ms } };
+            swprintf(arg, sizeof arg / sizeof arg[0], L"%ls\\GOWA.SELF", in_short);
+            for (Try& t : tries) {
+                if (only && *only && !strstr(only, t.name)) continue;
+                if (stopped(p) || is_file(made)) break;
+                t.keys = !strcmp(t.name, "log") ? klic_logged(rpcs3_exe) : klic_windows(elf, !strcmp(t.name, "narrow"));
+                if (t.keys.empty()) continue;
+                if (!write_lines(keys, t.keys)) break;
+                t0 = GetTickCount64();
+                code = rpcs3_decrypt(exe_short, cfg_short, arg, keys, t.wait, p);
+                DeleteFileW(keys);
+                fprintf(stderr, "[prepare] RPCS3 --decrypt of GOWA.SELF, %u %s key%s to try: exit 0x%08X, %.1f s, %s\n",
+                        (unsigned)t.keys.size(), t.name, t.keys.size() == 1 ? "" : "s", (unsigned)code,
+                        (GetTickCount64() - t0) / 1000.0, is_file(made) ? "decrypted" : "not decrypted");
+                if ((why = rpcs3_trouble(code, p)) != NULL) break;
+            }
+            set_phase(p, GP_CHECK);
+            if (why) fail(err, n, why);
+            else if (!is_file(made))
+                fail(err, n, L"The key to GOWA.SELF was not found. Start the game once in RPCS3 (to its first screen), "
+                             L"close it, and press Try again");
+            else if (!game_elf_ok(made)) fail(err, n, L"The decrypted file is not version 1.12 of this game");
+            else if (!MoveFileExW(made, final_elf, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) fail(err, n, L"Could not keep GOWA.elf");
+            else ok = 1;
+        }
+    }
+    remove_tree(work);
+    return ok;
 }
 
 int game_prepare(const wchar_t* game_dir, const wchar_t* rpcs3_exe, const wchar_t* rap, const wchar_t* data,
@@ -592,6 +836,21 @@ extern "C" int gowa_prepare_cli(const char* game, const char* rpcs3, const char*
     MultiByteToWideChar(CP_UTF8, 0, game, -1, g, GAME_PATH_MAX);
     MultiByteToWideChar(CP_UTF8, 0, settings, -1, d, GAME_PATH_MAX);
     if (wchar_t* s = wcsrchr(d, L'\\')) *s = 0;
+    /* A disc (its folder, its PS3_GAME or its update): its update's GOWA.SELF, with its RPCS3. */
+    static GameInfo gi;
+    if (game_locate(g, &gi) > GAME_NONE && gi.disc) {
+        if (!gi.update[0]) {
+            printf("[prepare] the disc's update was not found\n");
+            return 1;
+        }
+        if (rpcs3) MultiByteToWideChar(CP_UTF8, 0, rpcs3, -1, r, GAME_PATH_MAX);
+        else game_find_rpcs3(gi.update, r, GAME_PATH_MAX);
+        const int done = game_prepare_disc(gi.update, r, d, e, sizeof e / sizeof e[0], NULL);
+        char m[1024];
+        WideCharToMultiByte(CP_UTF8, 0, e, -1, m, sizeof m, NULL, NULL);
+        printf(done ? "[prepare] GOWA.elf is ready\n" : "[prepare] %s\n", m);
+        return done ? 0 : 1;
+    }
     if (rpcs3) MultiByteToWideChar(CP_UTF8, 0, rpcs3, -1, r, GAME_PATH_MAX);
     else game_find_rpcs3(g, r, GAME_PATH_MAX);
     if (rap) MultiByteToWideChar(CP_UTF8, 0, rap, -1, l, GAME_PATH_MAX);

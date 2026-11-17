@@ -537,7 +537,8 @@ static struct {
     GameProgress progress;
     int ok;
     int download;                      /* the player asked for RPCS3 to be downloaded */
-    wchar_t rpcs3[GAME_PATH_MAX], rap[GAME_PATH_MAX], game[GAME_PATH_MAX], data[GAME_PATH_MAX];
+    int disc;                          /* a disc: GOWA.SELF in its update, decrypted with no .rap (game_prepare_disc) */
+    wchar_t rpcs3[GAME_PATH_MAX], rap[GAME_PATH_MAX], game[GAME_PATH_MAX], update[GAME_PATH_MAX], data[GAME_PATH_MAX];
     wchar_t err[320];
 } s_prep;
 
@@ -818,6 +819,7 @@ static int game_status(wchar_t* b, size_t n)
     case GAME_NO_ELF:
         if (s_prep.thread) return prep_line(b, n, NULL);
         if (s_prep.err[0]) swprintf(b, n, L"%ls", s_prep.err);
+        else if (g.disc) swprintf(b, n, L"To decrypt the game this needs the RPCS3 its update is installed in");
         else swprintf(b, n, !s_prep.rap[0] && !s_prep.rpcs3[0] ? L"To decrypt the game this needs RPCS3 and its license file (.rap)"
                             : !s_prep.rap[0] ? L"To decrypt the game this needs its license file (.rap)"
                                              : L"To decrypt the game this needs RPCS3");
@@ -2183,7 +2185,8 @@ static void draw_game_row(float x, float y, float w)
         float bx = x;
         const wchar_t* name[4] = { L"Choose rpcs3.exe\x2026", L"Download RPCS3", L"Choose .rap\x2026", L"Try again" };
         const int id[4] = { H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY };
-        const int shown[4] = { 1, !s_prep.rpcs3[0], 1, s_prep.err[0] && s_prep.rpcs3[0] && s_prep.rap[0] };
+        const int disc = s_game.g.disc;   /* no .rap for a disc */
+        const int shown[4] = { 1, !s_prep.rpcs3[0], !disc, s_prep.err[0] && s_prep.rpcs3[0] && (disc || s_prep.rap[0]) };
         for (int i = 0; i < 4; i++) {
             if (!shown[i]) continue;
             const float bw = snap(text_w(name[i], s_tf_ui_b) + 32.0f);
@@ -2633,7 +2636,9 @@ static DWORD WINAPI prepare_thread(LPVOID)
     int fetched = 0, ok = 1;
     swprintf(exe, GAME_PATH_MAX, L"%ls", s_prep.rpcs3);
     if (!exe[0]) ok = fetched = game_fetch_rpcs3(s_prep.data, exe, GAME_PATH_MAX, err, 320, &s_prep.progress);
-    if (ok) ok = game_prepare(s_prep.game, exe, s_prep.rap, s_prep.data, err, 320, &s_prep.progress);
+    if (ok)
+        ok = s_prep.disc ? game_prepare_disc(s_prep.update, exe, s_prep.data, err, 320, &s_prep.progress)
+                         : game_prepare(s_prep.game, exe, s_prep.rap, s_prep.data, err, 320, &s_prep.progress);
     if (fetched) game_drop_rpcs3(s_prep.data);
     swprintf(s_prep.err, 320, L"%ls", err);
     s_prep.ok = ok;
@@ -2648,13 +2653,16 @@ static void prepare_begin(void)
     /* GOWA.SELF is in the game's folder, or in a disc's update: its RPCS3 is the one that folder is in. */
     const wchar_t* exe_dir = s_game.g.disc ? s_game.g.update : s_game.g.dir;
     if (!s_prep.rpcs3[0]) game_find_rpcs3(exe_dir, s_prep.rpcs3, GAME_PATH_MAX);
-    if (!s_prep.rap[0])
+    /* A disc needs no .rap: its update's EBOOT.BIN holds the key (game_prepare_disc). */
+    if (!s_game.g.disc && !s_prep.rap[0])
         game_find_rap(s_prep.rpcs3[0] ? s_prep.rpcs3 : game_rpcs3_slot(exe_dir), s_game.g.title_id, s_prep.rap,
                       GAME_PATH_MAX);
     s_prep.err[0] = 0;
-    if (!s_prep.rap[0] || (!s_prep.rpcs3[0] && !s_prep.download)) return;
+    if ((!s_game.g.disc && !s_prep.rap[0]) || (!s_prep.rpcs3[0] && !s_prep.download)) return;
     data_file(s_prep.data, GAME_PATH_MAX, L"");
     swprintf(s_prep.game, GAME_PATH_MAX, L"%ls", s_game.g.dir);
+    swprintf(s_prep.update, GAME_PATH_MAX, L"%ls", s_game.g.update);
+    s_prep.disc = s_game.g.disc;
     memset((void*)&s_prep.progress, 0, sizeof s_prep.progress);
     s_prep.thread = CreateThread(NULL, 0, prepare_thread, NULL, 0, NULL);
     SetTimer(s_main, 2, 100, NULL);   /* the bar */
@@ -3243,7 +3251,7 @@ static void act(int id)
         case H_GET_RPCS3:
             s_prep.download = 1;
             prepare_begin();
-            if (!s_prep.thread) toast("Now choose the game's license file (.rap)");
+            if (!s_prep.thread && !s_game.g.disc) toast("Now choose the game's license file (.rap)");
             break;
         case H_PICK_RAP:
             if (pick_file(L"The game's license file", L"License file (*.rap)", L"*.rap", s_prep.rap, GAME_PATH_MAX)) prepare_begin();

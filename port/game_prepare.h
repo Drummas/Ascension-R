@@ -39,6 +39,12 @@ int game_find_rap(const wchar_t* rpcs3_exe, const char* title_id, wchar_t* rap, 
 int game_prepare(const wchar_t* game_dir, const wchar_t* rpcs3_exe, const wchar_t* rap, const wchar_t* data,
                  wchar_t* err, size_t n, GameProgress* p);
 
+/* The same for a disc (game_title.h's GAME_KIND_DISC): GOWA.SELF of its update's folder, decrypted with the KLIC the
+ * update's own EBOOT.BIN holds, which RPCS3 finds by trying the windows of that EBOOT.BIN's data (no .rap, no key in
+ * the port). Copies in a folder of its own again; 1 = done; otherwise err says why. */
+int game_prepare_disc(const wchar_t* update_dir, const wchar_t* rpcs3_exe, const wchar_t* data, wchar_t* err, size_t n,
+                      GameProgress* p);
+
 /* The official RPCS3 build, of a fixed version and checked by its SHA-256, into a folder of its own under data.
  * 1 = done, with exe set; otherwise err says why. game_drop_rpcs3 removes it again. */
 int game_fetch_rpcs3(const wchar_t* data, wchar_t* exe, size_t n, wchar_t* err, size_t en, GameProgress* p);
