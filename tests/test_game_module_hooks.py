@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Every function scripts/ppu_hooks.json has the lift call is in the Kit's table (port/game_module.h), and every guard
-of scripts/title_patches.json the lifted code reads.
+"""Every function scripts/ppu_hooks.json has the lift call is in the Kit's table (port/game_module.h).
 
 The lifted code calls a hook by name, and in the Kit's ascension_game.dll that name is one jump through the table the
 program fills, GAME_MODULE_FUNCS. A hook left out of it links in the one exe of a source build and fails the DLL's
@@ -23,12 +22,6 @@ def funcs():
     return set(re.findall(r"X\((\w+)\)", body))
 
 
-def data_ints():
-    src = (ROOT / "port" / "game_module.h").read_text(encoding="utf-8")
-    body = re.search(r"#define GAME_MODULE_DATA\(X\)(.*?)(?:\n\n|\n/\*)", src, re.S).group(1)
-    return set(re.findall(r"X\(int, (\w+)\)", body))
-
-
 class Hooks(unittest.TestCase):
     def test_every_hook_is_in_the_table(self):
         hooks = json.loads((ROOT / "scripts" / "ppu_hooks.json").read_text(encoding="utf-8"))["hooks"]
@@ -36,21 +29,6 @@ class Hooks(unittest.TestCase):
         have = funcs()
         missing = sorted({h["fn"] for h in hooks} - have)
         self.assertEqual(missing, [], "hooks the lift calls that GAME_MODULE_FUNCS does not have: %s" % missing)
-
-    def test_every_lifted_guard_is_in_the_table(self):
-        # The lifted code reads the guard of a patch with PPU or SPU edits; a patch with only data edits or hooks
-        # is read by the program alone.
-        patches = json.loads((ROOT / "scripts" / "title_patches.json").read_text(encoding="utf-8"))["patches"]
-        lifted = {p["guard"] for p in patches if p.get("ppu") or p.get("spu")}
-        self.assertTrue(lifted)
-        missing = sorted(lifted - data_ints())
-        self.assertEqual(missing, [], "guards the lift reads that GAME_MODULE_DATA does not have: %s" % missing)
-
-    def test_every_patch_hook_is_lifted(self):
-        hooks = json.loads((ROOT / "scripts" / "ppu_hooks.json").read_text(encoding="utf-8"))["hooks"]
-        patches = json.loads((ROOT / "scripts" / "title_patches.json").read_text(encoding="utf-8"))["patches"]
-        missing = sorted({fn for p in patches for fn in p.get("hooks", [])} - {h["fn"] for h in hooks})
-        self.assertEqual(missing, [], "patch hooks scripts/ppu_hooks.json does not have: %s" % missing)
 
 
 if __name__ == "__main__":

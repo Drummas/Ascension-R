@@ -290,9 +290,6 @@ static const char* patch_desc(const char* id)
                                    "at the first level, 11% at the gate)." },
         { "disable_shadows", "No dynamic shadows: the biggest saving, about 25% faster in the Megaera "
                              "fight." },
-        { "opening_movie_skippable", "A face button ends the movie before the main menu from the first start "
-                                     "on. The game allows it only once its system save exists." },
-        { "skip_opening_movie", "Ends the movie before the main menu as soon as it starts." },
     };
     for (size_t i = 0; i < sizeof d / sizeof d[0]; i++)
         if (!strcmp(d[i][0], id)) return d[i][1];
@@ -944,26 +941,19 @@ static int preset_has(const Preset& p, const char* id)
     for (int i = 0; p.on[i]; i++) if (!strcmp(p.on[i], id)) return 1;
     return 0;
 }
-/* The presets are of the picture: the opening movie's patches stay as they are set. */
-static int preset_sets(const char* id)
-{
-    return strcmp(id, "opening_movie_skippable") && strcmp(id, "skip_opening_movie");
-}
 /* The preset the patches match, or -1. */
 static int preset_now(void)
 {
     for (int k = 0; k < N_PRESET; k++) {
         int same = 1;
-        for (int i = 0; i < s_npopt && same; i++)
-            same = !preset_sets(s_popt[i].key) || opt_on(s_popt[i]) == preset_has(k_presets[k], s_popt[i].key);
+        for (int i = 0; i < s_npopt && same; i++) same = opt_on(s_popt[i]) == preset_has(k_presets[k], s_popt[i].key);
         if (same) return k;
     }
     return -1;
 }
 static void preset_apply(int k)
 {
-    for (int i = 0; i < s_npopt; i++)
-        if (preset_sets(s_popt[i].key)) opt_set(s_popt[i], preset_has(k_presets[k], s_popt[i].key) ? "on" : "off");
+    for (int i = 0; i < s_npopt; i++) opt_set(s_popt[i], preset_has(k_presets[k], s_popt[i].key) ? "on" : "off");
 }
 
 /* ---------------------------------------------------------------------------
@@ -1802,7 +1792,7 @@ static const wchar_t* const k_tab_name[T_N] = { L"Play", L"Graphics", L"Display"
 static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_chip };
 static const wchar_t* const k_tab_desc[T_N] = {
     L"", L"How the picture is scaled, smoothed and filtered.", L"The window, its pace and the frame rate display.",
-    L"Controller and keyboard.", L"Switches that change what the game draws, for speed, and its opening movie.",
+    L"Controller and keyboard.", L"Switches that change what the game draws, for speed.",
     L"For an easier fight. The game reads these when it starts.",
     L"The game's folder, language, saves and this window." };
 
@@ -2279,7 +2269,7 @@ static void draw_settings(int tab)
     if (tab == T_PATCHES) {
         w_rule(rx, y, rw);
         icon(k_ic_info, rx, y + 13, C_MUTED);
-        text(L"Off: as on the PS3. The game reads these when it starts.", s_tf_small,
+        text(L"Off: drawn as on the PS3. The game reads these when it starts.", s_tf_small,
              R(rx + 26, y + 8, rw - 26, 26), C_MUTED);
     }
     if (scrolls) {

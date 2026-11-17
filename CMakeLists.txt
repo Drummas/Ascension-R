@@ -279,7 +279,6 @@ add_executable(${PROJECT_NAME}
     port/poll_wait.cpp
     port/cheats.cpp
     port/vram_guard.cpp
-    port/movies.cpp
     port/patches.cpp
     port/ultrawide.cpp
     port/precompile.cpp

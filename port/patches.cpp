@@ -41,7 +41,6 @@ struct gowa_title_patch {
     int* guard;
     int ppu_edits;          /* instructions lifted both ways: PPU ones, */
     int spu_edits;          /* and SPU ones in job modules */
-    int hooks;              /* functions of scripts/ppu_hooks.json that read the guard */
     int def_on;             /* on unless switched off */
 };
 
@@ -52,7 +51,7 @@ struct gowa_title_patch {
 /* recompiled/ from a lift older than this file: no patches. `gowa.py lift`
  * writes the header. */
 static const gowa_title_data k_title_data[] = { { -1, 0, 0, { 0 }, { 0 } } };
-static const gowa_title_patch k_title_patches[] = { { NULL, NULL, NULL, 0, 0, 0, 0 } };
+static const gowa_title_patch k_title_patches[] = { { NULL, NULL, NULL, 0, 0, 0 } };
 #endif
 
 static int patch_wanted(const gowa_title_patch* p)
@@ -106,9 +105,9 @@ extern "C" void gowa_title_patches_apply(void)
             for (uint32_t i = 0; d->patch == self && i < d->n; i++, bytes++)
                 vm_write8(d->addr + i, d->val[i]);
         *p->guard = 1;
-        fprintf(stderr, "[patches] %s: on (%d PPU and %d SPU instruction edit%s, %u data byte%s%s)\n",
+        fprintf(stderr, "[patches] %s: on (%d PPU and %d SPU instruction edit%s, %u data byte%s)\n",
                 p->name, p->ppu_edits, p->spu_edits, p->ppu_edits + p->spu_edits == 1 ? "" : "s",
-                bytes, bytes == 1 ? "" : "s", p->hooks ? ", a hook" : "");
+                bytes, bytes == 1 ? "" : "s");
     }
 }
 

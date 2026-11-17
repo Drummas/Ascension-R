@@ -1088,8 +1088,6 @@ def title_patches(elf):
     rel = os.path.relpath(TITLE_PATCHES_FILE, ROOT)
     patches = json.load(open(TITLE_PATCHES_FILE, encoding="utf-8")).get("patches", [])
     ids, guards = set(), set()
-    hook_fns = {h["fn"] for h in json.load(open(os.path.join(ROOT, "scripts", "ppu_hooks.json"),
-                                                encoding="utf-8"))["hooks"]}
 
     def bad(p, why):
         die("%s: %s: %s" % (rel, p.get("id", "?"), why))
@@ -1105,12 +1103,8 @@ def title_patches(elf):
             bad(p, "the name may not hold quotes or backslashes")
         ids.add(p["id"])
         guards.add(p["guard"])
-        if not p.get("ppu") and not p.get("data") and not p.get("spu") and not p.get("hooks"):
-            bad(p, "no ppu, spu or data edit, and no hook")
-        # A hook of scripts/ppu_hooks.json that reads the patch's guard: the patch is what switches it.
-        for fn in p.get("hooks", []):
-            if fn not in hook_fns:
-                bad(p, "%s is not a hook of scripts/ppu_hooks.json" % fn)
+        if not p.get("ppu") and not p.get("data") and not p.get("spu"):
+            bad(p, "no ppu, spu or data edit")
         for e in p.get("spu", []):
             mod, ls = e.get("module", ""), int(str(e["ls"]), 0)
             orig, new = int(str(e["orig"]), 0), int(str(e["new"]), 0)
@@ -1195,11 +1189,10 @@ def write_title_patches_header(out_dir, patches):
                 i, int(str(e["addr"]), 0), len(o), ", ".join("0x%02X" % b for b in o),
                 ", ".join("0x%02X" % b for b in n), p["id"]))
     L += ["    { -1, 0, 0, { 0 }, { 0 } }", "};", "static const gowa_title_patch k_title_patches[] = {"]
-    L += ['    { "%s", "%s", &%s, %d, %d, %d, %d },' % (p["id"], p["name"], p["guard"], len(p.get("ppu", [])),
-                                                   len(p.get("spu", [])), len(p.get("hooks", [])),
-                                                   1 if p.get("default") else 0)
+    L += ['    { "%s", "%s", &%s, %d, %d, %d },' % (p["id"], p["name"], p["guard"], len(p.get("ppu", [])),
+                                               len(p.get("spu", [])), 1 if p.get("default") else 0)
           for p in patches]
-    L += ["    { NULL, NULL, NULL, 0, 0, 0, 0 }", "};", ""]
+    L += ["    { NULL, NULL, NULL, 0, 0, 0 }", "};", ""]
     open(os.path.join(out_dir, TITLE_PATCHES_HEADER), "w", encoding="utf-8", newline="\n").write("\n".join(L))
 
 
@@ -1233,9 +1226,8 @@ def cmd_patches(args):
         say("no %s" % os.path.relpath(TITLE_PATCHES_FILE, ROOT))
         return 0
     for p in patches:
-        say("%-24s %-24s %d PPU, %d SPU instruction edit(s), %d data edit(s), %d hook(s): matches the ELF"
-            % (p["id"], p["name"], len(p.get("ppu", [])), len(p.get("spu", [])), len(p.get("data", [])),
-               len(p.get("hooks", []))))
+        say("%-24s %-24s %d PPU, %d SPU instruction edit(s), %d data edit(s): matches the ELF"
+            % (p["id"], p["name"], len(p.get("ppu", [])), len(p.get("spu", [])), len(p.get("data", []))))
     say("switch one on with [patches] <id> = on in ascension-r.ini, --set patches.<id>=on or "
         "GOWA_PATCH_<ID>=1; `lift` and `build` after a change to the file")
     return 0
