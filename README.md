@@ -40,7 +40,8 @@ Website: [rigaz29.github.io/Ascension-R](https://rigaz29.github.io/Ascension-R/)
 It boots, plays the cinematics and goes through the menus into the levels. It has not been played from start to finish, so expect
 problems further in.
 
-- **Game:** God of War: Ascension, digital US release, NPUA80918, version 1.12: the game and its updates 1.04 to 1.12.
+- **Game:** God of War: Ascension at version 1.12: the digital US release NPUA80918, or the European disc BCES01741 with its
+  updates installed in RPCS3. Either needs the game and its updates 1.04 to 1.12.
 - **Platform:** Windows 10 or 11, 64-bit. Tested on Windows 11.
 - **Speed:** above 30 frames a second in the two scenes measured, a fight of the first level and the gate, on a Ryzen 5 4600H with
   a GTX 1650 Ti and the Smooth preset.
@@ -81,6 +82,11 @@ itself, and optimize with what it counted: 2-3% more frames, for about 15 minute
 Your copy needs all nine of the game's updates, 1.04 to 1.12, installed in RPCS3 in that order. Each brings its own files:
 1.12's is the EBOOT alone, and the archives come with the ones before it. With 1.12 alone the game stops on its first
 loading screen.
+
+The European disc (BCES01741) runs from two folders: a decrypted dump of the disc, unpacked into a folder (an ISO has to be
+opened and copied out first), and its updates installed in RPCS3, which puts them in `dev_hdd0\game\BCES01741`. The
+launcher finds the two together, and decrypts the update's GOWA.SELF with no `.rap`: the key is in the update's own
+EBOOT.BIN, which it hands to RPCS3. Both releases run the same GOWA.elf at 1.12, byte for byte, so the same game code.
 
 ## What you need
 
@@ -192,8 +198,17 @@ Yes. The download holds no code or assets of the game: its launcher builds the g
 
 ### Which copies of the game work?
 
-Only the digital US release NPUA80918 at version 1.12, with every update from 1.04 installed. European and disc releases are not
-supported yet ([#4](https://github.com/rigaz29/Ascension-R/issues/4)).
+At version 1.12, with every update from 1.04 installed:
+
+| Release | Id | |
+|---|---|---|
+| Digital, US | NPUA80918 | supported |
+| Disc, Europe and Australia | BCES01741 | supported: a decrypted dump of the disc, its updates in RPCS3 |
+| Disc, US | BCUS98232 | not yet |
+| Digital, Europe, and the others | | not yet |
+
+A report from a copy that is not supported yet (**Report a problem** in the launcher) says which it is and helps add it
+([#4](https://github.com/rigaz29/Ascension-R/issues/4)).
 
 ### Does it run on Linux or the Steam Deck?
 

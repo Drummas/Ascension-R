@@ -1,6 +1,7 @@
 Ascension-R @VERSION@ @RELEASE@
 
-A native Windows port of God of War: Ascension (PS3, NPUA80918, version 1.12), made by static recompilation.
+A native Windows port of God of War: Ascension (PS3, version 1.12: the digital US release NPUA80918 or the European disc
+BCES01741), made by static recompilation.
 https://github.com/rigaz29/Ascension-R
 
 This download holds none of the game's assets. You need your own copy of the game and its license.
@@ -12,10 +13,13 @@ WHAT YOU NEED
 - Windows 10 or 11, 64-bit.
 - A CPU with AVX2 and FMA, and a GPU with Direct3D 12.
 @KIT_NEEDS@
-- Your copy of the game, the digital US release NPUA80918, updated to version 1.12. The folder of an RPCS3 install
-  (dev_hdd0\game\NPUA80918) works, and so does an unpacked PKG. It has to be the whole folder: the launcher checks
-  the game's files before it decrypts or builds anything, and says which are missing.
-- The game's license file (.rap). If the game is installed in RPCS3, the launcher finds it.
+- Your copy of the game, updated to version 1.12, one of:
+  - the digital US release NPUA80918: the folder of an RPCS3 install (dev_hdd0\game\NPUA80918), or an unpacked PKG,
+    and its license file (.rap), which the launcher finds in that RPCS3;
+  - the European disc BCES01741: a decrypted dump of the disc in a folder (an ISO has to be opened and all of it copied
+    out), and its updates installed in RPCS3 (dev_hdd0\game\BCES01741). No .rap: the key is in the update itself.
+  It has to be whole: the launcher checks the game's files before it decrypts or builds anything, and says which are
+  missing.
 - RPCS3, once, to decrypt your copy of the game. If you do not have it, the launcher offers to download the official
   build and removes it afterwards. RPCS3 needs the Microsoft Visual C++ Redistributable (x64).
 
