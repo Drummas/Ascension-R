@@ -184,6 +184,16 @@
       "defaults": { "graphics/gpu": "discrete" }
     },
     {
+      "id": "shader_wait", "label": "Wait for new shaders", "group": "Picture", "advanced": true,
+      "help": "How long a wall or floor waits for its new shader. Short: a quarter second at most, then a gap shows there until it is built. Full: two seconds, no gap but a pause. Off: no wait, a gap for a moment.",
+      "choices": [
+        { "label": "Off", "set": { "graphics/shader_wait": "off" } },
+        { "label": "Short", "set": { "graphics/shader_wait": "short" } },
+        { "label": "Full", "set": { "graphics/shader_wait": "full" } }
+      ],
+      "defaults": { "graphics/shader_wait": "short" }
+    },
+    {
       "id": "preset", "label": "Preset", "group": "Game patches",
       "help": "Smooth, the default, is the fastest: no dynamic shadows, motion blur or MLAA. Balanced keeps the shadows. Faithful draws everything as on the PS3.",
       "choices": [

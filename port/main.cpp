@@ -42,6 +42,7 @@
 #include "report.h"               /* what a session leaves behind */
 #include "game_find.h"            /* game_file_needed: the files the game cannot start without */
 #include "game_title.h"           /* the releases, and which one the vfs folder holds */
+#include "portable_copy.h"        /* a portable folder's first start: the old folder's files, at the player's word */
 #include "loading_screen.h"       /* the precompile gate: the vertex shaders first, on a screen of their own */
 #include "precompile_music.h"     /* its music: --music-preview */
 #include "ps3emu/ps3_settings.h"  /* ascension-r.ini: the player's settings and this machine's paths */
@@ -1683,7 +1684,12 @@ int main(int argc, char** argv)
     if (!settings) { default_settings_path(settings_buf, sizeof settings_buf, argv[0]); settings = settings_buf; }
     if (prepare) return gowa_prepare_cli(prepare, prep_rpcs3, prep_rap, settings);
     if (find_game) return gowa_find_game_cli(find_under);
+    char portable_note[1600] = "";
 #ifdef _WIN32
+    /* A folder portable.txt marks, on its first start: the files of %LOCALAPPDATA%\Ascension-R copied here at the
+     * player's word, before its settings are read and its log opened (portable_copy.cpp). */
+    if (settings == settings_buf && !no_launcher && !precompile && !report)
+        portable_offer(settings, portable_note, sizeof portable_note);
     if (!precompile && !report) {
         session_log(settings);
         s_prev_crash = SetUnhandledExceptionFilter(crash_report);
@@ -1698,6 +1704,7 @@ int main(int argc, char** argv)
     gowa_port_defaults();
     printf("[settings] %s: %s\n", settings,
            src == 0 ? "loaded" : src == 1 ? "no file, defaults" : "could not be read, defaults");
+    if (portable_note[0]) printf("%s\n", portable_note);
     for (int i = 0; i < nsets; i++) {
         char sk[256];
         snprintf(sk, sizeof sk, "%s", sets[i]);

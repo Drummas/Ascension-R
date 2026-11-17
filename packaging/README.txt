@@ -41,7 +41,8 @@ with DS4Windows running, set it to XInput, or the same controller counts twice.
 WHERE YOUR FILES GO
 
 Settings, saves, shaders and logs are in %LOCALAPPDATA%\Ascension-R. To keep them in this folder instead, put an empty
-file named portable.txt beside Ascension-R.exe.
+file named portable.txt beside Ascension-R.exe. On that folder's first start the program offers to copy your files
+from %LOCALAPPDATA%\Ascension-R into it, so the game is not decrypted and built again and your saves come along.
 
 
 TO UPDATE

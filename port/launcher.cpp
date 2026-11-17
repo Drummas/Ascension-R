@@ -115,6 +115,10 @@ static const char* const k_aniso[] = { "game", "2", "4", "8", "16" };
 static const char* const k_aniso_n[] = { "As the game sets it", "2x", "4x", "8x", "16x" };
 static const char* const k_aniso_s[] = { "Game", "2x", "4x", "8x", "16x" };
 static const char* const k_async[] = { "0", "2" };
+static const char* const k_swait[] = { "off", "short", "full" };
+static const char* const k_swait_n[] = { "Off: never, a gap for a moment instead", "Short: up to a quarter second",
+                                         "Full: up to two seconds" };
+static const char* const k_swait_s[] = { "Off", "Short", "Full" };
 static const char* const k_cap[] = { "off", "20", "30" };
 static const char* const k_cap_n[] = { "Off", "20 fps, even pace", "30 fps, even pace" };
 static const char* const k_cap_s[] = { "Off", "20 fps", "30 fps" };
@@ -202,6 +206,9 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "async_shaders", "2", "Build shaders in the background", 1, k_async, NULL, 2, NULL,
       "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things "
       "wait for theirs; an effect turns up a moment late." },
+    { T_GRAPHICS, "graphics", "shader_wait", "short", "Wait for new shaders", 0, LIST(k_swait, k_swait_n), k_swait_s,
+      "How long a wall or floor waits for its new shader. Short: a quarter second at most, then a gap shows there "
+      "until it is built. Full: two seconds, no gap but a pause. Off: no wait, a gap for a moment." },
     { T_GRAPHICS, "graphics", "render_thread", "on", "Render thread", 1, SW,
       "The GPU's work is recorded and shown on a thread of its own, beside the one that reads the game's "
       "commands: about 10% more frames where that one holds the game back." },
