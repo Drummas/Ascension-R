@@ -207,8 +207,8 @@ At version 1.12, with every update from 1.04 installed:
 | Disc, US | BCUS98232 | not yet |
 | Digital, Europe, and the others | | not yet |
 
-A report from a copy that is not supported yet (**Report a problem** in the launcher) says which it is and helps add it
-([#4](https://github.com/rigaz29/Ascension-R/issues/4)).
+For a copy that is not supported yet, its serial and version (RPCS3's game list shows both) in
+[#4](https://github.com/rigaz29/Ascension-R/issues/4) help add it.
 
 ### Does it run on Linux or the Steam Deck?
 

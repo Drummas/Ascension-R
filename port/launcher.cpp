@@ -2716,6 +2716,11 @@ static void find_done(void)
     const GameInfo& b = s_find.best;
     const int picked = s_find.under[0] != 0;
     const size_t n = sizeof s_game.note / sizeof s_game.note[0];
+    /* What the search came to, in the session's log: a problem report from a copy the port does not take yet says
+     * which release and version it is. */
+    static const char* const states[] = { "none", "another release", "incomplete", "not decrypted", "another build", "ok" };
+    printf("[find] %s: %s %s, %ls%ls%ls\n", states[b.state], b.title_id[0] ? b.title_id : "-",
+           b.app_ver[0] ? b.app_ver : "-", b.dir[0] ? b.dir : L"-", b.update[0] ? L", update " : L"", b.update);
     if (b.state >= GAME_NO_ELF && (picked || game_rank(&b) >= game_rank(&s_game.g))) {
         if (game_use(b)) {
             toast(b.state == GAME_OK ? "Game found" : "Game folder set");
