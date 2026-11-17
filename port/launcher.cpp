@@ -206,7 +206,7 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "async_shaders", "2", "Build shaders in the background", 1, k_async, NULL, 2, NULL,
       "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things "
       "wait for theirs; an effect turns up a moment late." },
-    { T_GRAPHICS, "graphics", "shader_wait", "short", "Wait for new shaders", 0, LIST(k_swait, k_swait_n), k_swait_s,
+    { T_GRAPHICS, "graphics", "shader_wait", "off", "Wait for new shaders", 0, LIST(k_swait, k_swait_n), k_swait_s,
       "How long walls and floors wait for their new shaders. Short: 33 ms in all for a frame, no pause; past it a "
       "gap shows there until the shader is built. Full: up to two seconds each, no gap but a pause. Off: no wait, "
       "a gap for a moment." },

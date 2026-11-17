@@ -90,3 +90,7 @@ The second-long stop is gone, and what is left over a quarter second is as with 
 more frames of 60-100 ms where a frame waits its 33 ms. A quarter to a third of the waits still ended with the shader
 built (19 and 16 of the first 64 in two runs), so those draws show at once instead of leaving a gap. The log's summary
 line says how many waits ran out and how many draws a frame did not wait for.
+
+Off is the default now, at the player's word: no wait at all, and a gap for a moment where a new shader is still being
+built, as 0.1.0-alpha.12 had it (the trails of #18, the first time a place is drawn). Short and Full stay for a picture
+without those gaps. A settings file that already says `shader_wait = short` keeps it.

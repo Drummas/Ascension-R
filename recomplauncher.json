@@ -191,7 +191,7 @@
         { "label": "Short", "set": { "graphics/shader_wait": "short" } },
         { "label": "Full", "set": { "graphics/shader_wait": "full" } }
       ],
-      "defaults": { "graphics/shader_wait": "short" }
+      "defaults": { "graphics/shader_wait": "off" }
     },
     {
       "id": "preset", "label": "Preset", "group": "Game patches",
