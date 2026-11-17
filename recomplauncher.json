@@ -249,6 +249,16 @@
       "defaults": { "patches/disable_mesh_trimming": "off" }
     },
     {
+      "id": "opening_movie", "label": "Opening movie", "group": "Game patches",
+      "help": "The movie before the main menu. The game lets a face button end it only once its system save exists, so a first start plays all of it. Skippable: a face button ends it from the first start on. Skipped: it ends as soon as it starts.",
+      "choices": [
+        { "label": "As on the PS3", "set": { "patches/opening_movie_skippable": "off", "patches/skip_opening_movie": "off" } },
+        { "label": "Skippable", "set": { "patches/opening_movie_skippable": "on", "patches/skip_opening_movie": "off" } },
+        { "label": "Skipped", "set": { "patches/opening_movie_skippable": "on", "patches/skip_opening_movie": "on" } }
+      ],
+      "defaults": { "patches/opening_movie_skippable": "on", "patches/skip_opening_movie": "off" }
+    },
+    {
       "id": "device", "label": "Device", "group": "Controls",
       "help": "Auto reads a controller and the keyboard and mouse at the same time: either one plays.",
       "choices": [

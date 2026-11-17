@@ -12,8 +12,9 @@
 /* A DLL built for another number is refused. Change it when a list below or a structure they share changes.
  * 2: atol and calloc (native/spu_edge_memo.c). 3: the VRAM guards (port/vram_guard.cpp). 4: two more of them.
  * 5: gowa_vram_cut. 6: the vertex pass's second stride, in rsx_d3d12_vertex_pass_set's high half, and the
- * copy's first vertex in its table (native/spu_edge_gpulight.c). */
-#define GAME_MODULE_ABI 6
+ * copy's first vertex in its table (native/spu_edge_gpulight.c). 7: the opening movie's patches, one's guard and
+ * the other's hook, gowa_skip_opening_movie (port/movies.cpp). */
+#define GAME_MODULE_ABI 7
 
 /* The program's functions. In the DLL each is one jump through the table. */
 #define GAME_MODULE_FUNCS(X)                                                                                                  \
@@ -25,7 +26,8 @@
     X(spu_overlay_register_pic_region) X(spu_overlay_register_verified_region) X(spu_rchcnt) X(spu_rdch)                      \
     X(spu_register_function) X(spu_stop) X(spu_workload_register_img) X(spu_wrch)                                             \
     X(vm_read8) X(vm_read16) X(vm_read32) X(vm_read64) X(vm_write8) X(vm_write16) X(vm_write32) X(vm_write64)                 \
-    X(gowa_vram_alloc) X(gowa_vram_cut) X(gowa_vram_move) X(gowa_vram_runs) X(gowa_vram_stream) X(gowa_vram_texture)
+    X(gowa_vram_alloc) X(gowa_vram_cut) X(gowa_vram_move) X(gowa_vram_runs) X(gowa_vram_stream) X(gowa_vram_texture)     \
+    X(gowa_skip_opening_movie)
 
 /* The C runtime's, called by name. */
 #define GAME_MODULE_CRT(X) X(atexit) X(fputc) X(fwrite) X(memcmp) X(memcpy) X(memmove) X(sqrt) X(sqrtf)
@@ -40,7 +42,8 @@ typedef struct { uint8_t* vb; const unsigned char* coh; } GameModuleMm;
 #define GAME_MODULE_DATA(X)                                                                                                   \
     X(uint8_t*, vm_base) X(GameModuleMm, g_ppu_mm) X(volatile int, g_spu_direct) X(volatile int, g_spu_ijmp_local)            \
     X(int, g_gowa_patch_disable_depth_of_field) X(int, g_gowa_patch_disable_mesh_trimming) X(int, g_gowa_patch_disable_mlaa)  \
-    X(int, g_gowa_patch_disable_motion_blur) X(int, g_gowa_patch_disable_shadows)
+    X(int, g_gowa_patch_disable_motion_blur) X(int, g_gowa_patch_disable_shadows)                                         \
+    X(int, g_gowa_patch_opening_movie_skippable)
 
 typedef struct GameModuleHost {
     uint32_t abi, size;

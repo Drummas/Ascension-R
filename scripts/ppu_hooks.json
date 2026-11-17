@@ -1,5 +1,5 @@
 {
-  "note": "ppu_lifter.py --insn-hooks: gowa_poll_wait (poll_wait.cpp) at the heads of the main thread's polling loops, the launcher's cheats (cheats.cpp) on a creature's damage, the VRAM manager's guards (vram_guard.cpp)",
+  "note": "ppu_lifter.py --insn-hooks: gowa_poll_wait (poll_wait.cpp) at the heads of the main thread's polling loops, the launcher's cheats (cheats.cpp) on a creature's damage, the VRAM manager's guards (vram_guard.cpp), the opening movie's skip (movies.cpp)",
   "hooks": [
     {"addr": "0x0039B984", "fn": "gowa_vram_texture",
      "note": "func_0039B93C: r3 the size of the texture in r31's data, [+0x20] - [+0x1C], about to be allocated (issue #9)"},
@@ -13,6 +13,10 @@
      "note": "func_003A0000 (and func_0039FFFC): r6 the size of a streamed texture's range [+0x1C, +0x20), about to be counted against the frame's budget and moved (issue #9)"},
     {"addr": "0x0039F64C", "fn": "gowa_vram_runs",
      "note": "func_0039F3C4: r3 the size of the run of blocks it packs, r29 and r30 their first and one past their last index (issue #9)"},
+    {"addr": "0x003F6A1C", "fn": "gowa_skip_opening_movie",
+     "note": "func_003F5748, the movie player: r3 bit 0 of 0x9DD130, whether the boot sequence took the movie as skippable, about to be compared (patches.skip_opening_movie)"},
+    {"addr": "0x003F6A8C", "fn": "gowa_skip_opening_movie",
+     "note": "func_003F5748: r3 the first connected pad's buttons & 0xF0 (its face buttons), about to be compared; not 0 ends the movie (func_002EA0D4)"},
     {"addr": "0x003A3F90", "fn": "gowa_wide_aspect",
      "note": "func_003A3DD8: r4 holds 16:9, about to go to +32 of the render settings (display.ultrawide)"},
     {"addr": "0x003B05A4", "fn": "gowa_wide_fov",

@@ -175,6 +175,17 @@ Nahimic suites. The stream says it is a game's, which some of those suites use t
 
 The [note](notes/2026-11-11-audio-output.md) has the details.
 
+## Movies
+
+The game lets a face button end the movie before the main menu only once its system save exists, so a first start plays
+all of it, and a player who starts from an empty folder sees all of it each time. The Game patches tab has two patches for it:
+
+- **Skippable Opening Movie** (`patches.opening_movie_skippable`, on): a face button ends it from the first start on.
+- **Skip Opening Movie** (`patches.skip_opening_movie`, off): it ends as soon as it starts.
+
+The other movies and the cinematics are skipped as the game has it: Select opens the pause menu, then Skip Cinematic, on a
+first start too ([note](notes/2026-11-17-skip-movies-review.md)).
+
 ## Cheats
 
 The launcher's Cheats tab: Damage to Kratos (half, a quarter or none), Kratos's damage (2x, 5x or one hit), Max red orbs,

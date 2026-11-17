@@ -62,6 +62,24 @@
     {"addr": "0x00376894", "orig": "0x809F0020", "new": "0x38800000",
      "note": "func_00376748: lwz r4,0x20(r31) -> li r4,0"}
    ]
+  },
+  {
+   "id": "opening_movie_skippable",
+   "name": "Skippable Opening Movie",
+   "guard": "g_gowa_patch_opening_movie_skippable",
+   "default": true,
+   "note": "Not one of RPCS3's. The boot sequence (func_0020848C) decides for each movie it plays whether a face button ends it (bit 0 of 0x9DD130, which the movie player tests every frame). For OpeningInt6, the movie before the main menu, it asks func_0001B0FC: the word at 0x85FEF4, set once the system save (<serial>-SYSDATA) has loaded. A first start has none yet, so nothing ends that movie there, and a player who starts from an empty folder sees all of it each time. The edit takes the save as loaded at that one test; the save itself is untouched. The other movies stay as the title has them: a level's movie and cinematics are skipped from the pause menu (Select), on a first start too (docs/notes/2026-11-17-skip-movies-review.md).",
+   "ppu": [
+    {"addr": "0x00208AE8", "orig": "0x60000000", "new": "0x38600001",
+     "note": "func_0020848C: the nop after bl func_0001B0FC (lwz r3,-0x10C at 0x860000, the save's loaded flag) -> li r3,1"}
+   ]
+  },
+  {
+   "id": "skip_opening_movie",
+   "name": "Skip Opening Movie",
+   "guard": "g_gowa_patch_skip_opening_movie",
+   "note": "Not one of RPCS3's. Ends OpeningInt6 on its first frame by the title's own skip, as a face button would, on a first start too: gowa_skip_opening_movie (port/movies.cpp) at the movie player's two tests, while the boot sequence's movie is that one.",
+   "hooks": ["gowa_skip_opening_movie"]
   }
  ]
 }
