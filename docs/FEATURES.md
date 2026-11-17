@@ -111,11 +111,12 @@ Frame generation works without its pass for moving objects at these widths. The
 ## Frame rate on screen
 
 Frame rate display in the launcher's Display tab (`display.show_fps`): in the title bar (the default), off, or on screen,
-a panel in the top right corner. The panel shows the frame rate, the frame time and a graph of the last frames, two to a
-bar, the slower of each pair: cyan near the usual frame time, amber from 1.25 times it, red from 1.8 times, a hitch. The
-frame rate turns amber under 29 and red under 20, as the game holds 30. It names no hardware. `show_fps = stats` in
-`ascension-r.ini` shows the older stats panel instead, for diagnosis: the GPU, CPU, PPU, SPU and RSX load, memory, the
-graphics card's and CPU's names, and Kratos's position.
+a panel in the top right corner, in an 8-bit look with no glow. The panel shows the frame rate and the frame time, the
+load of the CPU, the GPU and the guest's processors (PPU, SPU, RSX) with a meter each, and a graph of the last frames,
+two to a bar, the slower of each pair: cyan near the usual frame time, amber from 1.25 times it, red from 1.8 times, a
+hitch. The frame rate turns amber under 29 and red under 20, as the game holds 30. It names no hardware. `show_fps =
+stats` in `ascension-r.ini` shows the larger stats panel instead, for diagnosis: the loads, memory, the graphics card's
+and CPU's names, and Kratos's position.
 
 ## FSR 3.1
 

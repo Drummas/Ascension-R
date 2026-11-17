@@ -178,7 +178,8 @@ static Opt s_opt[] = {
     { T_DISPLAY, "display", "frame_cap", "off", "Frame rate cap", 0, LIST(k_cap, k_cap_n), k_cap_s,
       "An even pace instead of the highest rate the PC reaches. With frame generation, off follows the monitor." },
     { T_DISPLAY, "display", "show_fps", "title", "Frame rate display", 0, LIST(k_fps, k_fps_n), k_fps_s,
-      "On screen shows FPS, frame time and a graph of the last frames' times, in the top right corner." },
+      "On screen shows FPS, frame time, the CPU's, GPU's, PPU's, SPU's and RSX's load and a graph of the last "
+      "frames' times, in the top right corner." },
     { T_DISPLAY, "display", "ultrawide", "off", "Ultrawide", 1, SW,
       "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start." },
     { T_DISPLAY, "display", "shader_hint", "on", "Shader build indicator", 1, SW,

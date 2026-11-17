@@ -91,7 +91,7 @@
     },
     {
       "id": "show_fps", "label": "Show FPS", "group": "Display",
-      "help": "On screen adds the frame time and a graph of the last frames' times.",
+      "help": "On screen adds the frame time, the load of the CPU, GPU, PPU, SPU and RSX, and a graph of the last frames' times.",
       "choices": [
         { "label": "Off", "set": { "display/show_fps": "off" } },
         { "label": "Title bar", "set": { "display/show_fps": "title" } },
