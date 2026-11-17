@@ -17,6 +17,9 @@ starting with # and empty lines skipped. `build` refuses a line that drops or ad
 that has a character the English text never uses (the font may lack it); curly quotes, dashes and the ellipsis
 become their ASCII forms. One line stays one line, so the table's counts stay right; `\\n` breaks a line inside one.
 
+A disc's text is in its update (RPCS3's dev_hdd0/game/<id>), and its mod goes under that title. English is two
+languages to the game: EN, English (US), and EN-GB, English (UK); it shows the one the system language names.
+
 What both write is made from the game and stays on this machine: build/ is not tracked.
 """
 import argparse
@@ -433,7 +436,8 @@ def add_args(p):
         q = sub.add_parser(name, help=helptext)
         q.add_argument("--game-dir", default=default_game_dir(),
                        help="the game's folder, holding USRDIR (default: the one this tree runs, or local.json's)")
-        q.add_argument("--lang", default="EN", help="the language whose text is read and replaced (default EN)")
+        q.add_argument("--lang", default="EN", help="the language whose text is read and replaced (default EN, English "
+                       "(US); the game shows EN-GB when its language is English (UK), as the EU disc's often is)")
         if name == "export":
             q.add_argument("--part", nargs="+", default=["all"], choices=PARTS + ("all",),
                            help="story (the game's own voices), mp, bonus (the behind-the-scenes videos), menus "

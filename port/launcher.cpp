@@ -231,7 +231,8 @@ static Opt s_opt[] = {
     { T_CHEATS, "cheats", "infinite_jumps", "off", "Infinite double jumps", 1, SW,
       "Kratos can jump again in the air, as often as he likes." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
-      "The game's language: text and speech." },
+      "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
+      "this one, Triangle for Greek), and keeps it." },
     { T_SYSTEM, "system", "esc_quits", "off", "Esc closes the game", 1, SW,
       "Esc is not a PS3 button; off leaves it free." },
     { T_SYSTEM, "system", "save_backups", "5", "Save backups", 0, LIST(k_bak, k_bak_n), k_bak_s,

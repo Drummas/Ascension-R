@@ -88,8 +88,9 @@ def title_of(folder):
     return TITLE_ID
 GAME_ELF = "GOWA.elf"
 GAME_ELF_SHA256 = "4bf75c897b82d1beb25514cbadaff3d03e1b0c7bf849fa5d289be4f9183462b5"
-# The game's files the launcher checks before it decrypts or builds anything (port/game_files.inc, `game-files`):
-# USRDIR's archives and the three lists that name them, each by its size and the SHA-256 of its first and last 64 KiB.
+# The game's files the launcher checks before it decrypts or builds anything (`game-files`: port/game_files.inc for
+# NPUA80918, game_files_<id>.inc for a disc, its disc's files and its update's): USRDIR's archives and the lists that
+# name them, each by its size and the SHA-256 of its first and last 64 KiB.
 GAME_FILES_INC = os.path.join(ROOT, "port", "game_files.inc")
 GAME_FILES_ENDS = 64 * 1024
 
@@ -211,12 +212,18 @@ def game_file_update(rel):
     return rel.startswith("USRDIR/TPPS") or rel == "USRDIR/PATCHES"
 
 
-def game_file_names(game):
+def game_file_names(game, update=None):
     """The files the launcher checks, in the order the game opens them: the archives ARCHIVES names, those
-    LOCALIZED_ARCHIVES names, the other archives at USRDIR's top (the update's TPPS ones), then the three lists."""
+    LOCALIZED_ARCHIVES names, the other archives at USRDIR's top (the update's TPPS ones), then the three lists.
+    A disc's update (update): its TPPS archives are taken from there, the rest from the disc (game_file_update)."""
     usr = os.path.join(game, "USRDIR")
     on_disk = sorted(n for n in os.listdir(usr)
                      if n.upper().endswith(".PSARC") and os.path.isfile(os.path.join(usr, n)))
+    if update and os.path.normcase(os.path.abspath(update)) != os.path.normcase(os.path.abspath(game)):
+        uusr = os.path.join(update, "USRDIR")
+        on_disk = sorted([n for n in on_disk if not game_file_update("USRDIR/" + n)] +
+                         [n for n in os.listdir(uusr) if game_file_update("USRDIR/" + n) and n.upper().endswith(".PSARC")
+                          and os.path.isfile(os.path.join(uusr, n))])
     order = []
     for lst in ("ARCHIVES", "LOCALIZED_ARCHIVES"):
         order += [n for n in archive_list(os.path.join(usr, lst)) if n in on_disk and n not in order]
@@ -231,11 +238,17 @@ def read_game_files_inc(path=GAME_FILES_INC):
         return [(m.group(1), int(m.group(2)), m.group(3)) for m in rx.finditer(f.read())]
 
 
-def game_files_check(game, files=None):
-    """What of the listed files is not in a game's folder, and what is there but not as 1.12 has it: two lists."""
+def title_files_inc(title):
+    """The list of a title's files the launcher checks: port/game_files.inc for NPUA80918, game_files_<id>.inc else."""
+    return GAME_FILES_INC if title == TITLE_ID else os.path.join(ROOT, "port", "game_files_%s.inc" % title.lower())
+
+
+def game_files_check(game, files=None, update=None):
+    """What of the listed files is not in a game's folder, and what is there but not as 1.12 has it: two lists.
+    A disc's update (update) holds its TPPS archives and PATCHES (game_file_update)."""
     missing, wrong = [], []
     for rel, size, want in (files if files is not None else read_game_files_inc()):
-        p = os.path.join(game, *rel.split("/"))
+        p = os.path.join(update if update and game_file_update(rel) else game, *rel.split("/"))
         if not os.path.isfile(p):
             missing.append(rel)
         elif os.path.getsize(p) != size or ends_sha256(p, size) != want:
@@ -519,13 +532,21 @@ def cmd_doctor(args):
     if os.path.exists(sfo):
         s = parse_sfo(sfo)
         check("title", s.get("TITLE_ID") in TITLES, "%s %s" % (s.get("TITLE_ID"), s.get("TITLE")))
-        check("version", s.get("APP_VER") == APP_VER, "APP_VER %s (port targets %s)"
-              % (s.get("APP_VER"), APP_VER))
-        if s.get("APP_VER") == APP_VER:
-            files = read_game_files_inc()
-            missing, wrong = game_files_check(VFS_GAME, files)
+        # A disc: its version is its update's, in gamedata's dev_hdd0\game\<id>, which also holds its TPPS archives.
+        title = s.get("TITLE_ID")
+        upd = os.path.join(HDD0, "game", title) if TITLES.get(title, {}).get("kind") == "disc" else None
+        ver = s.get("APP_VER")
+        if upd:
+            ver = (parse_sfo(os.path.join(upd, "PARAM.SFO")) if os.path.isfile(os.path.join(upd, "PARAM.SFO"))
+                   else {}).get("APP_VER")
+        check("version", ver == APP_VER, "APP_VER %s (port targets %s)%s" % (ver, APP_VER, ", its update's" if upd else ""))
+        if ver == APP_VER:
+            inc = title_files_inc(title)
+            files = read_game_files_inc(inc) if os.path.isfile(inc) else []
+            missing, wrong = game_files_check(VFS_GAME, files, upd)
             fix = ("install the updates 1.04 to 1.12 in RPCS3, in that order"
-                   if all(map(game_file_update, missing + wrong)) else "install the game again")
+                   if all(map(game_file_update, missing + wrong)) else
+                   "copy all of the disc again" if upd else "install the game again")
             check("game files", not missing and not wrong,
                   "all %d as %s has them" % (len(files), APP_VER) if not missing and not wrong else
                   "%d not there, %d not as %s has them, %s first: %s" % (len(missing), len(wrong), APP_VER,
@@ -549,39 +570,52 @@ def cmd_doctor(args):
 
 
 def cmd_game_files(args):
-    """port/game_files.inc, from a copy of the game that is NPUA80918 1.12 and whole. Names, sizes and hashes only.
-    (A disc's list, its disc and its update together, is phase 5 of docs/notes/2026-11-17-eu-support-plan.md.)"""
+    """A title's list of the files the launcher checks (title_files_inc), from a whole copy at 1.12: a digital release's
+    folder, or a disc's PS3_GAME with --update-dir its update's folder. Names, sizes and hashes only; a disc's TPPS
+    archives and PATCHES are its update's, the rest the disc's (game_file_update)."""
     game = os.path.abspath(args.game_dir or VFS_GAME)
     sfo = os.path.join(game, "PARAM.SFO")
     if not os.path.isfile(sfo):
         die("no PARAM.SFO in %s" % game)
     s = parse_sfo(sfo)
     title = s.get("TITLE_ID")
-    if TITLES.get(title, {}).get("kind") != "hdd" or s.get("APP_VER") != APP_VER:
-        die("%s is %s %s; the list is made from a digital release at %s (%s)"
-            % (game, title, s.get("APP_VER"), APP_VER, ", ".join(t for t, v in TITLES.items() if v["kind"] == "hdd")))
-    usr = os.path.join(game, "USRDIR")
-    if not os.path.isfile(os.path.join(usr, "PATCHES")):
-        die("no PATCHES in %s: the list is made from a whole copy, with update %s" % (usr, APP_VER))
-    named = {lst: archive_list(os.path.join(usr, lst)) for lst in ("ARCHIVES", "LOCALIZED_ARCHIVES")}
-    named["PATCHES"] = ["TPPS%d.PSARC" % i for i in range(1, patch_count(os.path.join(usr, "PATCHES")) + 1)]
-    for lst, names in named.items():
-        gone = [n for n in names if not os.path.isfile(os.path.join(usr, n))]
+    kind = TITLES.get(title, {}).get("kind")
+    if kind == "disc":
+        upd = os.path.abspath(args.update_dir or os.path.join(HDD0, "game", title))
+        us = parse_sfo(os.path.join(upd, "PARAM.SFO")) if os.path.isfile(os.path.join(upd, "PARAM.SFO")) else {}
+        if us.get("TITLE_ID") != title or us.get("CATEGORY") != "GD" or us.get("APP_VER") != APP_VER:
+            die("%s is not the update to %s of %s: pass it as --update-dir" % (upd, APP_VER, title))
+    elif kind == "hdd":
+        upd = game
+        if s.get("APP_VER") != APP_VER:
+            die("%s is %s %s; the list is made from %s" % (game, title, s.get("APP_VER"), APP_VER))
+    else:
+        die("%s is %s, not one of %s" % (game, title, ", ".join(TITLES)))
+    usr, uusr = os.path.join(game, "USRDIR"), os.path.join(upd, "USRDIR")
+    if not os.path.isfile(os.path.join(uusr, "PATCHES")):
+        die("no PATCHES in %s: the list is made from a whole copy, with update %s" % (uusr, APP_VER))
+    named = {lst: (usr, archive_list(os.path.join(usr, lst))) for lst in ("ARCHIVES", "LOCALIZED_ARCHIVES")}
+    named["PATCHES"] = (uusr, ["TPPS%d.PSARC" % i for i in range(1, patch_count(os.path.join(uusr, "PATCHES")) + 1)])
+    for lst, (where, names) in named.items():
+        gone = [n for n in names if not os.path.isfile(os.path.join(where, n))]
         if gone:
             die("%s names %s, which %s not in %s: the list is made from a whole copy"
-                % (lst, ", ".join(gone), "is" if len(gone) == 1 else "are", usr))
+                % (lst, ", ".join(gone), "is" if len(gone) == 1 else "are", where))
     rows, total = [], 0
-    for rel in game_file_names(game):
-        p = os.path.join(game, *rel.split("/"))
+    for rel in game_file_names(game, upd):
+        p = os.path.join(upd if game_file_update(rel) else game, *rel.split("/"))
         size = os.path.getsize(p)
         rows.append('{ "%s", %dull, "%s" },' % (rel, size, ends_sha256(p, size)))
         total += size
-    text = ("/* %s %s: USRDIR's archives and the three lists that name them, in the order the game opens them, each\n"
+    what = ("USRDIR's archives and the three lists that name them" if kind == "hdd" else
+            "the disc's archives and the two lists that name them, and its update's TPPS archives and PATCHES")
+    text = ("/* %s %s: %s, in the order the game opens them, each\n"
             " * with its size and the SHA-256 of its first and last 64 KiB (game_find.cpp). Made by `gowa.py game-files`\n"
-            " * from a whole copy; names, sizes and hashes only. */\n" % (title, APP_VER)) + "\n".join(rows) + "\n"
-    with open(args.out, "w", encoding="utf-8", newline="\n") as f:
+            " * from a whole copy; names, sizes and hashes only. */\n" % (title, APP_VER, what)) + "\n".join(rows) + "\n"
+    out = args.out or title_files_inc(title)
+    with open(out, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
-    say("%s: %d files, %.1f GB" % (os.path.relpath(args.out, ROOT), len(rows), total / 1e9))
+    say("%s: %d files, %.1f GB" % (os.path.relpath(out, ROOT), len(rows), total / 1e9))
     return 0
 
 
@@ -3234,9 +3268,10 @@ def main():
     sub.add_parser("doctor", help="check tools, submodule and game files")
     p = sub.add_parser("setup", help="link the installed game into vfs/ and gamedata/")
     p.add_argument("--game-dir", help="installed game folder (holds PARAM.SFO and USRDIR/)")
-    p = sub.add_parser("game-files", help="port/game_files.inc: the game's files the launcher checks, from a whole copy")
-    p.add_argument("--game-dir", help="the game's folder, a digital release (NPUA80918) at 1.12 (default vfs/PS3_GAME)")
-    p.add_argument("--out", default=GAME_FILES_INC, help="where it goes (default port/game_files.inc)")
+    p = sub.add_parser("game-files", help="port/game_files*.inc: a title's files the launcher checks, from a whole copy")
+    p.add_argument("--game-dir", help="the game's folder at 1.12, or a disc's PS3_GAME (default vfs/PS3_GAME)")
+    p.add_argument("--update-dir", help="a disc's update to 1.12, <RPCS3>/dev_hdd0/game/<id> (default gamedata's)")
+    p.add_argument("--out", help="where it goes (default port/game_files.inc for NPUA80918, game_files_<id>.inc else)")
     sub.add_parser("analyze", help="loader, SPU images, HLE coverage -> analysis/")
     sub.add_parser("patches", help="list the switchable title patches and check them against the ELF")
     p = sub.add_parser("lift", help="PPU -> C++ in recompiled/")

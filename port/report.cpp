@@ -47,6 +47,7 @@
 #pragma comment(lib, "wevtapi.lib")
 
 #include "game_find.h"
+#include "game_title.h"
 #include "ps3emu/ps3_settings.h"
 
 #ifndef GOWA_PORT_COMMIT
@@ -203,13 +204,51 @@ static std::string system_text(void)
     if (GetSystemPowerStatus(&ps))
         s += strf("Power: %s\n", ps.BatteryFlag & 128 ? "no battery" : ps.ACLineStatus == 1 ? "plugged in" : "on battery");
 
+    /* The release, and for a disc its update's version and folder (hdd0\game\<id>, a link the launcher makes):
+     * PARAM.SFOs alone, as this is said at each session's start too. */
     const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
-    GameInfo g;
-    if (vfs && *vfs && game_read_info((wide(vfs) + L"\\PS3_GAME").c_str(), &g))
-        s += strf("Game: %s, version %s\n", g.title_id, g.app_ver);
-    else
+    GameInfo g, u;
+    if (vfs && *vfs && game_read_info((wide(vfs) + L"\\PS3_GAME").c_str(), &g)) {
+        const GameTitle* t = game_title_find(g.title_id);
+        const std::string name = t ? " (" + narrow(t->name) + ")" : std::string();
+        const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+        if (t && t->kind == GAME_KIND_DISC && hdd0 && *hdd0) {
+            const std::wstring upd = wide(hdd0) + L"\\game\\" + wide(g.title_id);
+            wchar_t to[GAME_PATH_MAX];
+            const std::string at = narrow(game_link_target(upd.c_str(), to, GAME_PATH_MAX) ? to : upd.c_str());
+            if (game_read_info(upd.c_str(), &u))
+                s += strf("Game: %s%s, the disc %s, its update %s in %s\n", g.title_id, name.c_str(), g.app_ver,
+                          u.app_ver, at.c_str());
+            else
+                s += strf("Game: %s%s, the disc %s, no update in %s\n", g.title_id, name.c_str(), g.app_ver, at.c_str());
+        } else {
+            s += strf("Game: %s%s, version %s\n", g.title_id, name.c_str(), g.app_ver);
+        }
+    } else {
         s += "Game: no PARAM.SFO found\n";
+    }
     return s;
+}
+
+/* The game the settings run, as the launcher sees it (game_refresh): the folder the vfs folder's PS3_GAME leads to,
+ * a disc's update in hdd0\game\<id>, and paths.elf when the game's folder has no GOWA.elf (the launcher decrypts into
+ * a folder of its own). */
+static GameState settings_game(GameInfo* g)
+{
+    memset(g, 0, sizeof *g);
+    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
+    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    if (!vfs || !*vfs) return GAME_NONE;
+    const GameTitle* t = game_title_of_vfs(vfs);
+    std::wstring dir = wide(vfs) + L"\\PS3_GAME", upd;
+    if (t->kind == GAME_KIND_DISC && hdd0 && *hdd0) upd = wide(hdd0) + L"\\game\\" + wide(t->id);
+    wchar_t to[GAME_PATH_MAX];
+    if (game_link_target(dir.c_str(), to, GAME_PATH_MAX)) dir = to;
+    if (!upd.empty() && game_link_target(upd.c_str(), to, GAME_PATH_MAX)) upd = to;
+    GameState st = game_probe_pair(dir.c_str(), upd.empty() ? NULL : upd.c_str(), g);
+    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    if (st == GAME_NO_ELF && elf && *elf && game_elf_ok(wide(elf).c_str())) st = g->state = GAME_OK;
+    return st;
 }
 
 /* A console closed by hand ends the process with no other word. */
@@ -1024,7 +1063,7 @@ int gowa_report_create(int with_saves, char* out, size_t n)
     GameInfo g;
     const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
     if (vfs && *vfs) {
-        const GameState gs = game_probe((wide(vfs) + L"\\PS3_GAME").c_str(), &g);
+        const GameState gs = settings_game(&g);
         if (gs == GAME_INCOMPLETE) {
             wchar_t t[320];
             game_files_text(&g, t, sizeof t / sizeof t[0]);

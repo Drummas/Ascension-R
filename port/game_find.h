@@ -38,7 +38,7 @@ struct GameInfo {
     int other_version;            /* GAME_OTHER_BUILD: PARAM.SFO says another version than 1.12 */
     int disc;                     /* a disc: dir its PS3_GAME, update its update (game_title.h's GAME_KIND_DISC) */
     DiscLack disc_lack;           /* GAME_INCOMPLETE of a disc: what it lacks */
-    /* The game's files (game_files.inc), looked at when the folder is this release: how many there are, how many of
+    /* The game's files (its title's list), looked at when the folder is this release: how many there are, how many of
      * them are not in the folder and their bytes, how many are there but not as 1.12 has them, and the first of each.
      * base_bad: how many of those two are the base game's; none, and only the updates' files are at fault. */
     int files, files_missing, files_wrong, base_bad;
@@ -54,9 +54,9 @@ void game_files_text(const GameInfo* g, wchar_t* out, size_t n);
  * and 1.12's is the EBOOT alone, so they come with the updates before it. */
 int game_file_update(const char* path);
 
-/* Whether a file of the game's folder ("USRDIR/GAME.PSARC", either slash, any case) is one the game cannot start
- * without (game_files.inc). */
-int game_file_needed(const char* path);
+/* Whether a file of a title's folder ("USRDIR/GAME.PSARC", either slash, any case) is one the game cannot start
+ * without (its list in game_find.cpp; a disc's has its disc's files and its update's). */
+int game_file_needed(const char* title_id, const char* path);
 
 /* Whether a file is the GOWA.elf this port was made from. */
 int game_elf_ok(const wchar_t* path);

@@ -209,6 +209,33 @@ The Kit's DLL from this GOWA.elf is phase 6's whole run (the same file as NPUA80
 - **Reports:** the zip says which title and version, and which update folder.
 - **Done when:** precompile, a text export of the German text, a training run and a report all work on the EU copy.
 
+**Done (2026-11-17).**
+
+- **The file check:** `gowa.py game-files` takes a disc's `PS3_GAME` with `--update-dir` its update, and wrote
+  `port/game_files_bces01741.inc`: 86 files, 40.4 GB, the disc's archives and two lists from the disc, the
+  `TPPS*.PSARC` and `PATCHES` from the update (`game_file_update`). The disc has a `TPPS.PSARC` of its own; the game
+  opens the update's, and the list has that one. `game_find.cpp` keeps a list per title and looks for each file in its
+  own folder; a disc's texts say to copy the disc again where an HDD game's say to install it again. The runtime's
+  check (`main.cpp`) takes the title's list, a disc's files on `/dev_bdvd` and its updates' on `/dev_hdd0` only: the
+  game looks for `TPPS1-<LANGUAGE>` and `TPPS5-<LANGUAGE>` on the disc, which no release has. NPUA80918's list, made
+  again with the new command, is the same file.
+- **Precompile:** phase 2's run stands: the EU copy's 83 archives, 3,453 vertex programs found (NPUA80918: 3,455).
+- **Text and mods:** `gowa.py text` works on the update as it is. The update's language archives
+  (`TPPS<n>-<LANGUAGE>.PSARC`) hold speech only; the text is in `TPPS1` to `TPPS5`, and the EN-GB export is byte for
+  byte NPUA80918's. German menus: 5,943 lines of 2,063 entries. A build writes `TPPS6.PSARC` and `PATCHES` under
+  `dev_hdd0/game/BCES01741/USRDIR`. The earlier runs' EN-GB came from this PC's language (en-GB), not the release.
+- **Training:** the route reaches the level on the EU copy unchanged (`kit_train_run` on a test install, the dev exe):
+  the first start's movie from 55 to 198 s, the opening level at 237 s. Without ffmpeg the movie never ends and the
+  route stops there, as it would for NPUA80918.
+- **Language:** Greek is picked in the game's own prompt at its first start (Cross this language, Triangle Greek),
+  and the game keeps what it took; the launcher's Language row says so.
+- **Reports:** `Game: BCES01741 (EU disc), the disc 01.00, its update 01.12 in <folder>`, and the files and `GOWA.elf`
+  as the launcher sees them: a disc with its update, and `paths.elf` (before, a player's report said `GOWA.elf: not
+  there`, as the launcher keeps its own copy). NPUA80918's report: `all 51 as 1.12 has them`, as before.
+- **Checked:** `test_game_find` 46 (six for a disc's list), the other port tests, `check_repo.py`; `--find-game` on the
+  EU copy (whole, no ELF where it looks) and on NPUA80918 (`ok`); the EU game for 80 s on the new build, no file
+  missed.
+
 ## Phase 6: tests (0.5 to 1 day)
 
 - `tests/test_game_find.py`: EU layouts made in a temporary folder (disc DG 01.00 + update GD 01.12; no update; old

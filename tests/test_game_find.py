@@ -3,8 +3,9 @@
 
 Builds a small driver with clang-cl and runs it on folders under a temporary directory. No game
 file is used: a PARAM.SFO is written here, and a GOWA.elf of the right hash cannot be, so the
-best a made-up copy reaches is GAME_OTHER_BUILD. The game's files are three made-up ones, in a
-list of the test's own (GAME_FILES_INC) worked out by gowa.py's ends_sha256, as `game-files` does.
+best a made-up copy reaches is GAME_OTHER_BUILD. The game's files are made-up ones, in lists of
+the test's own (GAME_FILES_INC, and GAME_FILES_BCES01741_INC for a disc and its update) worked out
+by gowa.py's ends_sha256, as `game-files` does.
 
 Usage:
     python tests/test_game_find.py
@@ -50,9 +51,10 @@ int wmain(int argc, wchar_t** argv)
                g.bytes_missing, g.first_missing[0] ? g.first_missing : "-", g.first_wrong[0] ? g.first_wrong : "-",
                g.other_version, text);
     } else if (!wcscmp(argv[1], L"needed")) {
-        char p[512];
+        char p[512], id[16] = "NPUA80918";
         WideCharToMultiByte(CP_UTF8, 0, argv[2], -1, p, sizeof p, NULL, NULL);
-        printf("needed %d\n", game_file_needed(p));
+        if (argc > 3) WideCharToMultiByte(CP_UTF8, 0, argv[3], -1, id, sizeof id, NULL, NULL);
+        printf("needed %d\n", game_file_needed(id, p));
     }
     else if (!wcscmp(argv[1], L"locate")) { game_locate(argv[2], &g); out(L"locate", g, 0); }
     else if (!wcscmp(argv[1], L"pair") || !wcscmp(argv[1], L"pairsearch")) {
@@ -65,6 +67,12 @@ int wmain(int argc, wchar_t** argv)
         }
         printf("pair %s %d %s %ls %ls\n", name(g.state), (int)g.disc_lack, g.app_ver[0] ? g.app_ver : "-",
                g.dir[0] ? g.dir : L"-", g.update[0] ? g.update : L"-");
+        if (!wcscmp(argv[1], L"pair") && argc > 3) {   /* pair <folder> files: what game_files_text says */
+            wchar_t text[300] = L"-";
+            if (g.state == GAME_INCOMPLETE) game_files_text(&g, text, 300);
+            printf("%d %d %d %s\n%ls\n", g.files, g.files_missing, g.files_wrong,
+                   g.first_missing[0] ? g.first_missing : g.first_wrong[0] ? g.first_wrong : "-", text);
+        }
     }
     else if (!wcscmp(argv[1], L"title")) {
         wchar_t ids[96];
@@ -119,15 +127,32 @@ def file_bytes(rel, size):
 
 TEST_DATA = {rel: file_bytes(rel, size) for rel, size in TEST_FILES}
 
+# A disc's list: the disc's own files (GAME.PSARC starts PSAR, as a decrypted dump's does) and its update's, whose
+# TPPS.PSARC is the update's although the disc has one of its own (BCES01741 has both; the game opens the update's).
+TEST_DISC_FILES = (("USRDIR/GAME.PSARC", 70000), ("USRDIR/ARCHIVES", 40), ("USRDIR/TPPS.PSARC", 3000),
+                   ("USRDIR/TPPS1.PSARC", 1000), ("USRDIR/PATCHES", 1))
+TEST_DISC_DATA = {rel: (b"PSAR" + file_bytes(rel, size)[4:]) if rel.endswith("GAME.PSARC") else file_bytes(rel, size)
+                  for rel, size in TEST_DISC_FILES}
+
+
+def update_file(rel):
+    return rel.upper().startswith("USRDIR/TPPS") or rel.upper() == "USRDIR/PATCHES"
+
 
 def make_disc(root, title_id="BCES01741", encrypted=False):
-    """A disc as extracted: <root>\\PS3_GAME with PARAM.SFO (DG, 01.00), EBOOT.BIN and GAME.PSARC (whose first bytes
-    are PSAR, or not for a dump never decrypted). The PS3_GAME folder."""
+    """A disc as extracted: <root>\\PS3_GAME with PARAM.SFO (DG, 01.00), EBOOT.BIN, the disc's files of the test's
+    list and a TPPS.PSARC of its own (GAME.PSARC's first bytes are PSAR, or not for a dump never decrypted). The
+    PS3_GAME folder."""
     g = Path(root) / "PS3_GAME"
     (g / "USRDIR").mkdir(parents=True)
     (g / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver="01.00", category="DG"))
     (g / "USRDIR" / "EBOOT.BIN").write_bytes(b"self")
-    (g / "USRDIR" / "GAME.PSARC").write_bytes((b"\x9a\x13\x77\x02" if encrypted else b"PSAR") + bytes(60))
+    for rel, data in TEST_DISC_DATA.items():
+        if not update_file(rel):
+            Path(g, *rel.split("/")).write_bytes(data)
+    (g / "USRDIR" / "TPPS.PSARC").write_bytes(b"PSAR" + bytes(28))
+    if encrypted:
+        (g / "USRDIR" / "GAME.PSARC").write_bytes(b"\x9a\x13\x77\x02" + bytes(60))
     return str(g)
 
 
@@ -142,6 +167,9 @@ def make_rpcs3(root, title_id="BCES01741", app_ver="01.12", disc=None, update=Tr
         (u / "USRDIR").mkdir(parents=True)
         (u / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver=app_ver, category="GD"))
         (u / "USRDIR" / "GOWA.SELF").write_bytes(b"self")
+        for rel, data in TEST_DISC_DATA.items():
+            if update_file(rel):
+                Path(u, *rel.split("/")).write_bytes(data)
     d = r / "dev_hdd0" / "game" / (title_id + "-DATA")
     (d / "USRDIR").mkdir(parents=True)
     (d / "PARAM.SFO").write_bytes(sfo(title_id=title_id, app_ver="01.00", category="GD"))
@@ -176,20 +204,21 @@ class GameFind(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "scripts"))
         import gowa
         cls.gowa = gowa
-        # The test's list of the game's files, worked out from files on disk as `gowa.py game-files` does.
-        rows = []
-        for rel, data in TEST_DATA.items():
-            f = os.path.join(cls.tmp, "file.bin")
-            Path(f).write_bytes(data)
-            rows.append('{ "%s", %dull, "%s" },' % (rel, len(data), gowa.ends_sha256(f)))
+        # The test's lists of the game's files, worked out from files on disk as `gowa.py game-files` does.
+        for name, data_of in (("test_files.inc", TEST_DATA), ("test_disc_files.inc", TEST_DISC_DATA)):
+            rows = []
+            for rel, data in data_of.items():
+                f = os.path.join(cls.tmp, "file.bin")
+                Path(f).write_bytes(data)
+                rows.append('{ "%s", %dull, "%s" },' % (rel, len(data), gowa.ends_sha256(f)))
+            Path(cls.tmp, name).write_text("\n".join(rows) + "\n")
         cls.inc = os.path.join(cls.tmp, "test_files.inc")
-        Path(cls.inc).write_text("\n".join(rows) + "\n")
         env = gowa.toolchain_env()
         clang = shutil.which("clang-cl", path=env.get("PATH"))
         if not clang:
             raise unittest.SkipTest("no clang-cl")
         cmd = [clang, "/nologo", "/O1", "/EHsc", "/std:c++17", "/I" + str(ROOT / "port"), "/I" + cls.tmp,
-               '/DGAME_FILES_INC="test_files.inc"', src, str(ROOT / "port" / "game_find.cpp"),
+               '/DGAME_FILES_INC="test_files.inc"', '/DGAME_FILES_BCES01741_INC="test_disc_files.inc"', src, str(ROOT / "port" / "game_find.cpp"),
                "/Fe" + cls.exe, "/Fo" + cls.tmp + "\\"]
         r = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=cls.tmp)
         if r.returncode:
@@ -304,6 +333,59 @@ class GameFind(unittest.TestCase):
         make_disc(self.p("dumps", "BCES01741"))
         emu = make_rpcs3(self.p("emu"), app_ver="01.11", disc=self.p("dumps", "BCES01741"))
         self.assertEqual(self.run_t("pair", emu)[1:4], ["other_build", "0", "01.11"])
+
+    # pair <folder> files: the list's count, missing, wrong, the first of them, and what the launcher says.
+
+    def test_a_disc_and_its_update_whole(self):
+        make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        out = self.run_t("pair", emu, "files")
+        self.assertEqual(out[1], "no_elf")
+        self.assertEqual(out[5].split("\n")[1].split(), ["5", "0", "0", "-"])
+
+    def test_a_disc_whose_update_lacks_a_file(self):
+        make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        os.remove(os.path.join(emu, "dev_hdd0", "game", "BCES01741", "USRDIR", "TPPS1.PSARC"))
+        out = self.run_t("pair", emu, "files")
+        self.assertEqual(out[1:3], ["incomplete", "0"])
+        lines = out[5].split("\n")
+        self.assertEqual(lines[1].split(), ["5", "1", "0", "USRDIR/TPPS1.PSARC"])
+        self.assertEqual(lines[2], "Not every update is installed: 1 file missing, TPPS1.PSARC first. "
+                                   "Install 1.04 to 1.12, in order")
+
+    def test_a_disc_with_its_tpps_alone_is_not_the_update(self):
+        # The disc's own TPPS.PSARC does not stand in for the update's.
+        make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        os.remove(os.path.join(emu, "dev_hdd0", "game", "BCES01741", "USRDIR", "TPPS.PSARC"))
+        lines = self.run_t("pair", emu, "files")[5].split("\n")
+        self.assertEqual(lines[1].split(), ["5", "1", "0", "USRDIR/TPPS.PSARC"])
+
+    def test_a_disc_copied_in_part(self):
+        disc = make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        os.remove(os.path.join(disc, "USRDIR", "ARCHIVES"))
+        lines = self.run_t("pair", emu, "files")[5].split("\n")
+        self.assertEqual(lines[1].split(), ["5", "1", "0", "USRDIR/ARCHIVES"])
+        self.assertEqual(lines[2], "Not the whole disc: 1 of the game's 5 files missing (40 bytes), ARCHIVES first. "
+                                   "Copy all of the disc again")
+
+    def test_a_disc_file_with_other_bytes(self):
+        disc = make_disc(self.p("dumps", "BCES01741"))
+        emu = make_rpcs3(self.p("emu"), disc=self.p("dumps", "BCES01741"))
+        Path(disc, "USRDIR", "GAME.PSARC").write_bytes(b"PSAR" + bytes(70000 - 4))
+        lines = self.run_t("pair", emu, "files")[5].split("\n")
+        self.assertEqual(lines[1].split(), ["5", "0", "1", "USRDIR/GAME.PSARC"])
+        self.assertEqual(lines[2], "1 of the disc's files is not as the disc has it, GAME.PSARC first. "
+                                   "Copy all of the disc again")
+
+    def test_what_a_disc_cannot_start_without(self):
+        for path, title, want in (("USRDIR/GAME.PSARC", "BCES01741", "1"), ("USRDIR/TPPS1.PSARC", "BCES01741", "1"),
+                                  ("USRDIR/ENGLISH.PSARC", "BCES01741", "0"), ("USRDIR/ENGLISH.PSARC", "NPUA80918", "1"),
+                                  ("USRDIR/GAME.PSARC", "BCUS98232", "0")):
+            with self.subTest((path, title)):
+                self.assertEqual(self.run_t("needed", path, title)[1], want)
 
     def test_a_search_pairs_a_disc_and_an_update_it_saw_apart(self):
         # The disc in one place, an RPCS3 with its update elsewhere, no games.yml: the search sees both and pairs them.

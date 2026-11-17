@@ -1570,7 +1570,9 @@ static void pgo_writer_start(void)
  * A file the game cannot start without, and it could not be opened
  *
  * The title opens USRDIR's three lists of archives and the archives at its
- * start (game_files.inc). Without one it went on and stopped by itself a few
+ * start (its list in game_find.cpp; a disc's files from the disc, PS3_GAME,
+ * and its updates' from the update in dev_hdd0, the only place each is
+ * looked for here). Without one it went on and stopped by itself a few
  * seconds later, a black window and nothing said, or, without the updates',
  * waited on its first loading screen (issue #2). The launcher does not start
  * a game whose folder lacks them (game_probe), but a script, the launcher
@@ -1584,15 +1586,21 @@ static void game_open_failed(const char* gpath, const char* hpath)
 {
     /* The title's folder (an HDD game, or a disc's update), or the disc's PS3_GAME. */
     char root[64];
-    const char* id = getenv("PS3_TITLE");
-    snprintf(root, sizeof root, "/dev_hdd0/game/%s/", id && *id ? id : game_title_default()->id);
+    const char* env = getenv("PS3_TITLE");
+    const GameTitle* t = game_title_find(env && *env ? env : game_title_default()->id);
+    if (!t) t = game_title_default();
+    snprintf(root, sizeof root, "/dev_hdd0/game/%s/", t->id);
     size_t k = strlen(root);
+    int on_disc = 0;
     if (_strnicmp(gpath, root, k)) {
         static const char disc[] = "/dev_bdvd/PS3_GAME/";
         k = sizeof disc - 1;
         if (_strnicmp(gpath, disc, k)) return;
+        on_disc = 1;
     }
-    if (!game_file_needed(gpath + k)) return;
+    if (!game_file_needed(t->id, gpath + k)) return;
+    /* A disc's: its own files from the disc, its updates' from dev_hdd0; the game tries some in both. */
+    if (t->kind == GAME_KIND_DISC && on_disc == !!game_file_update(gpath + k)) return;
     static volatile LONG once = 0;
     if (InterlockedExchange(&once, 1)) Sleep(INFINITE);   /* another thread says it, and ends the game */
     char host[1100];
@@ -1611,6 +1619,9 @@ static void game_open_failed(const char* gpath, const char* hpath)
                      ? L"That file comes with one of the game's updates. Install the updates 1.04 to 1.12 in RPCS3, "
                        L"in that order (1.12's own is the EBOOT alone), and pick the game's folder in the launcher's "
                        L"System tab."
+                     : t->kind == GAME_KIND_DISC
+                     ? L"It is one of the disc's files. Copy all of the disc again, and pick that folder in the "
+                       L"launcher's System tab."
                      : L"It needs the whole game, as RPCS3 or the game's PKG installs it. Pick that folder in the "
                        L"launcher's System tab.");
         MessageBoxW(NULL, m, L"Ascension-R", MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);

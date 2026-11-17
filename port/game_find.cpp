@@ -8,7 +8,7 @@
  * What a folder holds comes from its PARAM.SFO, the game's files and its GOWA.elf: the port is lifted
  * from one release, so another version or another GOWA.elf is told apart (scripts/gowa.py has the same
  * three values, for `doctor`), and so is a folder that lacks some of that release's files
- * (game_files.inc). The search only reads. No game file is copied or changed.
+ * (game_files.inc, and game_files_<id>.inc for a disc). The search only reads. No game file is copied or changed.
  */
 #include "game_find.h"
 #include "game_title.h"
@@ -49,20 +49,42 @@ static int is_title_dir(const wchar_t* name)
 }
 
 /* The game's files: USRDIR's archives and the three lists that name them, each with its size and the SHA-256 of its
- * first and last 64 KiB (game_files.inc, made by `gowa.py game-files` from a whole copy of 1.12). The game opens
- * them at its start; without one it stopped a few seconds in, with a black window and nothing said. With 1.12's
+ * first and last 64 KiB (made by `gowa.py game-files` from a whole copy of 1.12), a list for each title. The game
+ * opens them at its start; without one it stopped a few seconds in, with a black window and nothing said. With 1.12's
  * EBOOT on the base game's TPPS.PSARC and no PATCHES it waited on its first loading screen (issue #2). A folder that
  * lacks any, or has one of another size or other ends, is not the game: nothing is decrypted, built or played from
- * it. tests/test_game_find.py builds this file with a list of its own (GAME_FILES_INC). */
+ * it. A disc's list is its disc's files and its update's (game_file_update), each looked for in its own folder.
+ * tests/test_game_find.py builds this file with lists of its own (GAME_FILES_INC, GAME_FILES_BCES01741_INC). */
 struct GameFile { const char* path; unsigned long long size; const char* ends; };
-static const GameFile k_files[] = {
+static const GameFile k_files_npua80918[] = {
 #ifdef GAME_FILES_INC
 #include GAME_FILES_INC
 #else
 #include "game_files.inc"
 #endif
 };
-enum { N_FILES = (int)(sizeof k_files / sizeof k_files[0]) };
+static const GameFile k_files_bces01741[] = {
+#ifdef GAME_FILES_BCES01741_INC
+#include GAME_FILES_BCES01741_INC
+#else
+#include "game_files_bces01741.inc"
+#endif
+};
+struct TitleFiles { const char* id; const GameFile* files; int n; };
+#define TITLE_FILES(id, list) { id, list, (int)(sizeof list / sizeof list[0]) }
+static const TitleFiles k_title_files[] = {
+    TITLE_FILES("NPUA80918", k_files_npua80918),
+    TITLE_FILES("BCES01741", k_files_bces01741),
+};
+#undef TITLE_FILES
+
+/* A title's list, or NULL for one with none (its files are not looked at). */
+static const TitleFiles* title_files(const char* id)
+{
+    for (const TitleFiles& t : k_title_files)
+        if (id && !strcmp(t.id, id)) return &t;
+    return NULL;
+}
 static const DWORD k_ends = 64 * 1024;
 
 static uint32_t rd16(const unsigned char* p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8; }
@@ -192,7 +214,7 @@ static int ends_sha256(const wchar_t* path, unsigned long long size, char hex[65
     return ok;
 }
 
-/* A file of the game's folder by its path in game_files.inc. */
+/* A file of the game's folder by its path in its list. */
 static void file_path(wchar_t* out, size_t n, const wchar_t* dir, const char* rel)
 {
     swprintf(out, n, L"%ls\\%hs", dir, rel);
@@ -206,33 +228,38 @@ static void first_of(char* out, size_t n, const char* path)
 }
 
 /* Whether dir has the game's files as 1.12 has them, and what it lacks in g. Their sizes first, and the ends only when
- * every one is there at its size: a folder that lacks some is told so without a byte of it read. */
-static int files_check(const wchar_t* dir, GameInfo* g)
+ * every one is there at its size: a folder that lacks some is told so without a byte of it read. A disc's update
+ * (update) holds the files that come with the updates (game_file_update); a title with no list passes. */
+static int files_check(const wchar_t* dir, const wchar_t* update, GameInfo* g)
 {
-    g->files = N_FILES;
+    const TitleFiles* t = title_files(g->title_id);
+    if (!t) return 1;
+    g->files = t->n;
     wchar_t p[GAME_PATH_MAX + 96];
-    for (int i = 0; i < N_FILES; i++) {
-        file_path(p, sizeof p / sizeof p[0], dir, k_files[i].path);
+    for (int i = 0; i < t->n; i++) {
+        const GameFile& f = t->files[i];
+        file_path(p, sizeof p / sizeof p[0], update && game_file_update(f.path) ? update : dir, f.path);
         WIN32_FILE_ATTRIBUTE_DATA a;
         if (!GetFileAttributesExW(p, GetFileExInfoStandard, &a) || (a.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
             g->files_missing++;
-            g->bytes_missing += k_files[i].size;
-            g->base_bad += !game_file_update(k_files[i].path);
-            first_of(g->first_missing, sizeof g->first_missing, k_files[i].path);
-        } else if (((unsigned long long)a.nFileSizeHigh << 32 | a.nFileSizeLow) != k_files[i].size) {
+            g->bytes_missing += f.size;
+            g->base_bad += !game_file_update(f.path);
+            first_of(g->first_missing, sizeof g->first_missing, f.path);
+        } else if (((unsigned long long)a.nFileSizeHigh << 32 | a.nFileSizeLow) != f.size) {
             g->files_wrong++;
-            g->base_bad += !game_file_update(k_files[i].path);
-            first_of(g->first_wrong, sizeof g->first_wrong, k_files[i].path);
+            g->base_bad += !game_file_update(f.path);
+            first_of(g->first_wrong, sizeof g->first_wrong, f.path);
         }
     }
     if (g->files_missing || g->files_wrong) return 0;
-    for (int i = 0; i < N_FILES; i++) {
-        file_path(p, sizeof p / sizeof p[0], dir, k_files[i].path);
+    for (int i = 0; i < t->n; i++) {
+        const GameFile& f = t->files[i];
+        file_path(p, sizeof p / sizeof p[0], update && game_file_update(f.path) ? update : dir, f.path);
         char hex[65];
-        if (!ends_sha256(p, k_files[i].size, hex) || strcmp(hex, k_files[i].ends)) {
+        if (!ends_sha256(p, f.size, hex) || strcmp(hex, f.ends)) {
             g->files_wrong++;
-            g->base_bad += !game_file_update(k_files[i].path);
-            first_of(g->first_wrong, sizeof g->first_wrong, k_files[i].path);
+            g->base_bad += !game_file_update(f.path);
+            first_of(g->first_wrong, sizeof g->first_wrong, f.path);
         }
     }
     return !g->files_wrong;
@@ -284,11 +311,19 @@ void game_files_text(const GameInfo* g, wchar_t* out, size_t n)
     } else if (!g->base_bad) {
         swprintf(out, n, L"Not every update is installed: %d %ls, %hs first. Install 1.04 to 1.12, in order",
                  g->files_wrong, one ? L"file differs" : L"files differ", name_shown(g->first_wrong));
+    } else if (g->files_missing && g->disc) {
+        wchar_t size[32];
+        bytes_text(g->bytes_missing, size, sizeof size / sizeof size[0]);
+        swprintf(out, n, L"Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the "
+                         L"disc again", g->files_missing, g->files, size, name_shown(g->first_missing));
     } else if (g->files_missing) {
         wchar_t size[32];
         bytes_text(g->bytes_missing, size, sizeof size / sizeof size[0]);
         swprintf(out, n, L"Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again",
                  g->files_missing, g->files, size, name_shown(g->first_missing));
+    } else if (g->disc) {
+        swprintf(out, n, L"%d of the disc's files %ls not as the disc has %ls, %hs first. Copy all of the disc again",
+                 g->files_wrong, one ? L"is" : L"are", one ? L"it" : L"them", name_shown(g->first_wrong));
     } else {
         swprintf(out, n, L"%d of the game's files %ls not as version 1.12 has %ls, %hs first. Install the game again",
                  g->files_wrong, one ? L"is" : L"are", one ? L"it" : L"them", name_shown(g->first_wrong));
@@ -311,10 +346,11 @@ static int name_is(const char* path, const char* name, int whole)
     return !*name && (!whole || !*path);
 }
 
-int game_file_needed(const char* path)
+int game_file_needed(const char* title_id, const char* path)
 {
-    for (int i = 0; i < N_FILES; i++)
-        if (name_is(path, k_files[i].path, 1)) return 1;
+    const TitleFiles* t = title_files(title_id);
+    for (int i = 0; t && i < t->n; i++)
+        if (name_is(path, t->files[i].path, 1)) return 1;
     return 0;
 }
 
@@ -574,7 +610,7 @@ static GameState disc_probe(const wchar_t* update_given, GameInfo* g)
         g->other_version = 1;
         return g->state = GAME_OTHER_BUILD;
     }
-    /* The disc's and its update's files are checked by a list of their own: phase 5 of the plan. */
+    if (!files_check(g->dir, upd, g)) return g->state = GAME_INCOMPLETE;
     wchar_t elf[GAME_PATH_MAX + 32];
     swprintf(elf, sizeof elf / sizeof elf[0], L"%ls\\USRDIR\\GOWA.elf", upd);
     if (!is_file(elf)) return g->state = GAME_NO_ELF;
@@ -608,7 +644,7 @@ GameState game_probe_pair(const wchar_t* dir, const wchar_t* update, GameInfo* g
         return g->state = GAME_OTHER_BUILD;
     }
     /* Then the whole game, before there is anything to decrypt: GOWA.SELF and a license alone are not it. */
-    if (!files_check(g->dir, g)) return g->state = GAME_INCOMPLETE;
+    if (!files_check(g->dir, NULL, g)) return g->state = GAME_INCOMPLETE;
     if (!has_elf) return g->state = GAME_NO_ELF;
     return g->state = game_elf_ok(elf) ? GAME_OK : GAME_OTHER_BUILD;
 }
