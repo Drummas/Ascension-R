@@ -319,12 +319,18 @@ static DWORD WINAPI frame_clock(LPVOID)
      * every millisecond between the drain reaching a flip and the flip
      * completing is a millisecond it sits idle. Completing it only on the
      * next 16 ms beat cost ~8 ms a frame in God of War HD's gameplay. Complete
-     * it when the drain reaches it, but no sooner than 16 ms after the previous
-     * one, so a fast frame still waits for its vblank. GOWA_FLIP_ON_BEAT=1
-     * restores beat-only completion. GOWA_FLIP_MIN_MS changes the 16 ms; 0, with
-     * D3D12_VSYNC=0, lets the title run past 60 fps, for measuring it. */
+     * it when the drain reaches it, but no sooner than one vblank period after
+     * the previous one, the least a PS3 leaves between two VSYNC flips. The
+     * title steps its world by the time that passed since its last frame, but
+     * never by less than one period (the clamp at 0x2D0398 in GOWA.elf 1.12), so
+     * every flip that came sooner ran it fast: with 16 ms here, and the beat
+     * completing a second flip inside the period of one the drain had just
+     * completed, the menu ran at 64 flips/s, 7% fast. GOWA_FLIP_ON_BEAT=1
+     * restores beat-only completion. GOWA_FLIP_MIN_MS and GOWA_FLIP_MIN_US change
+     * the period; 0, with D3D12_VSYNC=0, lets the title run past 60 fps, for
+     * measuring it. */
     const bool flip_on_reach = getenv("GOWA_FLIP_ON_BEAT") == nullptr;
-    ULONGLONG flip_min_us = 16000;
+    ULONGLONG flip_min_us = 1001000ull / 60ull;   /* 16,683 us, as the beat */
     /* [display] frame_cap = 20 or 30 (the launcher's "Frame rate cap"): a flip
      * completes and is presented no sooner than ~1/cap s after the one before,
      * on the vblank beat as on the drain's own path, so with VSync on every
@@ -377,9 +383,9 @@ static DWORD WINAPI frame_clock(LPVOID)
     if (const char* e = getenv("GOWA_PUMP_MS")) pump_ms = (ULONGLONG)atoi(e);
     ULONGLONG last_pump_ms = 0;
     ULONGLONG last_flip_us = 0;
-    /* A flip the drain reached and the ticker took, still waiting for its
-     * 16 ms. Nothing drains while it waits, so the frame presented when it is
-     * released is still exactly that frame. */
+    /* A flip the drain reached and the ticker took, still waiting for
+     * flip_min_us. Nothing drains while it waits, so the frame presented when it
+     * is released is still exactly that frame. */
     int held = 0;
 
     for (;;) {
@@ -388,16 +394,37 @@ static DWORD WINAPI frame_clock(LPVOID)
          * millisecond of it is a millisecond the frame starts late: at 4 ms
          * the drain began 2-4 ms after each flip request. Check every 1 ms
          * (timeBeginPeriod(1) is set); an idle pass costs a few lock-free
-         * reads. GOWA_DRAIN_POLL_MS overrides. */
-        cellGcm_fifo_kick_wait(drain_poll_ms);
+         * reads. GOWA_DRAIN_POLL_MS overrides.
+         *
+         * A flip held for its period is completed at its time to the
+         * microsecond: once it is under 2 ms away this pass spins to it, as
+         * the wait can wake a millisecond late, and a title running ahead of
+         * the vblanks would lose that millisecond on every flip. Not under
+         * frame_cap, whose flips land on the beat. */
+        if (held && !frame_cap && flip_min_us) {
+            const ULONGLONG due = last_flip_us + flip_min_us, t = clock_us();
+            if (t < due) {
+                if (due - t <= 2000) {
+                    while (clock_us() < due) YieldProcessor();
+                } else {
+                    cellGcm_fifo_kick_wait(drain_poll_ms);
+                }
+            }
+        } else {
+            cellGcm_fifo_kick_wait(drain_poll_ms);
+        }
         ULONGLONG now = clock_ms();
         const ULONGLONG now_us = clock_us();
 
         int fired = 0;
         while ((long long)(now_us - (beat0 + beats * 1001000ull / 60ull)) >= 0 && fired < 240) {
             cellGcmTickVBlank();
-            /* frame_cap: not before its interval since the last flip. */
-            const bool cap_ok = !frame_cap || clock_us() - last_flip_us >= flip_min_us;
+            /* Not before flip_min_us since the last flip: frame_cap's interval,
+             * or one vblank period. Unchecked, the beat could complete a second
+             * flip inside the period of one the drain had just completed.
+             * Completing on the beat alone (GOWA_FLIP_ON_BEAT=1) keeps a period
+             * between flips by itself. */
+            const bool cap_ok = (!frame_cap && !flip_on_reach) || clock_us() - last_flip_us >= flip_min_us;
             if (cap_ok) cellGcmTickFlip();
             /* Present a pending flip BEFORE draining any further. The flip
              * fires at a get==put frame boundary on the guest thread, so the
@@ -439,8 +466,8 @@ static DWORD WINAPI frame_clock(LPVOID)
             cellGcm_rsx_process_fifo();
         } else if (rsx_ok) {
             /* The drain may have reached a flip, here or on the beat above:
-             * hold it, and drain no further while it is held. Once 16 ms have
-             * passed since the previous flip, complete it, then present that
+             * hold it, and drain no further while it is held. Once flip_min_us
+             * has passed since the previous flip, complete it, then present that
              * frame. Completing first lets the title start its next frame
              * while the backend renders and presents (Present waits for the
              * monitor's vblank).
