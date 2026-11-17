@@ -26,15 +26,16 @@ struct GameTitle {
     GameKind kind;
     const wchar_t* rap;      /* the license RPCS3 decrypts GOWA.SELF with; NULL: the KLIC the update's EBOOT.BIN holds */
     int enabled;             /* the launcher finds, decrypts and plays it */
+    const char* saves;       /* its save folders' prefix: <saves>-SYSDATA, <saves>-PROFDATA-<n> */
 };
 
 static const GameTitle k_game_titles[] = {
-    { "NPUA80918", L"US digital", GAME_KIND_HDD, L"UP9000-NPUA80918_00-GOWADIGITALVERS1.rap", 1 },
+    { "NPUA80918", L"US digital", GAME_KIND_HDD, L"UP9000-NPUA80918_00-GOWADIGITALVERS1.rap", 1, "BCUS98232" },
     /* Runs (phase 1 of the plan) and is found with its update (phase 3); its GOWA.SELF is decrypted with the KLIC of
      * the update's EBOOT.BIN (phase 4). */
-    { "BCES01741", L"EU disc", GAME_KIND_DISC, NULL, 1 },
+    { "BCES01741", L"EU disc", GAME_KIND_DISC, NULL, 1, "BCES01741" },
     /* Not looked at yet: its GOWA.elf at 1.12 and its files. */
-    { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 0 },
+    { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 0, "BCUS98232" },
 };
 enum { GAME_TITLES = (int)(sizeof k_game_titles / sizeof k_game_titles[0]) };
 

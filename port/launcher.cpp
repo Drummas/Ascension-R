@@ -898,8 +898,12 @@ static void ready_check(void)
     game_refresh();
     s_rc.profiles = 0;
     if (saves_dir(s_rc.saves, sizeof s_rc.saves)) {
+        /* The profiles of the release the game folder holds: another's (the EU disc's beside the US release's, in one
+         * gamedata) are not this game's to load. */
+        const GameTitle* t = game_title_find(s_game.g.title_id);
+        if (!t) t = game_title_of_folder(s_game.link_vfs);
         char pat[1200];
-        snprintf(pat, sizeof pat, "%s\\*-PROFDATA-*", s_rc.saves);
+        snprintf(pat, sizeof pat, "%s\\%s-PROFDATA-*", s_rc.saves, t->saves);
         WIN32_FIND_DATAA fd;
         HANDLE f = FindFirstFileA(pat, &fd);
         if (f != INVALID_HANDLE_VALUE) {

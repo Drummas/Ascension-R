@@ -247,6 +247,38 @@ The Kit's DLL from this GOWA.elf is phase 6's whole run (the same file as NPUA80
   opening chapter, save, quit, load, French and German, a report; then the same Kit on NPUA80918, and the fight bench
   once (expect the same 29 to 31.5 flips/s on six cores).
 
+**Done (2026-11-17).**
+
+- **Tests:** `tests/test_game_prepare.py` (new, in CI) runs `game_prepare_disc` with a stand-in RPCS3 that records
+  what it reads on standard input, on a made-up big-endian EBOOT.elf with a window of each kind: narrow offers the one
+  that looks like a key, once though the data has it twice; wide adds the printable and few-byte windows, never one of
+  3 bytes or fewer, one from code, or one from a segment not loaded; the RPCS3 log's KLIC; narrow, then wide, then the
+  log, stopping at the first that decrypts; no 32-hex run printed, the work folder gone, RPCS3's folder and the update
+  unchanged, RPCS3 run on our config folder. `test_game_find`: 50, with two releases on one PC, a disc with an update
+  at 1.11 in one RPCS3 and 1.12 in another (search and Browse), a search past a copy at 1.11.
+- **Found by them:** the states' order put another version above GAME_NO_ELF, so the launcher's search stopped at a
+  copy at 1.11 and never came to the one at 1.12, and a search could replace a better copy with it: `game_rank`
+  orders copies now. `find_update` takes the update at 1.12 of several, and a disc and its update count as one copy.
+- **End to end, a fresh Kit** (`package kit --test`, unpacked to `dist/test/eu-run` with `portable.txt`, so the PC's
+  own `%LOCALAPPDATA%\Ascension-R` stayed out of it):
+
+| step | result |
+|---|---|
+| first start | the launcher searched by itself: the EU disc and its update on E:, `Game folder set` |
+| decrypt | at once after it: EBOOT.BIN 4.5 s, GOWA.SELF with 2 narrow keys 0.6 s, `4bf75c89...`; no key in the log |
+| build | at once after it, 5:44: `ascension_game.dll` `f317f78f...`, the DLL NPUA80918's GOWA.elf makes (alpha.13's) |
+| first play | the shader precompile 243 s; the language prompt (Cross), the movie 142 s, New Game, the opening level |
+| save, quit, load | a second start's New Game saved its first checkpoint 97 s into the level; a third start's Continue Game loaded it, into Megaera's fight |
+| French, German | first starts on fresh hdd0s with `system.language` fr and de: the menus and the welcome note in each |
+| report | `Game: BCES01741 (EU disc), the disc 01.00, its update 01.12 in E:\...`, all 86 files, GOWA.elf right; no 32-hex run, no user name |
+| the same Kit on NPUA80918 | links to the US game as Browse makes them: `Game found: NPUA80918 1.12`, no decrypt or build |
+| fight bench (Kit exe and DLL, the dev settings and saves) | 30.26 flips/s, held at 30 by frame generation as the dev settings have it (the 29 to 31.5 above was that hold); 40.16 with frame generation and VSync off |
+
+- The disc and update folders on E: (169 files) were the same before and after, and the RPCS3 there was not written
+  to. The bench's menu route cannot run a profile that never saved its prefs since the welcome note (it shows again,
+  and Cross does not take it away); a drive script took Circle there. The launcher's `Saves` line counted every
+  release's profiles: it counts the game's own now (`game_title.h`'s save prefix: NPUA80918's are `BCUS98232-*`).
+
 ## Phase 7: documents and the release (0.5 day)
 
 - README (what you need: a table of versions, ✅ NPUA80918, ✅ BCES01741, ❓ BCUS98232 and the rest), the Kit's
