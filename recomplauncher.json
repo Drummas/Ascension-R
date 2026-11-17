@@ -185,7 +185,7 @@
     },
     {
       "id": "shader_wait", "label": "Wait for new shaders", "group": "Picture", "advanced": true,
-      "help": "How long a wall or floor waits for its new shader. Short: a quarter second at most, then a gap shows there until it is built. Full: two seconds, no gap but a pause. Off: no wait, a gap for a moment.",
+      "help": "How long walls and floors wait for their new shaders. Short: 33 ms in all for a frame, no pause; past it a gap shows there until the shader is built. Full: up to two seconds each, no gap but a pause. Off: no wait, a gap for a moment.",
       "choices": [
         { "label": "Off", "set": { "graphics/shader_wait": "off" } },
         { "label": "Short", "set": { "graphics/shader_wait": "short" } },

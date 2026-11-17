@@ -65,3 +65,28 @@ from the reporter, would let it be played here.
   was, a link whose folder is gone. And the program itself, on a new portable folder with a made-up
   `%LOCALAPPDATA%\Ascension-R`: the question (9 MB), Yes copied 5 files and 2 links and the launcher had the game and
   the save at once; No copied nothing and said so in the log.
+
+## A frame's share of waiting (later the same day)
+
+Short still stopped the game in a new place: the quarter second was each draw's, so a frame that met several new
+shaders waited them one after the other, and #15's later session waited 1,024 times, 79 s in all over 38 minutes. A
+player asked for no pauses at all while shaders build. Short is now a frame's share instead: the solid draws of one
+frame wait 33 ms in all, and past that a draw whose shader is not built is skipped that frame, as with Off, while its
+build goes on (`sj_frame_budget`, `SJ_FRAME_SHORT`). Full keeps up to two seconds a draw; Off does not wait.
+
+From an empty shader cache each time, #9's checkpoint in the temple (Continue into TEM400-500, then 150 s of a
+fight), render scale 1.5 with FSR 3.1, one run of each (`RSX_CENSUS=15` for the presents, `D3D12_SJ_WAITLOG=1` for
+each wait):
+
+| | Short, each draw's 0.25 s (before) | Short, 33 ms a frame | Off |
+|---|---|---|---|
+| Waits | 68, 3.4 s in all, the longest 250 ms | 73, 1.9 s in all, the longest 34 ms | none |
+| The longest present | 2,068 ms | 318 ms | 354 ms |
+| Presents over 250 ms | 6 | 1 | 1 |
+| Presents over 100 ms | 12 | 8 | 3 |
+| Presents of 60-100 ms | 10 | 59 | 28 |
+
+The second-long stop is gone, and what is left over a quarter second is as with Off (loading). In its place come
+more frames of 60-100 ms where a frame waits its 33 ms. A quarter to a third of the waits still ended with the shader
+built (19 and 16 of the first 64 in two runs), so those draws show at once instead of leaving a gap. The log's summary
+line says how many waits ran out and how many draws a frame did not wait for.
