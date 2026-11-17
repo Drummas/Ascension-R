@@ -30,11 +30,15 @@ Blade back through Megaera.
 | Megaera's fight from the dev save, MLAA on, 240 s | 0 |
 | A new game with the reporter's patches, its first checkpoint and 180 s of fighting after it | 0 |
 | The reporter's own pad recording played on a new profile with their patches (PAD_REPLAY) | 0 |
+| The same at their render scale 2 (2560x1440), SMAA, 16x filtering, alpha.13's 2 s waits, no pipeline kept | 0 |
+| A new game with all of that, through R_MEGAERA03's load to 240 s of fighting after its checkpoint | 0 |
 
-The replay followed the route to the start of Megaera's fight and went its own way before the Blade: HECA100's main
-part was never loaded. Their pool was short from R_MEGAERA03 on, this PC's never. Left to look at: their render scale
-2 (a slower GPU's labels freeing the pool's blocks later), and the RSX thread held by the shader waits. A save made
-just before the Blade, from the reporter, would let it be played here.
+The first replay followed the route to the start of Megaera's fight and went its own way before the Blade: HECA100's
+main part was never loaded. At 2560x1440 this PC's GPU made ~35 frames a second against their ~60, the replay's marks
+came late, and it went astray in the menus. The last run had every setting of theirs, and the shader waits as many
+as their session's (64, 3.2 s here, 1.7 s there): no trim at R_MEGAERA03, where theirs began. What is left differs
+from this PC, not from the settings: their CPU and GPU, and the way they played. A save made just before the Blade,
+from the reporter, would let it be played here.
 
 ## What changed
 
