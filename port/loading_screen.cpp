@@ -14,6 +14,13 @@
  * Done for this version: <shader cache>.precompiled says "Ascension-R <version>" (precompile.cpp writes it), and a
  * pack of the cache is there. Clear shaders moves it to the Recycle Bin with the cache, so the next start builds them
  * again. If the build fails, the screen says why and the game starts all the same: the next start tries again.
+ *
+ * Then, on the same screen, the pixel shaders of the archives (graphics.shader_prebuild, on by default), into
+ * <shader cache>.dxil.prebuilt (--prebuild-pixel-shaders): some 7 minutes on six cores the first time, seconds after an
+ * update. These the player may leave for later, with Esc or a controller's Start: the build stops where it is, the game
+ * starts, and the next start goes on from there, as Build all shaders now in the launcher does. Done for this version:
+ * the file is of this build's form and <file>.done names this version. Never while the game plays (it cost 7% of the
+ * frames beside it, docs/notes/2026-11-18-pixel-shader-prebuild-step2.md).
  * GOWA_PRECOMPILE_FIRST=0 (graphics.precompile_first) leaves the gate out, for benches and scripts that bring their
  * own cache.
  *
@@ -45,6 +52,8 @@
 #include "loading_screen.h"
 #include "precompile_music.h"
 extern "C" int rsx_d3d12_backend_open_monitor(int monitor[4], int work[4]);   /* rsx_d3d12_backend.h */
+extern "C" int rsx_d3d12_prebuilt_current(const char* cache);                   /* and the pixel shaders' file */
+extern "C" int rsx_dxc_available(void);                                         /* rsx_dxc.h */
 
 /* ---------------------------------------------------------------------------
  * The pixel font: 5x7 in a cell of 6x8, upper case (lower case is drawn as upper)
@@ -634,6 +643,8 @@ const uint8_t* gowa_pixel_glyph(char c) { return glyph(c); }
 enum Phase { PH_START, PH_READ, PH_BUILD, PH_DONE, PH_ERROR };
 struct Progress {
     Phase phase = PH_START;
+    int pixel = 0;                   /* the second build: the pixel shaders, which Esc or Start leaves for next time */
+    int skipped = 0;                 /* and it was left */
     unsigned a = 0, n = 0;          /* reading: archive a of n */
     char name[64] = "";
     unsigned found = 0;              /* programs found */
@@ -731,10 +742,11 @@ static void compose(ULONGLONG t, const Progress& p)
     char title[64], pct[16] = "", left[96] = "", right[48] = "", foot[96];
     double frac = 0.0;
     uint32_t title_c = gold;
-    snprintf(foot, sizeof foot, "Once for each version. The game starts by itself.");
+    snprintf(foot, sizeof foot, p.pixel ? "Esc or Start: play now, the rest next time."
+                                        : "Once for each version. The game starts by itself.");
     switch (p.phase) {
     case PH_START:
-        snprintf(title, sizeof title, "Getting ready");
+        snprintf(title, sizeof title, p.pixel ? "Pixel shaders" : "Getting ready");
         break;
     case PH_READ:
         snprintf(title, sizeof title, "Reading the game's files");
@@ -742,10 +754,10 @@ static void compose(ULONGLONG t, const Progress& p)
         snprintf(left, sizeof left, "Archive %u of %u: %.40s", p.a, p.n, p.name);
         break;
     case PH_BUILD: {
-        snprintf(title, sizeof title, "Building shaders");
+        snprintf(title, sizeof title, p.pixel ? "Building pixel shaders" : "Building shaders");
         frac = p.total ? (double)p.done / p.total : 0.0;
-        if (p.total) snprintf(left, sizeof left, "%u of %u shaders", p.done, p.total);
-        else snprintf(left, sizeof left, "%u vertex programs found", p.found);
+        if (p.total) snprintf(left, sizeof left, "%u of %u %s", p.done, p.total, p.pixel ? "programs" : "shaders");
+        else snprintf(left, sizeof left, "%u %s programs found", p.found, p.pixel ? "fragment" : "vertex");
         const double ms = (double)(GetTickCount64() - p.t_build);
         if (p.done >= 50 && p.done < p.total && ms > 3000.0) {
             const double left_s = ms / p.done * (p.total - p.done) / 1000.0;
@@ -755,12 +767,14 @@ static void compose(ULONGLONG t, const Progress& p)
         break;
     }
     case PH_DONE:
-        snprintf(title, sizeof title, "Shaders ready");
-        frac = 1.0;
+        snprintf(title, sizeof title, p.skipped ? "Pixel shaders: the rest later" : "Shaders ready");
+        frac = p.skipped && p.total ? (double)p.done / p.total : 1.0;
         snprintf(left, sizeof left, "Starting the game%s", blink ? "..." : "");
+        if (p.skipped) snprintf(foot, sizeof foot, "The next start goes on, or Build in the launcher.");
+        else if (p.pixel) snprintf(foot, sizeof foot, "Once for each version. The game starts by itself.");
         break;
     case PH_ERROR:
-        snprintf(title, sizeof title, "Shaders not built");
+        snprintf(title, sizeof title, p.pixel ? "Pixel shaders not built" : "Shaders not built");
         title_c = 0xFF6A4A;
         frac = p.total ? (double)p.done / p.total : 0.0;
         snprintf(left, sizeof left, "%.90s", p.why[0] ? p.why : "The build stopped");
@@ -789,8 +803,37 @@ static void compose(ULONGLONG t, const Progress& p)
 static HWND s_hwnd;
 static HANDLE s_ui_thread, s_ui_ready;
 static volatile LONG s_user_closed, s_close_now;
+static volatile LONG s_skip;     /* Esc or Start while the pixel shaders build: the game starts, they go on next time */
 static HANDLE s_child;
 static ULONGLONG s_t0;
+
+/* A controller's Start, through XInput when the PC has it (most controllers on Windows): as Esc. XInputGetState is
+ * slow on an empty slot, so it is asked a few times a second, and only while the pixel shaders build. */
+static int pad_start_pressed(void)
+{
+    typedef DWORD (WINAPI* GetStateFn)(DWORD, void*);
+    static GetStateFn get = (GetStateFn)(intptr_t)-1;
+    if (get == (GetStateFn)(intptr_t)-1) {
+        HMODULE m = LoadLibraryA("xinput1_4.dll");
+        if (!m) m = LoadLibraryA("xinput9_1_0.dll");
+        get = m ? (GetStateFn)GetProcAddress(m, "XInputGetState") : NULL;
+    }
+    if (!get) return 0;
+    struct { DWORD packet; WORD buttons; BYTE lt, rt; SHORT lx, ly, rx, ry; } st;   /* XINPUT_STATE */
+    for (DWORD i = 0; i < 4; i++)
+        if (get(i, &st) == ERROR_SUCCESS && (st.buttons & 0x0010u)) return 1;    /* XINPUT_GAMEPAD_START */
+    return 0;
+}
+
+/* Esc or Start: the pixel shaders' build ends where it is (what it wrote is whole: the next goes on from there). */
+static void skip_pixel(void)
+{
+    EnterCriticalSection(&s_lock);
+    const int can = s_prog.pixel && (s_prog.phase == PH_START || s_prog.phase == PH_READ || s_prog.phase == PH_BUILD);
+    LeaveCriticalSection(&s_lock);
+    if (!can || InterlockedExchange(&s_skip, 1)) return;
+    if (s_child) TerminateProcess(s_child, 1);
+}
 
 static void blit(HDC dc)
 {
@@ -832,9 +875,17 @@ static LRESULT CALLBACK wnd_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         HDC dc = GetDC(h);
         blit(dc);
         ReleaseDC(h, dc);
+        static ULONGLONG polled;
+        if (p.pixel && !s_skip && GetTickCount64() - polled >= 150) {
+            polled = GetTickCount64();
+            if (pad_start_pressed()) skip_pixel();
+        }
         if (s_close_now) DestroyWindow(h);
         return 0;
     }
+    case WM_KEYDOWN:
+        if (w == VK_ESCAPE) { skip_pixel(); return 0; }
+        break;
     case WM_PAINT: {
         PAINTSTRUCT ps;
         HDC dc = BeginPaint(h, &ps);
@@ -969,10 +1020,13 @@ static int marker_current(const std::string& cache)
     return !strcmp(line, want);
 }
 
+/* A line of either build: "precompile: ..." (precompile.cpp, the vertex shaders) or "prebuild: ..." (the pixel shaders),
+ * which say the same things. */
 static void parse_line(const char* l)
 {
-    if (strncmp(l, "precompile: ", 12)) return;
-    l += 12;
+    if (!strncmp(l, "precompile: ", 12)) l += 12;
+    else if (!strncmp(l, "prebuild: ", 10)) l += 10;
+    else return;
     unsigned a = 0, b = 0, c = 0;
     char name[64] = "";
     EnterCriticalSection(&s_lock);
@@ -1006,12 +1060,13 @@ static void set_phase(Phase ph, const char* why)
     LeaveCriticalSection(&s_lock);
 }
 
-/* The build, as a process of its own with this one's settings, its progress on a pipe. NULL if it did not start. */
-static HANDLE start_build(HANDLE* out)
+/* A build (args: --precompile-shaders, or --prebuild-pixel-shaders), as a process of its own with this one's settings,
+ * its progress on a pipe. NULL if it did not start. */
+static HANDLE start_build(const wchar_t* args, HANDLE* out)
 {
     wchar_t exe[MAX_PATH];
     if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return NULL;
-    std::wstring cmd = L"\"" + std::wstring(exe) + L"\" --precompile-shaders";
+    std::wstring cmd = L"\"" + std::wstring(exe) + L"\" " + args;
     const char* sp = ps3_settings_path();
     wchar_t buf[2200];
     if (sp && *sp) {
@@ -1053,65 +1108,130 @@ static HANDLE start_build(HANDLE* out)
     return pi.hProcess;
 }
 
+/* The pixel shaders built ahead (graphics.shader_prebuild, on by default) not done for this version: their file
+ * missing or of another form, or its mark naming another version (precompile.cpp writes it when a build ends). Only
+ * with DXC, the build's compiler. */
+static int pixel_needed(const std::string& cache)
+{
+    if (!ps3_settings_bool("graphics", "shader_prebuild", "RSX_FP_DYNAMIC", 1)) return 0;
+    const char* c = ps3_settings_str("graphics", "shader_compiler", "D3D12_SHADER_COMPILER", "dxc");
+    if (ps3_settings_ieq(c, "fxc") || !rsx_dxc_available()) return 0;
+    if (!rsx_d3d12_prebuilt_current(cache.c_str())) return 1;
+    FILE* f = fopen((cache + ".dxil.prebuilt.done").c_str(), "rb");
+    if (!f) return 1;
+    char line[128] = "";
+    const int got = fgets(line, sizeof line, f) != NULL;
+    fclose(f);
+    line[strcspn(line, "\r\n")] = 0;
+    char want[64];
+    snprintf(want, sizeof want, "Ascension-R %s", AR_VERSION);
+    return !got || strcmp(line, want) != 0;
+}
+
+/* One build on the screen: the exe again with args, its lines read until it ends. 1 done, 0 not (the screen says
+ * why), -1 left for next time (Esc or Start, the pixel shaders only). The window closed while it builds: the game
+ * quits. */
+static int run_build(const wchar_t* args)
+{
+    HANDLE pipe = NULL;
+    s_child = start_build(args, &pipe);
+    if (s_child && (s_user_closed || s_skip)) TerminateProcess(s_child, 1);   /* closed, or left, before it started */
+    if (!s_child) {
+        set_phase(PH_ERROR, "Could not start the build");
+        return 0;
+    }
+    std::string acc;
+    char chunk[512];
+    DWORD got = 0;
+    while (ReadFile(pipe, chunk, sizeof chunk, &got, NULL) && got) {
+        acc.append(chunk, got);
+        size_t nl;
+        while ((nl = acc.find('\n')) != std::string::npos) {
+            std::string l = acc.substr(0, nl);
+            if (!l.empty() && l.back() == '\r') l.pop_back();
+            parse_line(l.c_str());
+            acc.erase(0, nl + 1);
+        }
+    }
+    CloseHandle(pipe);
+    WaitForSingleObject(s_child, INFINITE);
+    DWORD code = 1;
+    GetExitCodeProcess(s_child, &code);
+    HANDLE child = s_child;
+    s_child = NULL;
+    CloseHandle(child);
+    if (s_user_closed) {
+        printf("[precompile] the window was closed while it built: quitting\n");
+        fflush(stdout);
+        TerminateProcess(GetCurrentProcess(), 0);
+    }
+    EnterCriticalSection(&s_lock);
+    const int done = s_prog.phase == PH_DONE && code == 0;
+    const int left = !done && s_skip;
+    if (left) { s_prog.skipped = 1; s_prog.phase = PH_DONE; }
+    LeaveCriticalSection(&s_lock);
+    if (left) return -1;
+    if (!done) set_phase(PH_ERROR, "The build stopped");
+    return done;
+}
+
 int gowa_precompile_gate(void)
 {
     if (!ps3_settings_bool("graphics", "precompile_first", "GOWA_PRECOMPILE_FIRST", 1)) return 0;
     const std::string cache = cache_path();
-    if (cache.empty() || marker_current(cache)) return 0;
-    printf("[precompile] the vertex shaders are not built for %s yet: building them first\n", AR_VERSION);
+    if (cache.empty()) return 0;
+    const int vs = !marker_current(cache), ps = pixel_needed(cache);
+    if (!vs && !ps) return 0;
     InitializeCriticalSection(&s_lock);
+    if (ps && !vs) s_prog.pixel = 1;   /* the screen opens on them */
     s_t0 = GetTickCount64();
     s_ui_ready = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_ui_thread = CreateThread(NULL, 0, ui_main, NULL, 0, NULL);
     if (s_ui_thread) WaitForSingleObject(s_ui_ready, 10000);
     if (s_hwnd) gowa_music_begin(s_t0);   /* the screen's clock: its thunder follows the lightning */
 
-    HANDLE pipe = NULL;
-    s_child = start_build(&pipe);
-    if (s_child && s_user_closed) TerminateProcess(s_child, 1);   /* closed before it started */
-    if (!s_child) {
-        set_phase(PH_ERROR, "Could not start the build");
-    } else {
-        std::string acc;
-        char chunk[512];
-        DWORD got = 0;
-        while (ReadFile(pipe, chunk, sizeof chunk, &got, NULL) && got) {
-            acc.append(chunk, got);
-            size_t nl;
-            while ((nl = acc.find('\n')) != std::string::npos) {
-                std::string l = acc.substr(0, nl);
-                if (!l.empty() && l.back() == '\r') l.pop_back();
-                parse_line(l.c_str());
-                acc.erase(0, nl + 1);
-            }
-        }
-        CloseHandle(pipe);
-        WaitForSingleObject(s_child, INFINITE);
-        DWORD code = 1;
-        GetExitCodeProcess(s_child, &code);
-        CloseHandle(s_child);
-        s_child = NULL;
-        if (s_user_closed) {
-            printf("[precompile] the window was closed while it built: quitting\n");
-            fflush(stdout);
-            TerminateProcess(GetCurrentProcess(), 0);
-        }
+    int vs_ok = 1;
+    if (vs) {
+        printf("[precompile] the vertex shaders are not built for %s yet: building them first\n", AR_VERSION);
+        vs_ok = run_build(L"--precompile-shaders") > 0;
         EnterCriticalSection(&s_lock);
-        const int done = s_prog.phase == PH_DONE && code == 0;
+        char why[160];
+        snprintf(why, sizeof why, "%s", s_prog.why);
         LeaveCriticalSection(&s_lock);
-        if (!done) set_phase(PH_ERROR, "The build stopped");
+        if (!vs_ok) {
+            printf("[precompile] the vertex shaders were not built: %s. The game starts all the same\n", why);
+            Sleep(6000);   /* long enough to read it */
+        } else {
+            printf("[precompile] the vertex shaders are built for %s (%.0f s)\n", AR_VERSION,
+                   (GetTickCount64() - s_t0) / 1000.0);
+        }
     }
-    EnterCriticalSection(&s_lock);
-    const Phase ph = s_prog.phase;
-    char why[160];
-    snprintf(why, sizeof why, "%s", s_prog.why);
-    LeaveCriticalSection(&s_lock);
-    if (ph == PH_ERROR) {
-        printf("[precompile] the vertex shaders were not built: %s. The game starts all the same\n", why);
-        Sleep(6000);   /* long enough to read it */
-    } else {
-        printf("[precompile] the vertex shaders are built for %s (%.0f s)\n", AR_VERSION,
-               (GetTickCount64() - s_t0) / 1000.0);
+    /* Then the pixel shaders, which the player may leave for later (Esc or Start): the next start goes on with them,
+     * as Build all shaders now in the launcher does. Not after the vertex shaders failed: the next start tries both. */
+    if (ps && vs_ok) {
+        EnterCriticalSection(&s_lock);
+        s_prog = Progress();
+        s_prog.pixel = 1;
+        LeaveCriticalSection(&s_lock);
+        printf("[precompile] the pixel shaders are not built for %s yet: building them (Esc or Start: later)\n",
+               AR_VERSION);
+        const ULONGLONG t1 = GetTickCount64();
+        const int r = run_build(L"--prebuild-pixel-shaders --set \"graphics.shader_prebuild=on\"");
+        EnterCriticalSection(&s_lock);
+        const unsigned done = s_prog.done, total = s_prog.total;
+        char why[160];
+        snprintf(why, sizeof why, "%s", s_prog.why);
+        LeaveCriticalSection(&s_lock);
+        if (r > 0) {
+            printf("[precompile] the pixel shaders are built (%.0f s)\n", (GetTickCount64() - t1) / 1000.0);
+        } else if (r < 0) {
+            printf("[precompile] the pixel shaders left for later at %u of %u (%.0f s)\n", done, total,
+                   (GetTickCount64() - t1) / 1000.0);
+            Sleep(1500);   /* long enough to read where they go */
+        } else {
+            printf("[precompile] the pixel shaders were not built: %s. The game starts all the same\n", why);
+            Sleep(4000);
+        }
     }
     if (!s_ui_thread || !s_hwnd) gowa_loading_screen_close();
     return 0;
@@ -1171,6 +1291,10 @@ int gowa_loading_preview(const char* dir)
     p = Progress(); p.phase = PH_ERROR; p.done = 1200; p.total = 6910;
     snprintf(p.why, sizeof p.why, "the game has the shader cache open");
     shots.push_back({ "5_error", 5000, p });
+    p = Progress(); p.pixel = 1; p.phase = PH_BUILD; p.found = 49996; p.done = 20850; p.total = 49996;
+    shots.push_back({ "6_pixel_building", 48000, p });
+    p.phase = PH_DONE; p.skipped = 1;
+    shots.push_back({ "7_pixel_later", 52000, p });
     for (Shot& s : shots) {
         if (s.p.phase == PH_BUILD) s.p.t_build = GetTickCount64() - 40000;
         compose(s.t, s.p);

@@ -130,10 +130,10 @@ game straight away, with its log in `logs\`.
 Open `build\Ascension-R.exe`. The launcher checks the game's folder and your setup, and **Play** starts the game.
 
 The first start of each version builds the game's vertex shaders before the game begins, on a screen of its own: a
-minute or two the first time, seconds after an update. **Build all shaders now**, in the launcher's sidebar (or Build on
-the Play tab), builds the pixel shaders of the game's files, some minutes once; the few it cannot, and all of them
-without it, are built the first time they are needed, so expect some stutter at first. **Clear shaders**, in the
-launcher's sidebar, makes the next start build them again.
+minute or two the first time, seconds after an update. Then the same screen builds the pixel shaders of the game's
+files, some 7 minutes on six cores the first time: **Esc** or a controller's **Start** leaves the rest for the next
+start, or for **Build all shaders now** in the launcher's sidebar (Build on the Play tab). The few it cannot build come
+the first time they are needed. **Clear shaders**, in the launcher's sidebar, makes the next start build them again.
 
 A build from source keeps its settings, logs and shader caches in `build\`, and its saves in `gamedata\`.
 
