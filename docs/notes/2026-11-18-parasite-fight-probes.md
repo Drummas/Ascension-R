@@ -44,8 +44,46 @@ The two baselines are 0.6% apart.
 - **What the fight is not:** kept fills (as in [Kirra](2026-11-16-kept-fills.md)), the index buffer, resident restarts,
   the GPU (56%), or interpreted SPU code. EDGE's memo found a result for 97.4% of 4.9 M jobs.
 
+## The main thread, sampled
+
+`PS3_SAMPLE=1 PS3_SAMPLE_MAIN=1 PS3_SAMPLE_RVAS=<file>` on the replay, then `gowa.py symbolize --rvas <file> --last 50`
+over the fight, 35,912 samples:
+
+| Share | Where |
+|---|---|
+| 30.4% | outside the executable: the waits in the OS (usleep, events) |
+| 20.1% | `func_0049DB90`: `lhz`, `lwsync`, "is it 0", six instructions |
+| 11.5% | `gowa_poll_wait`, the hooked polling loops |
+| 5.0% | `atomic_thread_fence` |
+| 4.4% | `func_0041CBDC` |
+| the rest | runtime helpers, and the game's own code spread over hundreds of functions, none above 0.5% |
+
+`func_0049DB90`'s one caller is a loop in `func_0041CBDC` at `0x41CCCC`: call it, nine `nop`s, again, until a u16 the
+SPU jobs count down reads 0. No polling hook was at that loop. And every `lwsync` in the lifted code was a call:
+`PPU_FENCE(acq_rel)` is `std::atomic_thread_fence`, which the MSVC STL defines as an `extern "C" inline` function that
+clang-cl did not inline, so the context's registers were stored before the call and read back after it (285 call
+sites in the executable).
+
+## Two fixes, not kept
+
+- **The fence:** `ppu_lifter.py`'s `PPU_FENCE` as `__atomic_thread_fence` under clang and gcc, no instruction for the
+  acquire, release and acq_rel forms. `atomic_thread_fence` left the executable's map.
+- **The loop:** a `gowa_poll_wait` hook at `0x41CCCC` in `scripts/ppu_hooks.json`.
+
+Three runs each (A B C C B A twice; the first start of each new executable stalls ~26 s and shifts the replay, so
+those runs are left out):
+
+| Build | Runs, flips/s | Mean |
+|---|---|---|
+| as now | 55.26, 54.49, 54.62 | 54.79 |
+| the fence | 55.12, 54.24, 55.05 | 54.80 |
+| the fence and the hook | 55.31, 53.16, 54.24 | 54.24 |
+
+Neither moved the fight. The loop's time is a wait for the SPU jobs, and what it costs inside the wait does not make
+the wait shorter; the hook's 20 us backoff answers the counter later. Both were taken out again.
+
 ## Next
 
-1. A profile-guided build of the lifted PPU code (`PORT_PPU_PGO`, with `PORT_SPU_PGO` for General6), trained on this
-   replay and measured on it against the plain build.
-2. A sample of the main thread in the fight, for the functions its own work is spent in.
+The main thread's own work is on the frame but has no hot spot: it is the game's code spread thin. What makes all
+of it faster at once is a profile-guided build of the lifted PPU code (`PORT_PPU_PGO`, with `PORT_SPU_PGO` for
+General6), trained on this replay and measured on it against the plain build.
