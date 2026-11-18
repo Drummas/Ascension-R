@@ -259,7 +259,7 @@ class GameFind(unittest.TestCase):
         self.assertEqual(out[3:5], ["NPUA80918", "01.12"])
 
     def test_another_title(self):
-        make_game(self.p("g"), title_id="BCUS98232", title="God of War: Ascension")
+        make_game(self.p("g"), title_id="BLES99999", title="God of War: Ascension")
         self.assertEqual(self.run_t("probe", self.p("g"))[1], "other_title")
 
     def test_the_titles(self):
@@ -269,7 +269,7 @@ class GameFind(unittest.TestCase):
         make_game(self.p("other"), title_id="BLES99999")
         out = self.run_t("title", self.p("eu"))
         self.assertEqual(out[1], "BCES01741")
-        self.assertEqual(" ".join(out[2:]), "NPUA80918 or BCES01741")
+        self.assertEqual(" ".join(out[2:]), "NPUA80918, BCES01741 or BCUS98232")
         self.assertEqual(self.run_t("title", self.p("other"))[1], "NPUA80918")
         self.assertEqual(self.run_t("title", self.p("nothing"))[1], "NPUA80918")
         self.assertEqual([self.gowa.title_of(self.p(d)) for d in ("eu", "other", "nothing")],
