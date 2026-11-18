@@ -77,5 +77,33 @@ In a 1680x720 window (no ultrawide monitor here), with FSR 1 at 1.5x and 1x and 
   noise at 21:9 and not at 16:9. The cause was not found. Frame generation goes by the camera alone there.
 - The first session at a wider aspect compiles the vertex programs again, because their text differs; until that is done,
   a cutscene can show dark or missing objects.
-- The main menu and a real ultrawide monitor; 32:9 only in a 1600x450 window. The sides of some cutscenes may show places
-  the camera was never meant to see.
+- A real ultrawide monitor; 32:9 only in windows (1600x450, 1920x540). The sides of some cutscenes may show places the
+  camera was never meant to see.
+
+## Issue #23: stretched pictures and HUD (2026-11-18)
+
+At 5120x1440 the interface stretched. Reproduced on the EU disc in a 1920x540 window with the fight recording replayed
+(`PAD_REPLAY`), the game's own F12 screenshots and `RSX_CAP` frames:
+
+- The studio logos, "Sony Computer Entertainment presents" and the online notice came out twice as wide, the notice
+  cut by the bars beside the 16:9. Each is one triangle over the whole display, through a camera-less program,
+  sampling a 1280x720 picture in main memory (`0x75600000`, `0x75A00000`, `0x75E00000`; dumped with `RSX_CAP_MEM`,
+  the pictures themselves are plain 16:9). The movies' own quad (`func_00442568`, four vertexes) takes its width
+  from the aspect; these do not.
+- The HUD's blade, top left, now and then reached from its place to the screen's left edge. At rest the HUD is
+  where it should be; the edge rule above moved every flat vertex at or past the 16:9's edge, so a piece out past
+  the edge, as the HUD slides in or out, was pulled to the screen's edge and stretched across the side.
+
+Both in `vp_record_cb` and the vertex programs' added line:
+
+- A draw on the display through no camera whose first texture is in main memory at the display's size has
+  `vp_posoffset.w` -1: its vertexes at or past the screen's edges are divided by the ratio, which puts the picture
+  in the 16:9. A quad already inside (the movies) has no vertex there and does not move.
+- With `vp_posoffset.w` 1, only a flat vertex within two of the title's pixels of the 16:9's edge goes to the
+  screen's edge. Fades, the tutorial's band and the title screen's brush strokes end on that edge and still reach
+  the screen's; a piece well past it stays where the title put it.
+
+Checked at 32:9 after the change: the logos, the notice and the intro movie in the 16:9 at their shapes; the title
+screen and the profile menu; the HUD in a hundred screenshots 0.1 s apart as it came up and over the fight; the
+load into play. Not caught: a frame of the HUD half way in (it comes up between two screenshots), the death screen
+and a cutscene's bars.
