@@ -56,8 +56,9 @@ problems further in.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and FSR 3.1 scaling, FSR 3.1 frame generation, SMAA 1x and
   anisotropic filtering.
 - **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and the frame rate on screen.
-- **Shaders:** a compressed cache, pipelines built before the title, and every vertex shader built before the first start
-  of each version, on an 8-bit screen with music of its own.
+- **Shaders:** a compressed cache, pipelines built before the title, every vertex shader built before the first start
+  of each version, on an 8-bit screen with music of its own, and the pixel shaders of the game's files built ahead from
+  the launcher (Build all shaders now).
 - **Game patches:** switch off MLAA, depth of field, motion blur, mesh trimming or dynamic shadows.
 - **Cheats:** damage to and from Kratos, max red orbs, infinite magic and items, infinite rage and double jumps.
 - **Controls:** a controller or keyboard and mouse. Xbox and other XInput pads, and through SDL3 the DualShock 4, the
@@ -129,8 +130,10 @@ game straight away, with its log in `logs\`.
 Open `build\Ascension-R.exe`. The launcher checks the game's folder and your setup, and **Play** starts the game.
 
 The first start of each version builds the game's vertex shaders before the game begins, on a screen of its own: a
-minute or two the first time, seconds after an update. Fragment shaders are built the first time they are needed, so
-expect some stutter at first. **Clear shaders**, in the launcher's sidebar, makes the next start build them again.
+minute or two the first time, seconds after an update. **Build all shaders now**, in the launcher's sidebar (or Build on
+the Play tab), builds the pixel shaders of the game's files, some minutes once; the few it cannot, and all of them
+without it, are built the first time they are needed, so expect some stutter at first. **Clear shaders**, in the
+launcher's sidebar, makes the next start build them again.
 
 A build from source keeps its settings, logs and shader caches in `build\`, and its saves in `gamedata\`.
 

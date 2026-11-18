@@ -3,8 +3,8 @@
 Step 2 of way 4 in `2026-11-18-pixel-shader-prebuild-study.md`, on step 1's texts (`2026-11-18-fp-text-without-state.md`):
 the fragment programs of the game's files compiled ahead of the draws that need them, into a file beside the shader
 cache, by a process of their own that the launcher starts before play. Behind `graphics.shader_prebuild` (the
-launcher's Graphics tab, "Pixel shaders built ahead"), off by default, which turns step 1's texts on too
-(`RSX_FP_DYNAMIC` is its other name). A build in the background while the game plays was made and measured too, and
+launcher's Graphics tab, "Pixel shaders built ahead"), off by default here and on from step 3
+(`2026-11-18-pixel-shader-prebuild-step3.md`), which turns step 1's texts on too (`RSX_FP_DYNAMIC` is its other name). A build in the background while the game plays was made and measured too, and
 taken out (below).
 
 ## The pieces

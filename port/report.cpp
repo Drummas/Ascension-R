@@ -62,6 +62,7 @@ extern "C" const char* g_hle_inflight[64];
 extern "C" void ppu_report_guest_lrs(void);
 extern "C" int rsx_d3d12_backend_generating(void);   /* rsx_d3d12_backend.c: frame generation runs */
 extern "C" int rsx_d3d12_backend_gpu_stuck(void);    /* and the GPU's queue has stopped */
+extern "C" int rsx_d3d12_prebuilt_current(const char* cache);   /* and the pixel shaders' file is of this build's form */
 
 static std::string s_session_log;   /* this session's, "" when a script took the output */
 
@@ -908,6 +909,36 @@ static int zip_end(Zip& z)
     return z.bad;
 }
 
+/* The shader cache's files and their sizes, and the pixel shaders built ahead (Build all shaders now): the mark the
+ * build left when it finished, with its version and counts, and whether the file is of this build's form. */
+static void note_shaders(std::string& note)
+{
+    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    if (!sc || !*sc || ps3_settings_ieq(sc, "off")) { note += "Shaders: no shader cache\n"; return; }
+    std::string line = "Shaders:";
+    static const char* const ext[] = { ".dxil", ".dxil.journal", ".dxil.prebuilt", ".fprogs", ".vprogs" };
+    for (const char* e : ext) {
+        WIN32_FILE_ATTRIBUTE_DATA a;
+        if (GetFileAttributesExA((std::string(sc) + e).c_str(), GetFileExInfoStandard, &a))
+            line += strf(" %s %.1f MB,", e + 1,
+                         (double)(((unsigned long long)a.nFileSizeHigh << 32) | a.nFileSizeLow) / 1048576.0);
+    }
+    std::string done;
+    if (read_capped(std::string(sc) + ".dxil.prebuilt.done", done, 4096, 0) && !done.empty()) {
+        while (!done.empty() && (done.back() == '\n' || done.back() == '\r')) done.pop_back();
+        std::string one;
+        for (char c : done) {
+            if (c == '\n') one += "; ";
+            else if (c != '\r') one += c;
+        }
+        line += " built ahead by " + one;
+    } else {
+        line += " no build of the pixel shaders finished";
+    }
+    line += rsx_d3d12_prebuilt_current(sc) ? " (the file is this build's)" : " (no file of this build's)";
+    note += line + "\n";
+}
+
 /* --- the report ------------------------------------------------------------------- */
 /* The player's own progress, as the game checks it when it loads it: its icon and the time of each file go too. A
  * report's saves were refused without them ("The preferences save data failed to load", issue #7): the icon had
@@ -1104,6 +1135,7 @@ int gowa_report_create(int with_saves, char* out, size_t n)
         }
     }
     if (!added) note += "(no session logs)\n";
+    note_shaders(note);
     note += "\n";
 
 #ifdef PORT_GAME_MODULE

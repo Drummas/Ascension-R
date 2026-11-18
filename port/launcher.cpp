@@ -47,6 +47,7 @@
 #include "loading_screen.h"   /* the header's scene and the pixel font */
 #include "trophies.h"         /* the Trophies tab */
 extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
+extern "C" int  rsx_d3d12_prebuilt_current(const char* cache);   /* rsx_d3d12_backend.h: the pixel shaders' file */
 
 #include <math.h>
 #include <stdio.h>
@@ -222,7 +223,7 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "pipeline_wait", "on", "Build pipelines first", 1, SW,
       "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built "
       "while you play: a moment, a few seconds after a GPU driver update." },
-    { T_GRAPHICS, "graphics", "shader_prebuild", "off", "Pixel shaders built ahead", 1, SW,
+    { T_GRAPHICS, "graphics", "shader_prebuild", "on", "Pixel shaders built ahead", 1, SW,
       "The game takes its pixel shaders from those Build all shaders now, below Clear shaders, builds before play "
       "(some minutes, once): places you reach later wait for fewer of them. That link turns this on." },
     { T_CONTROLS, "input", "device", "auto", "Device", 0, LIST(k_dev, k_dev_n), k_dev_s,
@@ -567,6 +568,26 @@ static struct {
     volatile LONG running, done, total;
     char result[200];   /* "prebuild: done ..." or "prebuild: error ...", for the toast */
 } s_pb;
+
+/* The pixel shaders built ahead, for the ready check: 0 none of this build's form, 1 some (a build stopped, or one
+ * for another version: the next goes on, in seconds if nothing changed), 2 built for this version. Read when the
+ * window opens and when a build ends. */
+static int s_pbs;
+static void pb_state_read(void)
+{
+    s_pbs = 0;
+    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    if (!sc || !*sc || ps3_settings_ieq(sc, "off") || !rsx_d3d12_prebuilt_current(sc)) return;
+    s_pbs = 1;
+    char done[1200], line[128] = "", want[128];
+    snprintf(done, sizeof done, "%s.dxil.prebuilt.done", sc);
+    if (FILE* f = fopen(done, "rb")) {
+        if (!fgets(line, sizeof line, f)) line[0] = 0;
+        fclose(f);
+    }
+    snprintf(want, sizeof want, "Ascension-R %s\n", AR_VERSION);
+    if (!strcmp(line, want)) s_pbs = 2;
+}
 
 #ifdef PORT_GAME_MODULE
 extern "C" int game_module_state(void);                                        /* game_module_host.c */
@@ -938,6 +959,7 @@ static void ready_check(void)
     }
     gpu_detect();
     s_rc.pad = pad_connected(s_rc.pad_name, sizeof s_rc.pad_name);
+    pb_state_read();
 }
 
 /* ---------------------------------------------------------------------------
@@ -2135,6 +2157,26 @@ static void draw_play(void)
                        dev && ps3_settings_ieq(dev->cur, "pad") ? L"No controller found (Controls: controller only)"
                                                                 : L"No controller: keyboard and mouse");
     }
+    y += 32;
+    {   /* The pixel shaders built ahead: Build (or Stop) as the sidebar's link, until they are built for this version. */
+        const Opt* pb = opt_find("graphics", "shader_prebuild");
+        if (s_pb.running) {
+            wchar_t b[120];
+            if (s_pb.total > 0)
+                swprintf(b, 120, L"Building pixel shaders: %ld%%", (long)((s_pb.done * 100LL) / s_pb.total));
+            else
+                swprintf(b, 120, L"Building pixel shaders: reading the game");
+            check_line(lx, y, lw - 106, 2, b);
+            w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_PREBUILD, B_PLAIN);
+        } else if (pb && !opt_on(*pb)) {
+            check_line(lx, y, lw, 2, L"Pixel shaders compiled as you play");
+        } else if (s_pbs == 2) {
+            check_line(lx, y, lw, 1, L"Pixel shaders built ahead");
+        } else {
+            check_line(lx, y, lw - 106, 2, s_pbs ? L"Pixel shaders partly built" : L"Pixel shaders not built yet");
+            w_button(L"Build", R(lx + lw - 96, y - 2, 96, 30), H_PREBUILD, B_PLAIN);
+        }
+    }
     const float cb = cy + chh;
     w_rule(lx, cb - 98, lw);
     text(L"GAME FOLDER", s_tf_cap, R(lx, cb - 86, lw, 12), C_MUTED);
@@ -3046,6 +3088,7 @@ static DWORD WINAPI pb_reader(LPVOID)
 static void pb_end(void)
 {
     if (s_pb.reader) { WaitForSingleObject(s_pb.reader, 2000); CloseHandle(s_pb.reader); s_pb.reader = NULL; }
+    pb_state_read();
     CloseHandle(s_pb.proc);
     CloseHandle(s_pb.out);
     if (s_pb.job) CloseHandle(s_pb.job);
@@ -3904,8 +3947,8 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
  * to their end, a toast, the System tab asking for what the decrypting needs, the
  * keyboard keys (one waiting for a key), and in the
  * Kit the game's code being built and not built yet, the Play tab with a
- * newer release's notice, and last the Graphics tab while Build all shaders
- * now runs, into PNG files at the
+ * newer release's notice, and last the Play tab while Build all shaders now
+ * runs, into PNG files at the
  * window's size times 1.25 (a 125% display),
  * or at GOWA_LAUNCHER_SHOT_DPI. The scene stands still in them, and nothing
  * runs: each state is only set while its shot is drawn, then put back. */
@@ -3920,7 +3963,7 @@ static const int k_shots[][2] = {
 #ifdef PORT_GAME_MODULE
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
-    { T_PLAY, S_UPDATE }, { T_GRAPHICS, S_PREBUILD },
+    { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD },
 };
 
 static void shot_state(int what, int on)

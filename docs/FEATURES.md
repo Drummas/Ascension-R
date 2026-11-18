@@ -42,9 +42,17 @@ Before its first start of each version the game reads its archives and compiles 
 cache, and does not start before it is done: an 8-bit screen where its window is about to open shows how far it is
 (`port/loading_screen.cpp`, `port/precompile.cpp`). The first time that is 3,455 programs, a minute or two, 3 MB more
 on disk; the programs it finds are kept beside the cache, so after an update it takes seconds. A session of the first
-level then compiled 4 vertex shaders where it had compiled 212. Fragment shaders are still compiled as the game reaches
-them: their text depends on the textures and state of each draw, which the files do not say. Clear shaders makes the
-next start do it again. `GOWA_PRECOMPILE_FIRST=0` leaves it out (the benches do).
+level then compiled 4 vertex shaders where it had compiled 212. Clear shaders makes the next start do it again.
+`GOWA_PRECOMPILE_FIRST=0` leaves it out (the benches do).
+Pixel shaders (`graphics.shader_prebuild`, Pixel shaders built ahead, on by default; DXC only): each fragment program's
+text reads what its draw binds and sets as it runs, so it can be built before a draw needs it
+([note](notes/2026-11-18-fp-text-without-state.md)). **Build all shaders now**, down the launcher's sidebar or as Build
+in the Play tab's ready check, builds those of the archives into `<cache>.dxil.prebuilt` (49,996 programs, 39,598
+pixel shaders, 305 MB; some 7 minutes on six cores), and the game takes them from there: on the fight replay from an
+empty cache 84% of the pixel shaders came from it, the rest the alpha test's variants. It never runs beside the game,
+which cost 7% of the frames ([note](notes/2026-11-18-pixel-shader-prebuild-step2.md)). With it on, the pipelines and
+pixel shaders of the old texts leave the cache at the next pack and are not built at the start
+([note](notes/2026-11-18-pixel-shader-prebuild-step3.md)).
 The screen has music of its own: an original theme over the sea, the brazier and thunder after the scene's lightning,
 made by the program as the screen opens (`port/precompile_music.cpp`, [note](notes/2026-11-13-precompile-music.md)).
 Precompile music, in the System tab, sets it to Off, Low, Normal (the default) or High.
