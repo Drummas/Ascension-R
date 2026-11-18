@@ -29,9 +29,9 @@
  * Clear shaders, below it, moves the compiled shaders to the Recycle Bin. The
  * vertex shaders are built by the game itself before its first start of each
  * version (the precompile gate, loading_screen.cpp), so there is no button for
- * them here. The pixel shaders are built in the background as the game plays
- * (graphics.shader_prebuild, precompile.cpp); Build all shaders now, below
- * Clear shaders, builds them at once, and turns that setting on.
+ * them here. The pixel shaders are built by Build all shaders now, below Clear
+ * shaders (precompile.cpp), never while the game plays; it turns
+ * graphics.shader_prebuild on, with which the game takes them.
  *
  * This file also holds this port's defaults (gowa_port_defaults), so the
  * game and the Defaults button take them from the same tables.
@@ -222,10 +222,9 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "pipeline_wait", "on", "Build pipelines first", 1, SW,
       "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built "
       "while you play: a moment, a few seconds after a GPU driver update." },
-    { T_GRAPHICS, "graphics", "shader_prebuild", "off", "Build pixel shaders ahead", 1, SW,
-      "The pixel shaders of the game's files are built ahead and kept: places you reach later wait for fewer of them. "
-      "Build all shaders now, below Clear shaders, builds them all at once, some minutes; what it has not built is "
-      "built slowly while you play, a few frames a second fewer meanwhile." },
+    { T_GRAPHICS, "graphics", "shader_prebuild", "off", "Pixel shaders built ahead", 1, SW,
+      "The game takes its pixel shaders from those Build all shaders now, below Clear shaders, builds before play "
+      "(some minutes, once): places you reach later wait for fewer of them. That link turns this on." },
     { T_CONTROLS, "input", "device", "auto", "Device", 0, LIST(k_dev, k_dev_n), k_dev_s,
       "Auto reads a controller and the keyboard and mouse at the same time: either one plays." },
     { T_CONTROLS, "input", "api", "auto", "Controller API", 0, LIST(k_api, k_api_n), k_api_s,
@@ -2969,11 +2968,10 @@ static void clear_shaders(void)
     }
     /* Each compiler's pack and journal, what a fold cut short leaves, the pipelines from before the store, the
      * mark that the vertex shaders were built (the next start builds them again; the lists of the programs found,
-     * .vprogs and .fprogs, stay: they are not shaders), and the pixel shaders built ahead with their mark and log. */
+     * .vprogs and .fprogs, stay: they are not shaders), and the pixel shaders built ahead with their mark. */
     static const wchar_t* const ext[] = { L"", L".journal", L".tmp", L".journal.tmp", L".pso",
                                           L".dxil", L".dxil.journal", L".dxil.tmp", L".dxil.journal.tmp", L".dxil.pso",
-                                          L".precompiled", L".dxil.prebuilt", L".dxil.prebuilt.done",
-                                          L".dxil.prebuilt.log" };
+                                          L".precompiled", L".dxil.prebuilt", L".dxil.prebuilt.done" };
     enum { N = sizeof ext / sizeof ext[0], F = GAME_PATH_MAX + 16 };
     static wchar_t list[N * F + 1];     /* for the shell: one after the other, two zeros at the end */
     wchar_t base[GAME_PATH_MAX];
@@ -3009,12 +3007,11 @@ static void clear_shaders(void)
     else toast("Shaders cleared");
 }
 
-/* --- Build all shaders now: the pixel shaders' build in the foreground ----------------------------------------
+/* --- Build all shaders now: the pixel shaders' build, before play ---------------------------------------------
  * The same exe with --prebuild-pixel-shaders (precompile.cpp, gowa_prebuild) and this window's settings, at the
- * normal priority on every thread but one, in a job that ends it with this window (pb_stop: Play or Quit); its lines
- * read on a thread of their own. The sidebar's link shows how far it is and stops it at a second click. The game
- * starts the same build in the background by itself (graphics.shader_prebuild); one of the two at a time builds, the
- * other says so. */
+ * normal priority on every thread but one, in a job that ends it with this window (pb_stop: Play or Quit), so it
+ * never runs beside the game; its lines read on a thread of their own. The sidebar's link shows how far it is and
+ * stops it at a second click; the next click goes on where it stopped. One build a file at a time: another says so. */
 static DWORD WINAPI pb_reader(LPVOID)
 {
     char buf[4096], line[512];
@@ -3078,7 +3075,7 @@ static void pb_start(void)
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) { toast_bad("No shader cache in the settings"); return; }
     wchar_t exe[MAX_PATH];
     if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return;
-    /* The game reads what it builds only with Build pixel shaders ahead on: on with it, and saved at once, so a Quit
+    /* The game reads what it builds only with Pixel shaders built ahead on: on with it, and saved at once, so a Quit
      * after the build does not leave it off (the window's other changes wait for Save or Play, as ever). */
     if (Opt* o = opt_find("graphics", "shader_prebuild"))
         if (!opt_on(*o)) {

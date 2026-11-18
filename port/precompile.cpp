@@ -545,13 +545,13 @@ extern "C" int gowa_precompile(void)
 }
 
 /* ---------------------------------------------------------------------------------------------------------------
- * The pixel shaders ahead of play (graphics.shader_prebuild): Ascension-R.exe --prebuild-pixel-shaders [--background]
- * [--settings <file>]. The fragment programs of the archives (<cache>.fprogs, from the vertex programs' reading or
- * read here) into <cache>.dxil.prebuilt, each in the text a draw of it makes with no alpha test, sign expansion or
- * depth comparison (rsx_d3d12_prebuild_fragment_programs), those it has passed over. The game reads the file when its
- * store has not a source, while this runs too: the game starts it in the background (--background: the idle
- * priority, its reading and memory at the background's, a few threads), and the launcher's "Build all shaders now"
- * runs it in the foreground on every thread but one. <cache>.dxil.prebuilt.done says the version it was finished for.
+ * The pixel shaders ahead of play (graphics.shader_prebuild): Ascension-R.exe --prebuild-pixel-shaders
+ * [--settings <file>], as the launcher's "Build all shaders now" runs it (launcher.cpp, pb_start), on every thread but
+ * one. The fragment programs of the archives (<cache>.fprogs, from the vertex programs' reading or read here) into
+ * <cache>.dxil.prebuilt, each in the text a draw of it makes with no alpha test, sign expansion or depth comparison
+ * (rsx_d3d12_prebuild_fragment_programs), those it has passed over. The game reads the file when its store has not a
+ * source. <cache>.dxil.prebuilt.done says the version it was finished for. Not while the game plays: built beside it,
+ * on six cores, it took 7% of the frames and would have taken hours (docs/notes/2026-11-18-pixel-shader-prebuild-step2.md).
  *
  * Progress, one line each on stdout:
  *   prebuild: read <archive n> <of> <name>
@@ -571,15 +571,10 @@ static void prebuild_progress(uint32_t done, uint32_t total)
     printf("prebuild: compile %u %u\n", done, total);
 }
 
-extern "C" int gowa_prebuild(int background)
+extern "C" int gowa_prebuild(void)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
-    if (background) {
-        SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
-        SetPriorityClass(GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);   /* its disk and memory too */
-    } else if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) {
-        SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-    }
+    if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
     const DWORD t0 = GetTickCount();
     const std::string sc = cache_file();
     if (sc.empty()) {
@@ -605,12 +600,11 @@ extern "C" int gowa_prebuild(int background)
     SYSTEM_INFO si;
     GetSystemInfo(&si);
     const int lp = (int)si.dwNumberOfProcessors;
-    /* In the background, beside a game that keeps most of the cores busy: from 1 on 8 logical processors to 4. */
-    const int threads = background ? std::max(1, std::min(4, lp / 2 - 3)) : std::max(1, std::min(16, lp - 1));
+    const int threads = std::max(1, std::min(16, lp - 1));
     uint32_t stats[3] = {};
     char why[320] = "";
     if (rsx_d3d12_prebuild_fragment_programs(ptr.data(), len.data(), ctrl.data(), (uint32_t)ptr.size(), threads,
-                                             background, prebuild_progress, stats, why, sizeof why) != 0) {
+                                             0, prebuild_progress, stats, why, sizeof why) != 0) {
         printf("prebuild: error %s\n", why);
         return 1;
     }
@@ -622,76 +616,4 @@ extern "C" int gowa_prebuild(int background)
     }
     printf("prebuild: done %u %u %u %.0f\n", stats[0], stats[1], stats[2], (GetTickCount() - t0) / 1000.0);
     return 0;
-}
-
-/* The game's start: the build in the background unless this version's is done (<cache>.dxil.prebuilt.done), with
- * graphics.shader_prebuild on. A process of its own with this one's settings, in a job that ends it with the game
- * (the next start goes on where it stopped), its lines in <cache>.dxil.prebuilt.log. */
-extern "C" void gowa_prebuild_background(void)
-{
-    static HANDLE s_job;   /* held for the game's life: closing it ends the build */
-    if (s_job || !ps3_settings_bool("graphics", "shader_prebuild", "RSX_FP_DYNAMIC", 0)) return;
-    if (const char* e = getenv("GOWA_PREBUILD_BACKGROUND")) if (!strcmp(e, "0")) return;   /* benches, scripts */
-    const std::string sc = cache_file();
-    if (sc.empty()) return;
-    char line[128] = "";
-    if (FILE* f = fopen((sc + ".dxil.prebuilt.done").c_str(), "rb")) {
-        if (!fgets(line, sizeof line, f)) line[0] = 0;
-        fclose(f);
-    }
-    char want[128];
-    snprintf(want, sizeof want, "Ascension-R %s\n", AR_VERSION);
-    if (!strcmp(line, want)) return;
-    wchar_t exe[MAX_PATH];
-    if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return;
-    std::wstring cmd = L"\"" + std::wstring(exe) + L"\" --prebuild-pixel-shaders --background";
-    wchar_t buf[2200];
-    const char* sp = ps3_settings_path();
-    if (sp && *sp) {
-        swprintf(buf, 2200, L" --settings \"%hs\"", sp);
-        cmd += buf;
-    }
-    /* What this run takes from its command line too, as the vertex programs' build does (loading_screen.cpp). */
-    static const struct { const char* sec; const char* key; } keep[] = {
-        { "graphics", "shader_cache" }, { "graphics", "shader_prebuild" }, { "paths", "elf" }, { "paths", "hdd0" },
-        { "paths", "vfs" }, { "graphics", "gpu" } };
-    for (const auto& k : keep) {
-        const char* v = ps3_settings_str(k.sec, k.key, NULL, NULL);
-        if (v && *v && !strchr(v, '"')) {
-            swprintf(buf, 2200, L" --set \"%hs.%hs=%hs\"", k.sec, k.key, v);
-            cmd += buf;
-        }
-    }
-    SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
-    HANDLE log = CreateFileA((sc + ".dxil.prebuilt.log").c_str(), GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS,
-                             FILE_ATTRIBUTE_NORMAL, NULL);
-    STARTUPINFOW si = {};
-    si.cb = sizeof si;
-    si.dwFlags = STARTF_USESTDHANDLES;
-    si.hStdOutput = si.hStdError = log != INVALID_HANDLE_VALUE ? log : NULL;
-    PROCESS_INFORMATION pi = {};
-    std::vector<wchar_t> cl(cmd.begin(), cmd.end());
-    cl.push_back(0);
-    const BOOL ok = CreateProcessW(exe, cl.data(), NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_SUSPENDED |
-                                   IDLE_PRIORITY_CLASS, NULL, NULL, &si, &pi);
-    if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
-    if (!ok) {
-        printf("[prebuild] the pixel shaders' build did not start (%lu)\n", GetLastError());
-        return;
-    }
-    HANDLE job = CreateJobObjectA(NULL, NULL);
-    JOBOBJECT_EXTENDED_LIMIT_INFORMATION li = {};
-    li.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-    if (job && SetInformationJobObject(job, JobObjectExtendedLimitInformation, &li, sizeof li) &&
-        AssignProcessToJobObject(job, pi.hProcess)) {
-        s_job = job;
-    } else {
-        if (job) CloseHandle(job);
-        s_job = INVALID_HANDLE_VALUE;   /* not tied to the game: it ends by itself when it is done */
-    }
-    ResumeThread(pi.hThread);
-    CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
-    printf("[prebuild] the pixel shaders' build in the background: pid %lu, %s.dxil.prebuilt.log\n",
-           (unsigned long)pi.dwProcessId, sc.c_str());
 }
