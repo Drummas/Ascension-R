@@ -182,7 +182,8 @@ void read_ini(const std::wstring& path, ModInfo* m)
 }
 
 const wchar_t* const k_direct[] = { L"files", L"USRDIR", L"PS3_GAME\\USRDIR" };
-const char* const k_later[] = { "archive", "textures", "text", "patches" };
+const wchar_t* const k_packed[] = { L"archive", L"text" };   /* modpack.py's */
+const char* const k_later[] = { "textures", "patches" };
 
 /* Whether a folder is a mod's own: its mod.ini, or a folder of one it knows. The old text tool's mod folder was
  * dev_hdd0 itself. */
@@ -191,8 +192,17 @@ bool mod_like(const std::wstring& dir, const std::wstring& id)
     if (is_file(dir + L"\\mod.ini") || is_dir(dir + L"\\dev_hdd0\\game")) return true;
     if (same(id, L"dev_hdd0") && is_dir(dir + L"\\game")) return true;
     for (const wchar_t* d : k_direct) if (is_dir(dir + L"\\" + d)) return true;
+    for (const wchar_t* d : k_packed) if (is_dir(dir + L"\\" + d)) return true;
     for (const char* d : k_later) if (is_dir(dir + L"\\" + wide(d))) return true;
     return false;
+}
+
+/* What Windows and other systems leave in folders, which no mod means as one of its files (modpack.py's LITTER). */
+bool litter(const std::wstring& rel)
+{
+    const size_t s = rel.find_last_of(L'/');
+    const std::wstring n = upper(s == std::wstring::npos ? rel : rel.substr(s + 1));
+    return n == L"DESKTOP.INI" || n == L"THUMBS.DB" || (!n.empty() && n[0] == L'.');
 }
 
 /* A file beside a mod's own that the game has no use for: its mod.ini, a read-me, a picture of it. */
@@ -247,10 +257,12 @@ void layout(ModInfo* m)
     };
     if (is_dir(r + L"\\dev_hdd0\\game")) titles(r + L"\\dev_hdd0\\game");
     if (same(m->id, L"dev_hdd0") && is_dir(r + L"\\game")) titles(r + L"\\game");
+    if (is_dir(r + L"\\archive")) m->archive = r + L"\\archive";
+    if (is_dir(r + L"\\text")) m->text = r + L"\\text";
     for (const char* d : k_later)
         if (is_dir(r + L"\\" + wide(d))) m->later.push_back(d);
     /* None of those: the folder is laid out as USRDIR is, its files the game's. */
-    if (m->usrdirs.empty() && m->later.empty()) {
+    if (m->usrdirs.empty() && m->later.empty() && m->archive.empty() && m->text.empty()) {
         std::vector<std::wstring> ds, fs;
         list_dir(r, &ds, &fs);
         bool any = !ds.empty();
@@ -491,6 +503,186 @@ void zip_mod(const std::wstring& dir, ModInfo* m, int unpack)
 
 std::string files_text(int n) { return std::to_string(n) + (n == 1 ? " file" : " files"); }
 
+/* --- the pack: archive\ and text\ as one more update (modpack.py) ---------------------------------------------- */
+
+std::string read_all(const std::wstring& p, size_t max = 1u << 20)
+{
+    std::string s;
+    if (FILE* f = _wfopen(p.c_str(), L"rb")) {
+        char b[4096];
+        size_t n;
+        while (s.size() < max && (n = fread(b, 1, sizeof b, f)) > 0) s.append(b, n);
+        fclose(f);
+    }
+    return s;
+}
+
+bool write_all(const std::wstring& p, const std::string& s)
+{
+    FILE* f = _wfopen(p.c_str(), L"wb");
+    if (!f) return false;
+    const bool ok = fwrite(s.data(), 1, s.size(), f) == s.size();
+    return fclose(f) == 0 && ok;
+}
+
+/* A file's size and time, "-" when it is not there. */
+std::string stamp_of(const std::wstring& p)
+{
+    WIN32_FILE_ATTRIBUTE_DATA a;
+    if (!GetFileAttributesExW(p.c_str(), GetFileExInfoStandard, &a)) return "-";
+    char b[64];
+    snprintf(b, sizeof b, "%llu %llu", (unsigned long long)a.nFileSizeHigh << 32 | a.nFileSizeLow,
+             (unsigned long long)a.ftLastWriteTime.dwHighDateTime << 32 | a.ftLastWriteTime.dwLowDateTime);
+    return b;
+}
+
+std::string hash_hex(const std::string& s)
+{
+    unsigned long long h = 1469598103934665603ull;   /* FNV-1a */
+    for (unsigned char c : s) { h ^= c; h *= 1099511628211ull; }
+    char b[24];
+    snprintf(b, sizeof b, "%016llx", h);
+    return b;
+}
+
+bool packs(const ModInfo& m) { return m.on && m.error.empty() && (m.archive_files || m.text_files); }
+
+/* What the pack is made from on the mods' side: each mod that packs, in order, and its files' sizes and times. */
+std::string mods_part(const ModList& l)
+{
+    std::string s;
+    if (!l.use) return s;
+    for (const ModInfo& m : l.mods) {
+        if (!packs(m)) continue;
+        s += "mod " + u8(m.id) + "\n";
+        for (int k = 0; k < 2; k++) {
+            const std::wstring& d = k ? m.text : m.archive;
+            if (d.empty()) continue;
+            std::vector<std::wstring> rels;
+            walk(d, std::wstring(), &rels, 0);
+            std::sort(rels.begin(), rels.end());
+            for (const std::wstring& r : rels) {
+                std::wstring host = d + L"\\" + r;
+                for (wchar_t& c : host) if (c == L'/') c = L'\\';
+                s += (k ? "t " : "a ") + u8(r) + " " + stamp_of(host) + "\n";
+            }
+        }
+    }
+    return s;
+}
+
+int number_in(const std::wstring& p)
+{
+    const std::string s = read_all(p, 64);
+    return atoi(s.c_str());
+}
+
+/* The updates the game reads before the pack's: its own PATCHES, or the one a mod brings in its files, if more. */
+int updates_before(const ModList& l, const std::wstring& usrdir)
+{
+    int n = usrdir.empty() ? 0 : number_in(usrdir + L"\\PATCHES");
+    for (const ModInfo& m : l.mods) {
+        if (!m.on || !m.error.empty()) continue;
+        for (const std::wstring& u : m.usrdirs)
+            if (is_file(u + L"\\PATCHES")) {
+                const int k = number_in(u + L"\\PATCHES");
+                return k > n ? k : n;
+            }
+    }
+    return n;
+}
+
+/* The Python and the modpack.py to pack with: the Kit's (kit\ beside the program), else a build tree's (scripts\
+ * beside build\, the Python of the .venv beside the tree, else one on the PATH). GOWA_PYTHON and GOWA_MODPACK name
+ * others. */
+bool find_packer(std::wstring* py, std::wstring* script)
+{
+    wchar_t exe[MAX_PATH];
+    const DWORD n = GetModuleFileNameW(NULL, exe, MAX_PATH);
+    if (!n || n >= MAX_PATH) return false;
+    if (wchar_t* e = wcsrchr(exe, L'\\')) *e = 0;
+    auto full = [](const std::wstring& p) {
+        wchar_t b[MAX_PATH * 2];
+        const DWORD k = GetFullPathNameW(p.c_str(), MAX_PATH * 2, b, NULL);
+        return k && k < MAX_PATH * 2 ? std::wstring(b) : p;
+    };
+    const std::wstring here = exe;
+    if (is_file(here + L"\\kit\\python\\python.exe") && is_file(here + L"\\kit\\scripts\\modpack.py")) {
+        *py = here + L"\\kit\\python\\python.exe";
+        *script = here + L"\\kit\\scripts\\modpack.py";
+    } else if (is_file(here + L"\\..\\scripts\\modpack.py")) {
+        *script = full(here + L"\\..\\scripts\\modpack.py");
+        if (is_file(here + L"\\..\\..\\.venv\\Scripts\\python.exe")) *py = full(here + L"\\..\\..\\.venv\\Scripts\\python.exe");
+        else {
+            wchar_t found[MAX_PATH];
+            if (SearchPathW(NULL, L"python.exe", NULL, MAX_PATH, found, NULL)) *py = found;
+        }
+    }
+    if (const wchar_t* e = _wgetenv(L"GOWA_PYTHON")) if (*e) *py = e;
+    if (const wchar_t* e = _wgetenv(L"GOWA_MODPACK")) if (*e) *script = e;
+    return !py->empty() && !script->empty() && is_file(*py) && is_file(*script);
+}
+
+/* What the pack is made from on the game's side: its updates, the number before the pack's, and the packer. */
+std::string game_part(const ModList& l, const std::wstring& usrdir, const std::wstring& script)
+{
+    std::string s = "usrdir " + u8(usrdir) + "\nupdates " + std::to_string(updates_before(l, usrdir)) + "\n";
+    if (!usrdir.empty()) {
+        s += "PATCHES " + read_all(usrdir + L"\\PATCHES", 64) + "\n";
+        for (int k = 0; k <= 9; k++)
+            s += stamp_of(usrdir + (k ? L"\\TPPS" + std::to_wstring(k) + L".PSARC" : std::wstring(L"\\TPPS.PSARC"))) + "\n";
+    }
+    s += "packer " + stamp_of(script) + " " + stamp_of(script.substr(0, script.find_last_of(L'\\') + 1) + L"gametext.py");
+    return s;
+}
+
+ModInfo* mod_of(ModList* l, const std::string& id)
+{
+    for (ModInfo& m : l->mods) if (u8(m.id) == id) return &m;
+    return NULL;
+}
+
+/* result.txt (modpack.py) into each mod's packed; the pack's folder when it made an update. */
+void read_result(ModList* l, const std::wstring& out)
+{
+    const std::string r = read_all(out + L"\\result.txt");
+    size_t at = 0;
+    while (at < r.size()) {
+        size_t e = r.find('\n', at);
+        if (e == std::string::npos) e = r.size();
+        std::vector<std::string> f;
+        for (size_t a = at, b; a <= e; a = b + 1) {
+            b = r.find('\t', a);
+            if (b == std::string::npos || b > e) b = e;
+            f.push_back(r.substr(a, b - a));
+        }
+        at = e + 1;
+        if (f.size() >= 3 && f[0] == "update") {
+            const int k = atoi(f[1].c_str());
+            if (k > 0 && is_file(out + L"\\files\\TPPS" + std::to_wstring(k) + L".PSARC")) l->built = out + L"\\files";
+        } else if (f.size() >= 6 && f[0] == "archive") {
+            if (ModInfo* m = mod_of(l, f[1])) {
+                std::string t = "archive: " + f[2] + (f[2] == "1" ? " entry" : " entries");
+                if (f[4] != "0") { t += ", " + f[4] + " left out (" + f[5] + ", a mod above has it)"; m->pack_warn = 1; }
+                m->packed += (m->packed.empty() ? "" : "; ") + t;
+            }
+        } else if (f.size() >= 6 && f[0] == "text") {
+            if (ModInfo* m = mod_of(l, f[1])) {
+                std::string t = "text " + f[2] + ": " + f[3] + (f[3] == "1" ? " line" : " lines");
+                if (f[4] != "0") { t += ", " + f[4] + " left out (" + f[5] + ")"; m->pack_warn = 1; }
+                m->packed += (m->packed.empty() ? "" : "; ") + t;
+            }
+        } else if (f.size() >= 3 && f[0] == "error") {
+            if (ModInfo* m = mod_of(l, f[1])) {
+                m->packed += (m->packed.empty() ? "" : "; ") + std::string("not packed: ") + f[2];
+                m->pack_warn = 1;
+            } else {
+                l->pack_error = f[2];
+            }
+        }
+    }
+}
+
 }  // namespace
 
 std::wstring mods_folder(void)
@@ -571,7 +763,18 @@ void mods_scan(ModList* out, int unpack)
             }
         }
         m.files = (int)own.size();
-        if (m.error.empty() && m.usrdirs.empty()) {
+        for (int k = 0; k < 2; k++) {
+            const std::wstring& d = k ? m.text : m.archive;
+            if (d.empty()) continue;
+            std::vector<std::wstring> rels;
+            walk(d, std::wstring(), &rels, 0);
+            for (const std::wstring& r : rels) {
+                if (litter(r)) continue;
+                if (!k) m.archive_files++;
+                else if (r.size() > 4 && !r.compare(r.size() - 4, 4, L".TSV")) m.text_files++;
+            }
+        }
+        if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files) {
             if (m.later.empty()) m.error = "it is empty";
             else {
                 m.error = "this build does not read its ";
@@ -581,6 +784,78 @@ void mods_scan(ModList* out, int unpack)
             }
         }
     }
+    /* What the last pack made of the mods, if it was made from them as they are now. */
+    const std::wstring built = out->dir + L"\\.built";
+    const std::string st = read_all(built + L"\\stamp.txt", 256);
+    if (!st.empty() && st.substr(0, st.find('\n')) == hash_hex(mods_part(*out))) read_result(out, built);
+}
+
+void mods_pack(ModList* l, const std::wstring& usrdir)
+{
+    l->built.clear();
+    l->pack_error.clear();
+    for (ModInfo& m : l->mods) { m.packed.clear(); m.pack_warn = 0; }
+    bool any = false;
+    for (const ModInfo& m : l->mods) any |= packs(m);
+    if (!l->use || !any) return;
+    std::wstring py, script;
+    if (!find_packer(&py, &script)) {
+        l->pack_error = "no Python to pack the mods' archive and text with (the Kit's kit\\python)";
+        return;
+    }
+    const std::wstring out = l->dir + L"\\.built";
+    const std::string stamp = hash_hex(mods_part(*l)) + "\n" + hash_hex(game_part(*l, usrdir, script)) + "\n";
+    if (read_all(out + L"\\stamp.txt", 256) == stamp) {
+        read_result(l, out);
+        return;
+    }
+    if (!CreateDirectoryW(out.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) {
+        l->pack_error = "no folder could be made for the pack";
+        return;
+    }
+    SetFileAttributesW(out.c_str(), FILE_ATTRIBUTE_HIDDEN);
+    DeleteFileW((out + L"\\stamp.txt").c_str());
+    DeleteFileW((out + L"\\result.txt").c_str());
+    std::string in = "usrdir\t" + u8(usrdir) + "\nupdates\t" + std::to_string(updates_before(*l, usrdir)) + "\n";
+    for (const ModInfo& m : l->mods)
+        if (packs(m))
+            in += "mod\t" + u8(m.id) + "\t" + (m.archive_files ? u8(m.archive) : "-") + "\t" +
+                  (m.text_files ? u8(m.text) : "-") + "\n";
+    if (!write_all(out + L"\\input.txt", in)) {
+        l->pack_error = "the pack's list could not be written";
+        return;
+    }
+    /* python -E -s -B -X utf8 modpack.py input.txt .built, what it says into .built\pack.log. */
+    std::wstring cmd = L"\"" + py + L"\" -E -s -B -X utf8 \"" + script + L"\" \"" + out + L"\\input.txt\" \"" + out + L"\"";
+    SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
+    HANDLE log = CreateFileW((out + L"\\pack.log").c_str(), GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL, NULL);
+    STARTUPINFOW si;
+    memset(&si, 0, sizeof si);
+    si.cb = sizeof si;
+    if (log != INVALID_HANDLE_VALUE) {
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdOutput = si.hStdError = log;
+        si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    }
+    PROCESS_INFORMATION pi;
+    DWORD code = 1;
+    if (CreateProcessW(NULL, &cmd[0], NULL, NULL, log != INVALID_HANDLE_VALUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+        if (WaitForSingleObject(pi.hProcess, 10 * 60 * 1000) != WAIT_OBJECT_0) {
+            TerminateProcess(pi.hProcess, 1);
+            WaitForSingleObject(pi.hProcess, 5000);
+            l->pack_error = "the pack took more than ten minutes";
+        }
+        GetExitCodeProcess(pi.hProcess, &code);
+        CloseHandle(pi.hThread);
+        CloseHandle(pi.hProcess);
+    } else {
+        l->pack_error = "the packer could not be started";
+    }
+    if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
+    read_result(l, out);
+    if (code == 0 && l->pack_error.empty()) write_all(out + L"\\stamp.txt", stamp);
+    else if (l->pack_error.empty()) l->pack_error = "the pack failed: mods\\.built\\pack.log says why";
 }
 
 void mods_store(const ModList& l)
@@ -599,6 +874,7 @@ std::string mods_dirs(const ModList& l)
 {
     std::string s;
     if (!l.use) return s;
+    if (!l.built.empty()) s = u8(l.built);   /* the pack's PATCHES before any mod's */
     for (const ModInfo& m : l.mods) {
         if (!m.on || !m.error.empty()) continue;
         for (const std::wstring& u : m.usrdirs) s += (s.empty() ? "" : "|") + u8(u);
@@ -613,8 +889,13 @@ std::string mods_summary(const ModList& l)
         std::string one = m.name + (m.version.empty() ? "" : " " + m.version);
         if (!m.error.empty()) one += " (not read: " + m.error + ")";
         else {
-            std::string what = files_text(m.files);
+            std::string what = m.files || m.usrdirs.size() ? files_text(m.files) : std::string();
             if (m.shadowed) what += ", " + std::to_string(m.shadowed) + " from a mod above";
+            if (!m.packed.empty()) what += (what.empty() ? "" : "; ") + m.packed;
+            else {
+                if (m.archive_files) what += (what.empty() ? "" : "; ") + std::string("archive: ") + files_text(m.archive_files);
+                if (m.text_files) what += (what.empty() ? "" : "; ") + std::string("text: ") + files_text(m.text_files);
+            }
             if (!m.later.empty()) {
                 what += "; not read yet:";
                 for (const std::string& k : m.later) what += " " + k;
@@ -628,5 +909,6 @@ std::string mods_summary(const ModList& l)
     if (!l.use) return "Use mods is off; in the folder: " + off;
     std::string s = on.empty() ? std::string("none on") : on;
     if (!off.empty()) s += "; off: " + off;
+    if (!l.pack_error.empty()) s += "; not packed: " + l.pack_error;
     return s;
 }

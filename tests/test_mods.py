@@ -47,10 +47,13 @@ static void print(const ModList& l)
         for (const std::string& k : m.later) later += (later.empty() ? "" : ",") + k;
         for (const std::wstring& u : m.usrdirs) dirs += (dirs.empty() ? "" : ",") + rel(u, l.dir);
         printf("mod\t%s\ton=%d\tzip=%d\tname=%s\tversion=%s\tauthor=%s\tdesc=%s\tfiles=%d\tshadowed=%d\tby=%s\t"
-               "later=%s\terror=%s\troot=%s\tusrdirs=%s\n", u8(m.id).c_str(), m.on, m.zip, m.name.c_str(),
-               m.version.c_str(), m.author.c_str(), m.desc.c_str(), m.files, m.shadowed, u8(m.shadowed_by).c_str(),
-               later.c_str(), m.error.c_str(), rel(m.root, l.dir).c_str(), dirs.c_str());
+               "later=%s\terror=%s\troot=%s\tusrdirs=%s\tarchive=%d\ttext=%d\tpacked=%s\twarn=%d\n", u8(m.id).c_str(),
+               m.on, m.zip, m.name.c_str(), m.version.c_str(), m.author.c_str(), m.desc.c_str(), m.files, m.shadowed,
+               u8(m.shadowed_by).c_str(), later.c_str(), m.error.c_str(), rel(m.root, l.dir).c_str(), dirs.c_str(),
+               m.archive_files, m.text_files, m.packed.c_str(), m.pack_warn);
     }
+    printf("built\t%s\n", l.built.empty() ? "-" : rel(l.built, l.dir).c_str());
+    printf("packerror\t%s\n", l.pack_error.c_str());
     std::string d = mods_dirs(l), out;
     size_t at = 0;
     while (!d.empty() && at <= d.size()) {
@@ -73,6 +76,10 @@ int wmain(int argc, wchar_t** argv)
     ModList l;
     if (!wcscmp(argv[2], L"scan") || !wcscmp(argv[2], L"look")) {
         mods_scan(&l, !wcscmp(argv[2], L"scan"));
+        print(l);
+    } else if (!wcscmp(argv[2], L"pack")) {   /* as the game starts: the game's update folder in argv[3] */
+        mods_scan(&l, 1);
+        mods_pack(&l, argv[3]);
         print(l);
     } else if (!wcscmp(argv[2], L"store")) {
         /* on:<id> off:<id> up:<id> down:<id>, as the tab does them, then written */
@@ -146,8 +153,8 @@ class Mods(unittest.TestCase):
         lines = ["[mods]", "folder = " + self.mods] + ["%s = %s" % kv for kv in mods.items()]
         Path(self.ini).write_text("\n".join(lines) + "\n")
 
-    def run_t(self, *a):
-        r = subprocess.run([self.exe, self.ini, *a], capture_output=True, text=True, encoding="utf-8")
+    def run_t(self, *a, env=None):
+        r = subprocess.run([self.exe, self.ini, *a], capture_output=True, text=True, encoding="utf-8", env=env)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         mods, out = {}, {}
         order = []
@@ -156,7 +163,7 @@ class Mods(unittest.TestCase):
             if f[0] == "mod":
                 mods[f[1]] = dict(kv.split("=", 1) for kv in f[2:])
                 order.append(f[1])
-            elif f[0] in ("dirs", "summary"):
+            elif f[0] in ("dirs", "summary", "built", "packerror"):
                 out[f[0]] = f[1] if len(f) > 1 else ""
         return order, mods, out
 
@@ -288,6 +295,71 @@ class Mods(unittest.TestCase):
         self.assertEqual(out["dirs"], "")
         self.assertFalse(Path(self.d, "evil.txt").exists())
         self.assertFalse(Path(self.mods, "evil.txt").exists())
+
+    # --- the pack: archive\ and text\ as one more update (scripts/modpack.py), run as the game starts ---
+
+    def pack_env(self, python=None):
+        env = dict(os.environ)
+        env["GOWA_PYTHON"] = python or sys.executable
+        env["GOWA_MODPACK"] = str(ROOT / "scripts" / "modpack.py")
+        return env
+
+    def game(self):
+        """test_gametext's made-up folder of the game's updates: PATCHES 5, a TPPS5.PSARC with the English text."""
+        sys.path.insert(0, str(ROOT / "scripts"))
+        sys.path.insert(0, str(ROOT / "tests"))
+        import gametext as gt
+        from test_gametext import MSGS, MP, SP, patch
+        usr = os.path.join(self.d, "game", "USRDIR")
+        os.makedirs(usr)
+        Path(usr, "PATCHES").write_bytes(b"5")
+        Path(usr, "TPPS5.PSARC").write_bytes(gt.psarc_pack({SP: patch(MSGS, 0xBBA20), MP: patch(MSGS, 0xCCE40)}))
+        return usr
+
+    def test_archive_and_text_packed_once_as_one_more_update(self):
+        usr = self.game()
+        put(os.path.join(self.mods, "Words", "text", "en.tsv"), "1.1\tJeda\n")
+        put(os.path.join(self.mods, "Words", "archive", "DC", "PS3_BE", "X.DCB"), b"mine")
+        put(os.path.join(self.mods, "Loose", "files", "PATCHES"), b"7")   # a mod with a seventh update of its own
+        put(os.path.join(self.mods, "Loose", "files", "TPPS7.PSARC"), b"its own update")
+        self.settings(order="Words|Loose")
+        env = self.pack_env()
+        _, m, out = self.run_t("pack", usr, env=env)
+        self.assertEqual(out["packerror"], "")
+        self.assertEqual(out["built"], ".built\\files")
+        self.assertEqual(out["dirs"], ".built\\files|Loose\\files")   # the pack's PATCHES before any mod's
+        self.assertEqual(m["Words"]["packed"], "archive: 1 entry; text EN: 1 line")
+        built = Path(self.mods, ".built", "files")
+        self.assertEqual(sorted(os.listdir(built)), ["PATCHES", "TPPS8.PSARC"])   # after Loose's seventh
+        self.assertEqual((built / "PATCHES").read_bytes(), b"8")
+        result = Path(self.mods, ".built", "result.txt")
+        first = result.stat().st_mtime_ns
+        time.sleep(0.05)
+        _, m, _ = self.run_t("pack", usr, env=env)   # nothing has changed: not packed again
+        self.assertEqual(result.stat().st_mtime_ns, first)
+        self.assertEqual(m["Words"]["packed"], "archive: 1 entry; text EN: 1 line")
+        _, m, _ = self.run_t("scan")   # the launcher's look: what the last start packed, as the mods are the same
+        self.assertEqual(m["Words"]["packed"], "archive: 1 entry; text EN: 1 line")
+        put(os.path.join(self.mods, "Words", "text", "en.tsv"), "1.1\tJeda\n3.1\tTidak ada\n")
+        _, m, out = self.run_t("scan")   # changed since: the launcher says it is packed at the next start
+        self.assertEqual((m["Words"]["packed"], m["Words"]["archive"], m["Words"]["text"]), ("", "1", "1"))
+        _, m, out = self.run_t("pack", usr, env=env)   # a file of it changed: packed again
+        self.assertNotEqual(result.stat().st_mtime_ns, first)
+        self.assertEqual((m["Words"]["packed"], m["Words"]["warn"]),
+                         ("archive: 1 entry; text EN: 1 line, 1 left out (3.1: no such line in the game's text)", "1"))
+        self.assertIn("text EN: 1 line, 1 left out", out["summary"])
+
+    def test_no_pack_without_python_or_with_mods_off(self):
+        usr = self.game()
+        put(os.path.join(self.mods, "Words", "text", "en.tsv"), "1.1\tJeda\n")
+        self.settings()
+        _, m, out = self.run_t("pack", usr, env=self.pack_env(python=os.path.join(self.d, "no-python.exe")))
+        self.assertTrue(out["packerror"].startswith("no Python"), out["packerror"])
+        self.assertEqual((out["built"], out["dirs"], m["Words"]["error"]), ("-", "", ""))
+        self.assertIn("not packed: no Python", out["summary"])
+        self.settings(use="off")
+        _, _, out = self.run_t("pack", usr, env=self.pack_env())
+        self.assertEqual((out["built"], out["packerror"], out["dirs"]), ("-", "", ""))
 
     def test_no_folder(self):
         shutil.rmtree(self.mods)

@@ -201,9 +201,13 @@ what it gives: its files, how many of them a mod above it has too (the first one
 does not read. **Use mods** (`mods.use`, on) leaves them all out when off. The game takes the files of the mods that are
 on, whichever USRDIR it reads them from (a disc's or its update's), in place of the game's or added where the game has
 none; the game's own folder is never changed. A `.zip` is unpacked once into `mods\.unpacked\`, and again when it
-changes. The log has a `[mods]` line with each mod and its count, and names each file taken (`[fs] mod`); the problem
-report has the same line, without paths. [MODDING.md](MODDING.md) has the layout a mod comes in, its `mod.ini`, and how
-the settings keep the order (`[mods] order` and `off`).
+changes. A mod's `archive\` (files for entries of the game's archives, by their names there) and `text\` (lines of the
+game's text, as `gowa.py text export` writes them) go into one more update of the game, which the game makes as it
+starts, with the Kit's Python, and again only when they change: an entry the game's updates patch goes in as a `.PATCH`
+of one step, a line that fails the text checks is left out, and the first mod in the list wins
+([note](notes/2026-11-18-mods-archive-and-text.md)). The log has a `[mods]` line with each mod and what it gave, and
+names each file taken (`[fs] mod`); the problem report has the same line, without paths. [MODDING.md](MODDING.md) has
+the layout a mod comes in, its `mod.ini`, and how the settings keep the order (`[mods] order` and `off`).
 
 `paths.mods` still names one older folder laid out like the PS3's paths, `dev_hdd0\game\NPUA80918\USRDIR\...`, read after
 the mods folder. Empty, the default, means none.

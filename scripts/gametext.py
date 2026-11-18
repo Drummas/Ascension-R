@@ -65,7 +65,8 @@ def _be(b):
 
 
 def _psarc_entries(f, wanted, what):
-    """{name: bytes} of the entries named in wanted that the archive open in f has."""
+    """{name: bytes} of the entries named in wanted that the archive open in f has; wanted None: the names alone, as
+    a list."""
     h = f.read(32)
     if h[:4] != b"PSAR" or h[8:12] != b"zlib":
         raise TextError("%s is not a zlib PSARC" % what)
@@ -95,6 +96,8 @@ def _psarc_entries(f, wanted, what):
         return bytes(data)
 
     names = read(ents[0]).decode("utf-8", "replace").split("\n")
+    if wanted is None:
+        return names[:len(ents) - 1]
     return {name: read(ent) for name, ent in zip(names, ents[1:]) if name in wanted}
 
 
@@ -103,13 +106,20 @@ def psarc_read(path, wanted):
         return _psarc_entries(f, wanted, path)
 
 
+def psarc_names(path):
+    """The names of an archive's entries, read from its manifest alone."""
+    with open(path, "rb") as f:
+        return _psarc_entries(f, None, path)
+
+
 def psarc_read_bytes(data, wanted):
     return _psarc_entries(io.BytesIO(data), wanted, "the archive")
 
 
-def psarc_pack(files):
+def psarc_pack(files, level=9):
     """A PSARC as the game's are made: entries sorted by name, each keyed by the MD5 of its name as written, the
-    manifest (entry 0, the names a line each) first, 64 KiB blocks packed with zlib unless that is no smaller."""
+    manifest (entry 0, the names a line each) first, 64 KiB blocks packed with zlib at level (0: stored) unless that is
+    no smaller."""
     names = sorted(files)
     datas = [("\n".join(names)).encode()] + [files[n] for n in names]
     blocks, zsizes, firsts = [], [], []
@@ -117,7 +127,7 @@ def psarc_pack(files):
         firsts.append(len(zsizes))
         for at in range(0, len(d), BLOCK):
             raw = d[at:at + BLOCK]
-            z = zlib.compress(raw, 9)
+            z = zlib.compress(raw, level) if level else raw
             if len(z) < len(raw):
                 blocks.append(z)
                 zsizes.append(len(z))

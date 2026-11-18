@@ -19,6 +19,8 @@ MyMod\
     PATCHES          stands for USRDIR\PATCHES
     TPPS6.PSARC      stands for USRDIR\TPPS6.PSARC
     data\fonts\...   stands for USRDIR\data\fonts\...
+  archive\           files inside the game's archives (below)
+  text\              lines of the game's text (below)
 ```
 
 - A file there is read in place of the game's file of that name, or added where the game has none. Names match
@@ -60,16 +62,65 @@ lines of the description at most.
 - The settings keep the list: `[mods] order = A|B|C` (the names in the folder), `off = B` (the ones switched off) and
   `use = on` (**Use mods**: off leaves every mod out).
 
-## Changing what is inside the archives
+## Files inside the archives: archive\
 
 The game's data is in PSARC archives, the ones `ARCHIVES` names (`GAME.PSARC`, `SHELL.PSARC`, `RESOURCES.PSARC` and
-others), and its updates, `TPPS1.PSARC` to `TPPS5.PSARC` (`PATCHES` holds `5`). For a WAD, the game takes the
-`.WAD.PATCH` of the newest update that has one. So a translation is a sixth update: `TPPS6.PSARC` with the text patches,
-and `PATCHES` holding `6` ([note](notes/2026-11-11-game-text.md)). `gowa.py text build` makes it as a mod,
-`build\mods\translation\`.
+others), and its updates, `TPPS.PSARC` and `TPPS1.PSARC` to `TPPS5.PSARC` (`PATCHES` holds `5`). A mod's `archive\`
+has files for entries of the archives, by their names there:
 
-Two mods that each bring a `TPPS6.PSARC` cannot both be that update: the first one in the list wins, and the tab says
-so. A later Ascension-R is to put several mods' entries into one update itself (the `archive\` folder below).
+```
+MyMod\
+  archive\
+    WAD\PS3_BE\SHELL.WAD       stands for /WAD/PS3_BE/SHELL.WAD
+    DC\PS3_BE\WAD_X.DCB        stands for /DC/PS3_BE/WAD_X.DCB
+```
+
+As the game starts, the archive files and text lines of every mod that is on go into one more update, made by the
+Kit's Python (`modpack.py`): `TPPS6.PSARC`, with `PATCHES` holding `6`, in `mods\.built\`. The game reads it before
+any mod's own files. It is made again only when a mod's archive or text files, the list's order or the game's updates
+change; the Mods tab says what the last start made of each mod.
+
+- **A WAD, a `.TS` or a `.AS` file that the game's updates change** goes in as a `.PATCH` of one step: the game puts
+  the newest `.PATCH` of a file over the base, so this one gives the mod's file as it is. A whole file in the update
+  would not do: the game would put the older update's `.PATCH` over it, and the EU disc hangs at its load then
+  ([note](notes/2026-11-18-mods-archive-and-text.md)).
+- **Any other file** goes in whole, as the game's own updates bring its DCB files. A file the archives do not have is
+  added.
+- **A `.PATCH` of the mod's own** goes in as it is.
+- Names are taken in upper case, as the archives have them. `desktop.ini`, `Thumbs.db` and files whose name starts
+  with a dot are left out.
+- The first mod in the list wins where two have the same file.
+
+A mod that brings an update of its own in `files\` (a `TPPS6.PSARC` and `PATCHES`, as `gowa.py text build` made them
+before) still works: the launcher's update comes after it (`TPPS7.PSARC`), and wins where both change the same file.
+
+## The game's text: text\
+
+A mod's `text\` has lines of the game's text, in the form `gowa.py text export` writes: `<id>.<k><TAB><text>`, a line
+for each line of text, as many as the mod changes. A file is for the language its name or its folder's starts with:
+
+```
+MyMod\
+  text\
+    en.tsv            English
+    en-gb-story.tsv   English (UK) alone
+    fr\menus.tsv      French
+```
+
+The languages are the game's: `en`, `en-gb`, `fr`, `es`, `es-la`, `de`, `it`, `nl`, `pt`, `pt-br`, `ru`, `pl`, `tr`,
+`el`, `ja`, `ko`, `zh`.
+
+- **English** is two languages to the game: `EN`, the digital release's, and `EN-GB`, the EU disc's. An `en` file is
+  both, unless the mod has an `en-gb` file too. A line the UK English lacks is skipped there.
+- **Each line is checked** as `gowa.py text build` checks a translation: the `[..]` tokens kept, not empty, a key the
+  game has, no character the English never uses (the font may lack it). A line that fails is left out, and the tab says
+  how many were, and why the first one was. `gowa.py text build` says it of every line at once, for the one who writes
+  them.
+- The first mod in the list wins where two have the same line.
+- Both of the language's files get the lines, `R_LANG_<lang>.WAD` and its multiplayer one, made from the game's
+  newest.
+- A mod whose `archive\` brings a language's whole `R_LANG_<lang>.WAD` comes first: the text lines for that language
+  are left out, and the tab says which mod brings it.
 
 ## What this build does not read yet
 
@@ -77,13 +128,14 @@ A mod can have these folders, which a later Ascension-R is to read. The tab name
 
 | folder | what it is to hold |
 |---|---|
-| `archive\` | files inside the archives, by their names there (`archive\WAD\PS3_BE\SHELL.WAD`), packed into an update by the launcher |
 | `textures\` | pictures put in place of the game's as they reach the graphics card, by a hash of the game's picture |
-| `text\` | lines of the game's text, in the form `gowa.py text export` writes |
 | `patches\` | patches to the game's code, in RPCS3's `patch.yml` form |
 
 ## Checking a mod
 
 - The log, `logs\session-*.log` beside the exe (`build\logs\` in a build tree), has a `[mods]` line with each mod and
-  its files, and `[fs] mod '<the game's path>' -> '<the file>'` for each file taken, the first 64 of them.
+  what it gave, `[mods] pack:` when the update was made or why it was not, and `[fs] mod '<the game's path>' ->
+  '<the file>'` for each file taken, the first 64 of them.
+- `mods\.built\` holds the update the last start made, `result.txt` (what each mod gave) and `pack.log` (what the
+  packer said).
 - **Report a problem** puts the same `Mods:` line in the report's notes, without the folder's path.

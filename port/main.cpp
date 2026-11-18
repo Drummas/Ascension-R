@@ -1382,7 +1382,7 @@ static void env_default(const char* name, const char* value)
  * measured; they describe how libgcm and lv2 behave rather than that title, so
  * they are the starting point here. Check each when this title shows a problem
  * near it. */
-static void title_environment(void)
+static void title_environment(int pack_mods)
 {
     /* Fire the flip handler when the flip completes, as hardware does, not when
      * it is requested: a title that paces itself on the handler otherwise never
@@ -1551,6 +1551,22 @@ static void title_environment(void)
     {
         ModList mods;
         mods_scan(&mods, 1);
+        /* Their archive\ and text\ as one more update, packed now if they or the game's updates have changed (not
+         * for the precompile, whose shaders come from the game's own archives). */
+        const char* hdd0 = getenv("PS3_HDD0_ROOT");
+        const char* title = getenv("PS3_TITLE");
+        if (pack_mods && hdd0 && *hdd0 && title && *title) {
+            char u8usr[1200];
+            snprintf(u8usr, sizeof u8usr, "%s\\game\\%s\\USRDIR", hdd0, title);
+            wchar_t usr[1200];
+            if (!MultiByteToWideChar(CP_ACP, 0, u8usr, -1, usr, (int)(sizeof usr / sizeof usr[0]))) usr[0] = 0;
+            for (wchar_t* c = usr; *c; c++) if (*c == L'/') *c = L'\\';
+            const ULONGLONG t0 = GetTickCount64();
+            mods_pack(&mods, usr);
+            if (!mods.built.empty() || !mods.pack_error.empty())
+                printf("[mods] pack: %s (%.1f s)\n", mods.pack_error.empty() ? "one more update" : mods.pack_error.c_str(),
+                       (double)(GetTickCount64() - t0) / 1000.0);
+        }
         env_default("PS3_MODS_DIRS", mods_dirs(mods).c_str());
         if (!mods.mods.empty()) printf("[mods] %s\n", mods_summary(mods).c_str());
     }
@@ -1767,7 +1783,7 @@ int main(int argc, char** argv)
     if (!precompile && s_log_path[0]) gowa_report_session_start(s_log_path);
 #endif
     if (precompile) {
-        title_environment();   /* the environment the game runs in: the same shader cache keys */
+        title_environment(0);   /* the environment the game runs in: the same shader cache keys */
         return prebuild ? gowa_prebuild() : gowa_precompile();
     }
 #ifdef _WIN32
@@ -1790,7 +1806,7 @@ int main(int argc, char** argv)
 #endif
 #endif
     if (launcher && !gowa_launcher()) return 0;
-    title_environment();
+    title_environment(1);
 #ifdef PORT_GAME_MODULE
     if (!game_module_load()) return 1;
 #endif

@@ -2615,30 +2615,44 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
         }
         /* What it gives: its files, those a mod above has too, what this build does not read yet, or why it is not
          * read at all. */
-        wchar_t st[600];
+        std::wstring st;
         unsigned sc = C_DIM;
+        const wchar_t* const sep = L"  \x00B7  ";
         if (!m.error.empty()) {
-            swprintf(st, 600, L"Not read: %ls", W(m.error.c_str()));
+            st = std::wstring(L"Not read: ") + W(m.error.c_str());
             sc = C_WARN_T;
         } else {
-            int k = swprintf(st, 600, L"%d %ls", m.files, m.files == 1 ? L"file" : L"files");
-            if (m.on && m.shadowed && k > 0) {
+            if (m.files || !m.usrdirs.empty()) st = std::to_wstring(m.files) + (m.files == 1 ? L" file" : L" files");
+            if (m.on && m.shadowed) {
                 const ModInfo* by = NULL;
                 for (const ModInfo& o : s_mods.mods) if (o.id == m.shadowed_by) by = &o;
-                k += swprintf(st + k, 600 - k, L"  \x00B7  %d of them from %ls, above", m.shadowed,
-                              by ? W(by->name.c_str()) : m.shadowed_by.c_str());
+                st += sep + std::to_wstring(m.shadowed) + L" of them from " +
+                      (by ? std::wstring(W(by->name.c_str())) : m.shadowed_by) + L", above";
                 sc = C_WARN_T;
             }
-            if (!m.later.empty() && k > 0) {
-                k += swprintf(st + k, 600 - k, L"  \x00B7  not read by this build yet:");
-                for (size_t j = 0; j < m.later.size() && k > 0; j++)
-                    k += swprintf(st + k, 600 - k, L"%ls %ls", j ? L"," : L"", W(m.later[j].c_str()));
+            /* Its archive\ and text\: what the last start packed of them, or that the next one packs them. */
+            if (!m.packed.empty()) {
+                st += (st.empty() ? L"" : sep) + std::wstring(W(m.packed.c_str()));
+                if (m.pack_warn) sc = C_WARN_T;
+            } else if (m.archive_files || m.text_files) {
+                std::wstring p;
+                if (m.archive_files)
+                    p += L"archive: " + std::to_wstring(m.archive_files) + (m.archive_files == 1 ? L" file" : L" files");
+                if (m.text_files)
+                    p += (p.empty() ? L"" : L", ") + std::wstring(L"text: ") + std::to_wstring(m.text_files) +
+                         (m.text_files == 1 ? L" file" : L" files");
+                st += (st.empty() ? L"" : sep) + p + (lit ? L", packed when the game starts" : L"");
+            }
+            if (!m.later.empty()) {
+                st += sep + std::wstring(L"not read by this build yet:");
+                for (size_t j = 0; j < m.later.size(); j++) st += (j ? L", " : L" ") + std::wstring(W(m.later[j].c_str()));
                 sc = C_WARN_T;
             }
         }
         if (!lit && sc == C_DIM) sc = C_OFF;
         if (!m.error.empty()) icon(k_ic_warn, x, ly + 5, C_WARN);
-        text(st, s_tf_small, R(x + (m.error.empty() ? 0.0f : 24.0f), ly + 4, tw - (m.error.empty() ? 0.0f : 24.0f), 20), sc);
+        text(st.c_str(), s_tf_small, R(x + (m.error.empty() ? 0.0f : 24.0f), ly + 4, tw - (m.error.empty() ? 0.0f : 24.0f), 20),
+             sc);
         /* On the right: up, down, and its switch. */
         const int base = H_MOD + 3 * (int)i;
         const float cy = y + (rh - 32.0f) * 0.5f;
@@ -2649,6 +2663,13 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
         y += rh;
     }
     w_rule(x, y, w);
+    if (use && !s_mods.pack_error.empty()) {   /* the last start could not pack them */
+        icon(k_ic_warn, x, y + 13, C_WARN);
+        text((std::wstring(L"At the last start the mods' archive and text were not packed: ") + W(s_mods.pack_error.c_str()))
+                 .c_str(),
+             s_tf_small, R(x + 26, y + 8, w - 26, 26), C_WARN_T);
+        return;
+    }
     icon(k_ic_info, x, y + 13, C_MUTED);
     text(use ? L"The first one in the list wins where two mods have the same file. Mods are files alone: the game's "
                L"folder is never changed."
