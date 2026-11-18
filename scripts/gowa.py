@@ -74,7 +74,7 @@ APP_VER = "01.12"
 TITLES = {
     "NPUA80918": {"name": "US digital", "kind": "hdd", "enabled": True},
     "BCES01741": {"name": "EU disc", "kind": "disc", "enabled": True},
-    "BCUS98232": {"name": "US disc", "kind": "disc", "enabled": False},
+    "BCUS98232": {"name": "US disc", "kind": "disc", "enabled": True},   # the EU disc's game code (issue #4)
 }
 
 

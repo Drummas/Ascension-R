@@ -34,8 +34,11 @@ static const GameTitle k_game_titles[] = {
     /* Runs (phase 1 of the plan) and is found with its update (phase 3); its GOWA.SELF is decrypted with the KLIC of
      * the update's EBOOT.BIN (phase 4). */
     { "BCES01741", L"EU disc", GAME_KIND_DISC, NULL, 1, "BCES01741" },
-    /* Not looked at yet: its GOWA.elf at 1.12 and its files. */
-    { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 0, "BCUS98232" },
+    /* As the EU disc: its update's EBOOT.BIN and GOWA.SELF have the EU disc's PPU cache folders in RPCS3
+     * (ppu-6CYHxcJx12No8N1jaeyumqjhGh06-EBOOT.BIN, ppu-CZX99Q7PX8cN5P8LbjdjNq35CjvH-GOWA.SELF, issue #4), the same game
+     * code, and the decrypted GOWA.elf is checked against k_elf_sha256 all the same. No list of its files yet: they are
+     * not looked at. */
+    { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 1, "BCUS98232" },
 };
 enum { GAME_TITLES = (int)(sizeof k_game_titles / sizeof k_game_titles[0]) };
 
