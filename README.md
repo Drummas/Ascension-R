@@ -62,6 +62,8 @@ problems further in.
 - **Cheats:** damage to and from Kratos, max red orbs, infinite magic and items, infinite rage and double jumps.
 - **Controls:** a controller or keyboard and mouse. Xbox and other XInput pads, and through SDL3 the DualShock 4, the
   DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings.
+- **Trophies:** read from the game's own trophy list, in the game's language. A notice over the picture for each one
+  won, a Trophies page in the launcher, and the platinum once every single-player trophy is won.
 - **Saves:** backups kept before the game writes over a save.
 - **Problem reports:** one button makes a zip of the logs, with your paths hidden.
 

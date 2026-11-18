@@ -1355,6 +1355,7 @@ extern "C" void game_module_sync(void);
 extern "C" int game_module_state(void);
 #endif
 extern "C" void gowa_cheats_apply(void);
+extern "C" void gowa_trophies_start(void);
 extern "C" void ps3_pad_tune(double stick_full, int flick_hold);
 /* precompile.cpp: the game's vertex programs into the shader cache, without the game. */
 extern "C" int gowa_precompile(void);
@@ -1813,6 +1814,7 @@ int main(int argc, char** argv)
     }
     gowa_title_patches_apply();   /* [patches]: the ones switched on (patches.cpp) */
     gowa_cheats_apply();          /* [cheats]: cheats.cpp */
+    gowa_trophies_start();        /* a notice for each trophy unlocked: trophies.cpp */
 #ifdef PORT_GAME_MODULE
     game_module_sync();
 #endif

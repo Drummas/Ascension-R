@@ -43,12 +43,14 @@
 #include "version.h"
 #include "update_check.h"
 #include "loading_screen.h"   /* the header's scene and the pixel font */
+#include "trophies.h"         /* the Trophies tab */
 extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <wchar.h>
 #include <wctype.h>
 
@@ -77,6 +79,7 @@ extern "C" void gowa_port_defaults(void);
 extern "C" int  gowa_launcher(void);   /* 1 = play, 0 = quit */
 /* patches.cpp: the title patches this build has (scripts/title_patches.json). */
 extern "C" int  gowa_title_patch_count(void);
+extern "C" int cellSysutil_language_of(const char* value);   /* the runtime's: a system.language value's language */
 extern "C" const char* gowa_title_patch_id(int i);
 extern "C" const char* gowa_title_patch_name(int i);
 extern "C" int  gowa_title_patch_default(int i);
@@ -84,7 +87,7 @@ extern "C" int  gowa_title_patch_default(int i);
 /* ---------------------------------------------------------------------------
  * What the window offers
  * -----------------------------------------------------------------------*/
-enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_SYSTEM, T_N };
+enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_TROPHIES, T_SYSTEM, T_N };
 
 struct Opt {
     int tab;                   /* the tab it is on (T_*) */
@@ -1235,8 +1238,11 @@ template <class T> static void drop(T*& p)
     p = NULL;
 }
 
+static void tro_release(void);   /* the Trophies tab's pictures */
+
 static void rt_release(void)
 {
+    tro_release();
     drop(s_blur_near);
     drop(s_blur_far);
     drop(s_glow);
@@ -1421,6 +1427,11 @@ static const char k_ic_chip[16][17] = {
     "................", ".....##..##.....", ".....##..##.....", "..############..", "..##........##..",
     "####.######.####", "####.######.####", "..##.##..##.##..", "..##.##..##.##..", "####.######.####",
     "####.######.####", "..##........##..", "..############..", ".....##..##.....", ".....##..##.....",
+    "................" };
+static const char k_ic_cup[16][17] = {
+    "................", "...##########...", ".##############.", ".##.########.##.", ".##.########.##.",
+    "..#.########.#..", "...##########...", ".....######.....", "......####......", ".......##.......",
+    ".......##.......", "......####......", ".....######.....", "....########....", "....########....",
     "................" };
 static const char k_ic_flag[16][17] = {
     "................", "..##............", "..############..", "..###########...", "..##########....",
@@ -1790,12 +1801,14 @@ static float w_row(Opt& o, int oi, float x, float y, float w, int sw_id)
 }
 
 /* --- the parts of the window ---------------------------------------------- */
-static const wchar_t* const k_tab_name[T_N] = { L"Play", L"Graphics", L"Display", L"Controls", L"Game patches", L"Cheats", L"System" };
-static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_chip };
+static const wchar_t* const k_tab_name[T_N] = { L"Play", L"Graphics", L"Display", L"Controls", L"Game patches", L"Cheats",
+                                                L"Trophies", L"System" };
+static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_cup, k_ic_chip };
 static const wchar_t* const k_tab_desc[T_N] = {
     L"", L"How the picture is scaled, smoothed and filtered.", L"The window, its pace and the frame rate display.",
     L"Controller and keyboard.", L"Switches that change what the game draws, for speed.",
     L"For an easier fight. The game reads these when it starts.",
+    L"What you have won, from the game's own trophy list.",
     L"The game's folder, language, saves and this window." };
 
 /* A link down the sidebar: an icon and a name, lit under the mouse. */
@@ -2210,6 +2223,172 @@ static void draw_game_row(float x, float y, float w)
     }
 }
 
+/* --- the Trophies tab -------------------------------------------------------------------------------------------------
+ * The game's own list (its TROPHY.TRP: under its update or the digital game's folder, else on its disc) in the game's
+ * language, and what the player has won (the file the game keeps beside the saves): read when the tab is first shown,
+ * and again when the game's folder or the language changes. Each trophy's picture as the game has it, grey until it is
+ * won; a hidden one shows neither picture nor name until then, as on the PS3. */
+static GowaTrophies* s_tro;                       /* NULL until the tab is first shown */
+static int s_tro_ok;                              /* the set was read */
+static char s_tro_key[GAME_PATH_MAX * 9 + 16];    /* what it was read for */
+static ID2D1Bitmap* s_tro_bm[PS3_TROPHY_SET_MAX];
+static unsigned char s_tro_tried[PS3_TROPHY_SET_MAX];
+static const float TRO_HEAD_H = 112.0f, TRO_ROW_H = 76.0f, TRO_ICON = 56.0f;
+
+static void tro_release(void)
+{
+    for (int i = 0; i < PS3_TROPHY_SET_MAX; i++) drop(s_tro_bm[i]);
+    memset(s_tro_tried, 0, sizeof s_tro_tried);
+}
+
+/* A grade's colour, as the game's notice has it: platinum, gold, silver, bronze. */
+static unsigned tro_grade_rgb(int g) { return g == 1 ? 0xB3CCF0 : g == 2 ? 0xEBBF3D : g == 3 ? 0xC7CCD4 : 0xD18C54; }
+
+static void tro_refresh(void)
+{
+    const Opt* lo = opt_find("system", "language");
+    const int lang = cellSysutil_language_of(lo ? lo->cur : NULL);
+    static char hdd0[GAME_PATH_MAX * 3], app[GAME_PATH_MAX * 3], disc[GAME_PATH_MAX * 3], key[sizeof s_tro_key];
+    snprintf(hdd0, sizeof hdd0, "%s", U8(s_game.hdd0));
+    snprintf(app, sizeof app, "%s", U8(s_game.link_hdd0));
+    snprintf(disc, sizeof disc, "%s", U8(s_game.link_vfs));
+    snprintf(key, sizeof key, "%s|%s|%s|%d", hdd0, app, disc, lang);
+    if (s_tro && !strcmp(key, s_tro_key)) return;
+    if (!s_tro && !(s_tro = (GowaTrophies*)calloc(1, sizeof *s_tro))) return;
+    snprintf(s_tro_key, sizeof s_tro_key, "%s", key);
+    tro_release();
+    s_tro_ok = !gowa_trophies_read(hdd0, app, disc, lang, s_tro);
+}
+
+static float tro_h(void)
+{
+    if (!s_tro_ok) return 72.0f;
+    int n = 0;
+    for (int i = 0; i < s_tro->set.count; i++) n += ps3_trophy_set_entry(&s_tro->set, i) != NULL;
+    return TRO_HEAD_H + (float)n * TRO_ROW_H;
+}
+
+/* Trophy id's picture, TRO_ICON DIPs a side and a texel a device pixel: the mean of the set's pixels under each; grey
+ * and darker until it is won. Made the first time it is in view. */
+static ID2D1Bitmap* tro_bitmap(int id, int won)
+{
+    if (s_tro_bm[id] || s_tro_tried[id]) return s_tro_bm[id];
+    s_tro_tried[id] = 1;
+    int sw = 0, sh = 0;
+    unsigned char* src = gowa_trophies_icon(s_tro->set.path, id, &sw, &sh);
+    if (!src) return NULL;
+    const int n = (int)(TRO_ICON * s_px + 0.5f);
+    if (uint32_t* px = (uint32_t*)malloc((size_t)n * n * 4)) {
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++) {
+                int x0 = x * sw / n, x1 = (x + 1) * sw / n, y0 = y * sh / n, y1 = (y + 1) * sh / n;
+                if (x1 <= x0) x1 = x0 + 1;
+                if (y1 <= y0) y1 = y0 + 1;
+                float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+                int k = 0;
+                for (int sy = y0; sy < y1 && sy < sh; sy++)
+                    for (int sx = x0; sx < x1 && sx < sw; sx++) {
+                        const unsigned char* s = src + ((size_t)sy * sw + sx) * 4;
+                        const float al = (float)s[3] / 255.0f;
+                        r += (float)s[0] * al;
+                        g += (float)s[1] * al;
+                        b += (float)s[2] * al;
+                        a += al;
+                        k++;
+                    }
+                if (k) { r /= (float)k; g /= (float)k; b /= (float)k; a /= (float)k; }
+                if (!won) r = g = b = (0.299f * r + 0.587f * g + 0.114f * b) * 0.5f;
+                px[(size_t)y * n + x] = (uint32_t)(a * 255.0f + 0.5f) << 24 | (uint32_t)(r + 0.5f) << 16 |
+                                        (uint32_t)(g + 0.5f) << 8 | (uint32_t)(b + 0.5f);
+            }
+        const float dpi = 96.0f * s_px;
+        s_rt->CreateBitmap(D2D1::SizeU(n, n), px, n * 4,
+                           D2D1::BitmapProperties(D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                                                  dpi, dpi),
+                           &s_tro_bm[id]);
+        free(px);
+    }
+    gowa_trophies_free(src);
+    return s_tro_bm[id];
+}
+
+/* "Won 18 Nov 2026", from Unix seconds. */
+static void tro_date(long long t, wchar_t* out, size_t n)
+{
+    static const wchar_t* const mon[12] = { L"Jan", L"Feb", L"Mar", L"Apr", L"May", L"Jun",
+                                            L"Jul", L"Aug", L"Sep", L"Oct", L"Nov", L"Dec" };
+    const time_t tt = (time_t)t;
+    struct tm tm;
+    if (t > 0 && !localtime_s(&tm, &tt)) swprintf(out, n, L"Won %d %ls %d", tm.tm_mday, mon[tm.tm_mon], tm.tm_year + 1900);
+    else swprintf(out, n, L"Won");
+}
+
+/* The tab's card from y: what is won of the set and of each grade, then each trophy as the game numbers them. top,
+ * bottom: the part in view, the only rows drawn. */
+static void tro_draw(float x, float y, float w, float top, float bottom)
+{
+    if (!s_tro_ok) {
+        icon(k_ic_info, x, y + 25, C_MUTED);
+        text(L"The trophies come from the game's own files: once the game is found (System tab), they show here.",
+             s_tf_desc, R(x + 26, y + 20, w - 26, 40), C_TEXT2);
+        return;
+    }
+    static const wchar_t* const gname[5] = { L"", L"Platinum", L"Gold", L"Silver", L"Bronze" };
+    const GowaTrophies& t = *s_tro;
+    int won = 0, all = 0, g_won[5] = { 0, 0, 0, 0, 0 }, g_all[5] = { 0, 0, 0, 0, 0 };
+    for (int i = 0; i < t.set.count; i++) {
+        const PS3TrophyEntry* e = ps3_trophy_set_entry(&t.set, i);
+        if (!e || t.unobtainable[i]) continue;
+        all++;
+        g_all[e->grade]++;
+        if (t.unlocked[i]) { won++; g_won[e->grade]++; }
+    }
+    wchar_t b[96];
+    const D2D1_RECT_F tr = R(x, y + 18, w - 250, 20);
+    text(UP(W(t.set.title)), s_tf_head, tr, C_GOLD);
+    glow_text(UP(W(t.set.title)), s_tf_head, tr, C_GOLD, 0.5f);
+    swprintf(b, 96, L"%d of %d won  \x00B7  %d%%", won, all, all ? won * 100 / all : 0);
+    text(b, s_tf_ui_b, R(x + w - 250, y + 16, 250, 22), C_TEXT, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
+    draw_progress(x, y + 48, w, all ? (float)won / (float)all : 0.0f, 0, 12.0f);
+    float gx = x;
+    for (int g = 1; g <= 4; g++) {
+        fill(R(gx, y + 80, 10, 10), tro_grade_rgb(g));
+        swprintf(b, 96, L"%ls  %d / %d", gname[g], g_won[g], g_all[g]);
+        text(b, s_tf_small, R(gx + 18, y + 75, 200, 20), C_TEXT2);
+        gx += snap(18.0f + text_w(b, s_tf_small) + 32.0f);
+    }
+    float ry = y + TRO_HEAD_H;
+    for (int i = 0; i < t.set.count; i++) {
+        const PS3TrophyEntry* e = ps3_trophy_set_entry(&t.set, i);
+        if (!e) continue;
+        if (ry + TRO_ROW_H < top || ry > bottom) { ry += TRO_ROW_H; continue; }
+        w_rule(x, ry, w);
+        const int got = t.unlocked[i], na = t.unobtainable[i] && !got, secret = e->hidden && !got && !na;
+        const unsigned gc = tro_grade_rgb(e->grade);
+        const float iy = ry + (TRO_ROW_H - TRO_ICON) * 0.5f;
+        const D2D1_RECT_F ib = R(x + 2, iy, TRO_ICON, TRO_ICON);
+        if (ID2D1Bitmap* bm = secret ? NULL : tro_bitmap(i, got)) {
+            s_d->DrawBitmap(bm, SR(ib), 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR);
+        } else {
+            fill(ib, C_BG);
+            icon(k_ic_cup, ib.left + (TRO_ICON - 32.0f) * 0.5f, iy + (TRO_ICON - 32.0f) * 0.5f, C_OFF, 1.0f, 2.0f);
+        }
+        frame(R(ib.left - 2, iy - 2, TRO_ICON + 4, TRO_ICON + 4), got ? gc : C_EDGE, 1.0f, 2.0f);
+        const float tx = x + TRO_ICON + 20.0f, tw = w - TRO_ICON - 20.0f - 176.0f;
+        text(secret ? L"Hidden trophy" : W(e->name), s_tf_ui_b, R(tx, ry + 13, tw, 22), got ? C_TEXT : C_TEXT2);
+        text(secret ? L"What it is for shows once it is won."
+             : na ? L"Won in the multiplayer, which this port does not have. The platinum does without it."
+                  : W(e->detail),
+             s_tf_desc, R(tx, ry + 37, tw, 36), C_MUTED);
+        const float cx = x + w - 168.0f;   /* on the right: its grade, and when it was won */
+        text(UP(gname[e->grade]), s_tf_cap, R(cx, ry + 18, 168, 14), gc, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
+        if (got) tro_date(t.when[i], b, 96);
+        else swprintf(b, 96, L"%ls", na ? L"Not in this port" : L"Not won yet");
+        text(b, s_tf_small, R(cx, ry + 38, 168, 20), got ? C_OK : C_DIM, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
+        ry += TRO_ROW_H;
+    }
+}
+
 static void draw_settings(int tab)
 {
     const float x0 = SIDE_W + 16, hh = HERO_TAB;
@@ -2234,6 +2413,10 @@ static void draw_settings(int tab)
     if (tab == T_CONTROLS) { klh = label_h(keys_desc, rw - 212, &kdh); ch += row_h(klh); }
     if (tab == T_PATCHES) ch += 34.0f;
     if (tab == T_SYSTEM) ch += game_row_h();
+    if (tab == T_TROPHIES) {
+        tro_refresh();
+        ch += tro_h();
+    }
     ch += 16.0f;
     const float view = WIN_H - FOOT_H - 12.0f - cy;
     s_scroll_max[tab] = ch > view ? ch - view : 0.0f;
@@ -2268,6 +2451,7 @@ static void draw_settings(int tab)
         w_label(L"Keyboard keys", keys_desc, rx, y, rw - 212, rh, klh, kdh);
         w_button(L"Edit keys\x2026", R(rx + rw - 180, y + (rh - SEG_H) * 0.5f, 180, SEG_H), H_KEYS, B_PLAIN);
     }
+    if (tab == T_TROPHIES) tro_draw(rx, y, rw, cy, cy + view);
     if (tab == T_PATCHES) {
         w_rule(rx, y, rw);
         icon(k_ic_info, rx, y + 13, C_MUTED);
@@ -3560,7 +3744,8 @@ enum { S_TAB, S_LIST, S_SEARCH, S_END, S_TOAST, S_DECRYPT, S_KEYS, S_KEYS_WAIT, 
        S_UPDATE };
 static const int k_shots[][2] = {
     { T_PLAY, S_TAB }, { T_GRAPHICS, S_TAB }, { T_DISPLAY, S_TAB }, { T_CONTROLS, S_TAB }, { T_PATCHES, S_TAB },
-    { T_CHEATS, S_TAB }, { T_SYSTEM, S_TAB }, { T_DISPLAY, S_LIST }, { T_SYSTEM, S_SEARCH }, { T_CHEATS, S_END },
+    { T_CHEATS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB }, { T_DISPLAY, S_LIST },
+    { T_SYSTEM, S_SEARCH }, { T_CHEATS, S_END },
     { T_GRAPHICS, S_END }, { T_SYSTEM, S_END }, { T_PLAY, S_TOAST }, { T_SYSTEM, S_DECRYPT },
     { T_CONTROLS, S_KEYS }, { T_CONTROLS, S_KEYS_WAIT },
 #ifdef PORT_GAME_MODULE
