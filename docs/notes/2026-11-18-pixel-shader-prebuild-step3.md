@@ -43,6 +43,12 @@ Measured, a copy of the store each time, 40-50 s of the fight replay:
 - **On, the next start:** the 29 pipelines the first session made, all of the new form: built in 5 ms; nothing left
   out, no pack.
 - **Off:** all 1,787 built (178 ms, the driver's cache warm by then), none left out or dropped.
+- **A program left out and used again** (found the same day, fixed): a store whose new-text pipelines were made
+  before their tag (so counted old) lost them at the pack, and with them pixel programs the session went on using
+  from memory, never written again: the next start dropped 306 records and compiled them all. A program a pack leaves
+  out is now marked (`SHP_GONE`), and goes back onto the journal with its source at its next use (`shp_put`,
+  `shc_keep`, `d3d_compile_cached`): the same case then opened with 0 records dropped. A player's store cannot meet
+  it (its old programs are the old texts, which no draw asks for again), a developer's could.
 
 ## On by default, and the offer
 
