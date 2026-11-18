@@ -47,7 +47,7 @@ level then compiled 4 vertex shaders where it had compiled 212. Clear shaders ma
 Pixel shaders (`graphics.shader_prebuild`, Pixel shaders built ahead, on by default; DXC only): each fragment program's
 text reads what its draw binds and sets as it runs, so it can be built before a draw needs it
 ([note](notes/2026-11-18-fp-text-without-state.md)). The precompile's screen builds them after the vertex shaders, on
-the first start of each version (Esc or a controller's Start leaves the rest for the next start), and **Build all
+the first start of each version (Enter or a controller's Start leaves the rest for the next start), and **Build all
 shaders now**, down the launcher's sidebar or as Build in the Play tab's ready check, does the same from the launcher:
 those of the archives into `<cache>.dxil.prebuilt` (49,996 programs, 39,598
 pixel shaders, 309 MB; some 7 minutes on six cores), and the game takes them from there: on the fight replay from an

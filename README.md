@@ -131,7 +131,7 @@ Open `build\Ascension-R.exe`. The launcher checks the game's folder and your set
 
 The first start of each version builds the game's vertex shaders before the game begins, on a screen of its own: a
 minute or two the first time, seconds after an update. Then the same screen builds the pixel shaders of the game's
-files, some 7 minutes on six cores the first time: **Esc** or a controller's **Start** leaves the rest for the next
+files, some 7 minutes on six cores the first time: **Enter** or a controller's **Start** leaves the rest for the next
 start, or for **Build all shaders now** in the launcher's sidebar (Build on the Play tab). The few it cannot build come
 the first time they are needed. **Clear shaders**, in the launcher's sidebar, makes the next start build them again.
 

@@ -224,7 +224,7 @@ static Opt s_opt[] = {
       "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built "
       "while you play: a moment, a few seconds after a GPU driver update." },
     { T_GRAPHICS, "graphics", "shader_prebuild", "on", "Pixel shaders built ahead", 1, SW,
-      "The pixel shaders of the game's files are built before play, after the vertex shaders on the first start (Esc "
+      "The pixel shaders of the game's files are built before play, after the vertex shaders on the first start (Enter "
       "or Start leaves them for the next), or by Build all shaders now below Clear shaders: some minutes, once. Places "
       "you reach later wait for fewer of them." },
     { T_CONTROLS, "input", "device", "auto", "Device", 0, LIST(k_dev, k_dev_n), k_dev_s,

@@ -17,10 +17,12 @@
  *
  * Then, on the same screen, the pixel shaders of the archives (graphics.shader_prebuild, on by default), into
  * <shader cache>.dxil.prebuilt (--prebuild-pixel-shaders): some 7 minutes on six cores the first time, seconds after an
- * update. These the player may leave for later, with Esc or a controller's Start: the build stops where it is, the game
- * starts, and the next start goes on from there, as Build all shaders now in the launcher does. Done for this version:
- * the file is of this build's form and <file>.done names this version. Never while the game plays (it cost 7% of the
- * frames beside it, docs/notes/2026-11-18-pixel-shader-prebuild-step2.md).
+ * update. These the player may leave for later, with Enter (or Space) or a controller's Start: the build stops where it
+ * is, the game starts, and the next start goes on from there, as Build all shaders now in the launcher does. Not Esc:
+ * in the game it closes the game when system.esc_quits is on, so here it does the same (as closing the window), and
+ * nothing when it is off. Done for this version: the file is of this build's form and <file>.done names this version.
+ * Never while the game plays (it cost 7% of the frames beside it, docs/notes/2026-11-18-pixel-shader-prebuild-step2.md).
+ *
  * GOWA_PRECOMPILE_FIRST=0 (graphics.precompile_first) leaves the gate out, for benches and scripts that bring their
  * own cache.
  *
@@ -643,7 +645,7 @@ const uint8_t* gowa_pixel_glyph(char c) { return glyph(c); }
 enum Phase { PH_START, PH_READ, PH_BUILD, PH_DONE, PH_ERROR };
 struct Progress {
     Phase phase = PH_START;
-    int pixel = 0;                   /* the second build: the pixel shaders, which Esc or Start leaves for next time */
+    int pixel = 0;                   /* the second build: the pixel shaders, which Enter or Start leaves for next time */
     int skipped = 0;                 /* and it was left */
     unsigned a = 0, n = 0;          /* reading: archive a of n */
     char name[64] = "";
@@ -742,7 +744,7 @@ static void compose(ULONGLONG t, const Progress& p)
     char title[64], pct[16] = "", left[96] = "", right[48] = "", foot[96];
     double frac = 0.0;
     uint32_t title_c = gold;
-    snprintf(foot, sizeof foot, p.pixel ? "Esc or Start: play now, the rest next time."
+    snprintf(foot, sizeof foot, p.pixel ? "Enter or Start: play now, the rest next time."
                                         : "Once for each version. The game starts by itself.");
     switch (p.phase) {
     case PH_START:
@@ -803,11 +805,11 @@ static void compose(ULONGLONG t, const Progress& p)
 static HWND s_hwnd;
 static HANDLE s_ui_thread, s_ui_ready;
 static volatile LONG s_user_closed, s_close_now;
-static volatile LONG s_skip;     /* Esc or Start while the pixel shaders build: the game starts, they go on next time */
+static volatile LONG s_skip;     /* Enter or Start while the pixel shaders build: the game starts, they go on next time */
 static HANDLE s_child;
 static ULONGLONG s_t0;
 
-/* A controller's Start, through XInput when the PC has it (most controllers on Windows): as Esc. XInputGetState is
+/* A controller's Start, through XInput when the PC has it (most controllers on Windows): as Enter. XInputGetState is
  * slow on an empty slot, so it is asked a few times a second, and only while the pixel shaders build. */
 static int pad_start_pressed(void)
 {
@@ -825,7 +827,7 @@ static int pad_start_pressed(void)
     return 0;
 }
 
-/* Esc or Start: the pixel shaders' build ends where it is (what it wrote is whole: the next goes on from there). */
+/* Enter or Start: the pixel shaders' build ends where it is (what it wrote is whole: the next goes on from there). */
 static void skip_pixel(void)
 {
     EnterCriticalSection(&s_lock);
@@ -884,7 +886,9 @@ static LRESULT CALLBACK wnd_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         return 0;
     }
     case WM_KEYDOWN:
-        if (w == VK_ESCAPE) { skip_pixel(); return 0; }
+        if (w == VK_RETURN || w == VK_SPACE) { skip_pixel(); return 0; }
+        /* Esc as in the game: it closes it with system.esc_quits on (the port's default is off). */
+        if (w == VK_ESCAPE && ps3_settings_bool("system", "esc_quits", NULL, 1)) { PostMessageW(h, WM_CLOSE, 0, 0); return 0; }
         break;
     case WM_PAINT: {
         PAINTSTRUCT ps;
@@ -1129,7 +1133,7 @@ static int pixel_needed(const std::string& cache)
 }
 
 /* One build on the screen: the exe again with args, its lines read until it ends. 1 done, 0 not (the screen says
- * why), -1 left for next time (Esc or Start, the pixel shaders only). The window closed while it builds: the game
+ * why), -1 left for next time (Enter or Start, the pixel shaders only). The window closed while it builds: the game
  * quits. */
 static int run_build(const wchar_t* args)
 {
@@ -1206,14 +1210,14 @@ int gowa_precompile_gate(void)
                    (GetTickCount64() - s_t0) / 1000.0);
         }
     }
-    /* Then the pixel shaders, which the player may leave for later (Esc or Start): the next start goes on with them,
+    /* Then the pixel shaders, which the player may leave for later (Enter or Start): the next start goes on with them,
      * as Build all shaders now in the launcher does. Not after the vertex shaders failed: the next start tries both. */
     if (ps && vs_ok) {
         EnterCriticalSection(&s_lock);
         s_prog = Progress();
         s_prog.pixel = 1;
         LeaveCriticalSection(&s_lock);
-        printf("[precompile] the pixel shaders are not built for %s yet: building them (Esc or Start: later)\n",
+        printf("[precompile] the pixel shaders are not built for %s yet: building them (Enter or Start: later)\n",
                AR_VERSION);
         const ULONGLONG t1 = GetTickCount64();
         const int r = run_build(L"--prebuild-pixel-shaders --set \"graphics.shader_prebuild=on\"");
