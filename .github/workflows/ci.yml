@@ -22,6 +22,10 @@ jobs:
   tests:
     name: Port and lifter tests
     runs-on: windows-latest
+    # The image's MSVC STL asks for a newer Clang than the image's LLVM, and stops clang-cl with STL1000; the STL's own
+    # switch lets it through. cl and clang-cl both read _CL_. The -D form: bash would turn a leading / into a path.
+    env:
+      _CL_: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
