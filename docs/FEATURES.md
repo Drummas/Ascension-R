@@ -48,8 +48,9 @@ Pixel shaders (`graphics.shader_prebuild`, Pixel shaders built ahead, on by defa
 text reads what its draw binds and sets as it runs, so it can be built before a draw needs it
 ([note](notes/2026-11-18-fp-text-without-state.md)). **Build all shaders now**, down the launcher's sidebar or as Build
 in the Play tab's ready check, builds those of the archives into `<cache>.dxil.prebuilt` (49,996 programs, 39,598
-pixel shaders, 305 MB; some 7 minutes on six cores), and the game takes them from there: on the fight replay from an
-empty cache 84% of the pixel shaders came from it, the rest the alpha test's variants. It never runs beside the game,
+pixel shaders, 309 MB; some 7 minutes on six cores), and the game takes them from there: on the fight replay from an
+empty cache 282 of its 283 pixel shaders came from it. The alpha test is read as each program runs, so the
+alpha-tested draws share the same programs ([note](notes/2026-11-18-pixel-shader-prebuild-alpha-test.md)). It never runs beside the game,
 which cost 7% of the frames ([note](notes/2026-11-18-pixel-shader-prebuild-step2.md)). With it on, the pipelines and
 pixel shaders of the old texts leave the cache at the next pack and are not built at the start
 ([note](notes/2026-11-18-pixel-shader-prebuild-step3.md)).

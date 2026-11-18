@@ -72,6 +72,7 @@ Measured, a copy of the store each time, 40-50 s of the fight replay:
 
 ## Not done
 
-- The alpha test's variants (13% of the fight's pixel shaders): the next step, when wanted.
+- The alpha test's variants (13% of the fight's pixel shaders): done the same day, the test read at run time
+  (`2026-11-18-pixel-shader-prebuild-alpha-test.md`).
 - NVIDIA and Intel: the three views over one range are the usual bindless pattern, and the debug layer and
   vkd3d-proton took them; a player on NVIDIA (#15's reporter has an RTX 5060) can confirm after a release.
