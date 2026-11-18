@@ -44,6 +44,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
@@ -158,6 +159,50 @@ static void scan_vps(const std::vector<uint8_t>& d, std::unordered_set<std::stri
     }
 }
 
+/* A fragment program's walk: its 16-byte instructions, each followed by its inline constant when a source of it is
+ * one (register type 2 in the low bits of a source word), until the instruction with the end bit; the words are
+ * stored with their halves swapped. True when that end is exactly at size. */
+static bool fp_ends_at(const uint8_t* p, uint32_t size)
+{
+    uint32_t k = 0;
+    while (k + 16 <= size) {
+        uint32_t d[4];
+        for (int w = 0; w < 4; w++) {
+            const uint32_t be = be32(p + k + 4 * w);
+            d[w] = be << 16 | be >> 16;
+        }
+        k += 16;
+        if ((d[1] & 3u) == 2u || (d[2] & 3u) == 2u || (d[3] & 3u) == 2u) k += 16;
+        if (d[0] & 1u) return k == size;
+    }
+    return false;
+}
+
+/* The fragment programs in an entry, each once, with their control bits. Behind the engine's header: the program's
+ * size (u32, a multiple of 16), its texture coordinate inputs (u32, at most 0xFFFF), its register count and control
+ * bits (u32, 0x84 in the second byte in the files, 0x04 once loaded), 0 (u32: the program's RSX address once loaded),
+ * the program's offset from the header (u32), then the table of the inline constants the engine patches. The offset
+ * is 0x80, or 0x100 and 0x180 when that table is longer: the scan of 2026-11-18 took 0x80 alone and missed 36 of the
+ * 74 programs a replay met that were not built ahead (docs/notes/2026-11-18-pixel-shader-prebuild-step2.md). Every one
+ * ends at its size. Found by the 0x84, as each header has it in the files. */
+static void scan_fps(const std::vector<uint8_t>& d, std::unordered_map<std::string, uint32_t>& found)
+{
+    const uint8_t* p = d.data();
+    const size_t n = d.size();
+    if (n < 0x14) return;
+    for (const uint8_t* q = p + 0x0A; q < p + n; q++) {
+        q = (const uint8_t*)memchr(q, 0x84, (size_t)(p + n - q));
+        if (!q) break;
+        const size_t h = (size_t)(q - p) - 0x0A;   /* 0x84 is the third byte of the u32 at +0x08 */
+        if (h + 0x14 > n || be32(p + h + 0x0C)) continue;
+        const uint32_t size = be32(p + h), tcm = be32(p + h + 4), rc = be32(p + h + 8), off = be32(p + h + 0x10);
+        if (!size || (size & 15) || size > 0x10000 || tcm > 0xFFFF || off < 0x80 || off > 0x1000 || (off & 15) ||
+            h + off + (size_t)size > n || !fp_ends_at(p + h + off, size))
+            continue;
+        found.emplace(std::string((const char*)p + h + off, size), rc & 0xFFu);
+    }
+}
+
 /* The cache file the build fills (graphics.shader_cache), or "" for none. */
 static std::string cache_file(void)
 {
@@ -207,6 +252,52 @@ static void vp_list_write(const std::string& path, uint32_t narc, uint64_t bytes
         const uint32_t len = (uint32_t)s.size();
         if (!ok) break;
         ok = fwrite(&len, 4, 1, f) == 1 && fwrite(s.data(), 1, len, f) == len;
+    }
+    ok = !fclose(f) && ok;
+    if (!ok || !MoveFileExA(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING)) DeleteFileA(tmp.c_str());
+}
+
+/* The fragment programs found, as <cache>.fprogs: the same, each with its control bits. 2: the scan takes the headers
+ * longer than 0x80 too (scan_fps), so a list of 1 is read again. */
+static const char k_fpl_magic[8] = { 'G', 'O', 'W', 'A', 'F', 'P', 'L', '2' };
+
+static bool fp_list_read(const std::string& path, uint32_t narc, uint64_t bytes,
+                         std::unordered_map<std::string, uint32_t>& out)
+{
+    FILE* f = fopen(path.c_str(), "rb");
+    if (!f) return false;
+    char magic[8];
+    uint32_t na = 0, n = 0;
+    uint64_t by = 0;
+    bool ok = fread(magic, 1, 8, f) == 8 && !memcmp(magic, k_fpl_magic, 8) && fread(&na, 4, 1, f) == 1 &&
+              fread(&by, 8, 1, f) == 1 && fread(&n, 4, 1, f) == 1 && na == narc && by == bytes && n && n < 1000000;
+    std::vector<char> b;
+    for (uint32_t i = 0; ok && i < n; i++) {
+        uint32_t len = 0, ctrl = 0;
+        ok = fread(&len, 4, 1, f) == 1 && fread(&ctrl, 4, 1, f) == 1 && len && len <= 0x10000u && !(len & 15);
+        if (!ok) break;
+        b.resize(len);
+        ok = fread(b.data(), 1, len, f) == len;
+        if (ok) out.emplace(std::string(b.data(), len), ctrl);
+    }
+    fclose(f);
+    if (!ok) out.clear();
+    return ok;
+}
+
+static void fp_list_write(const std::string& path, uint32_t narc, uint64_t bytes,
+                          const std::unordered_map<std::string, uint32_t>& progs)
+{
+    const std::string tmp = path + ".tmp";
+    FILE* f = fopen(tmp.c_str(), "wb");
+    if (!f) return;
+    const uint32_t n = (uint32_t)progs.size();
+    bool ok = fwrite(k_fpl_magic, 1, 8, f) == 8 && fwrite(&narc, 4, 1, f) == 1 && fwrite(&bytes, 8, 1, f) == 1 &&
+              fwrite(&n, 4, 1, f) == 1;
+    for (const auto& s : progs) {
+        const uint32_t len = (uint32_t)s.first.size(), ctrl = s.second;
+        if (!ok) break;
+        ok = fwrite(&len, 4, 1, f) == 1 && fwrite(&ctrl, 4, 1, f) == 1 && fwrite(s.first.data(), 1, len, f) == len;
     }
     ok = !fclose(f) && ok;
     if (!ok || !MoveFileExA(tmp.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING)) DeleteFileA(tmp.c_str());
@@ -280,13 +371,11 @@ static DWORD WINAPI vertex_pass_worker(LPVOID arg)
     return 0;
 }
 
-extern "C" int gowa_precompile(void)
+/* The game's PSARC archives, sorted, the folder of each, and their bytes in all. False, said as "<tag>: error ...",
+ * when there are none. */
+static bool game_archives(const char* tag, std::vector<std::string>& arcs, std::vector<std::string>& arc_dir,
+                          uint64_t* arc_bytes)
 {
-    setvbuf(stdout, NULL, _IONBF, 0);
-    /* Beside the player, who may be doing something else meanwhile; from the gate before the game
-     * (loading_screen.cpp) the player is waiting for it. */
-    if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-    const DWORD t0 = GetTickCount();
     /* The archives where the game opens them, /dev_hdd0/game/<id>/USRDIR (game_title.h), then through the vfs link, then beside
      * the ELF. Not the ELF's folder first: a game folder with only GOWA.SELF has it decrypted into the port's own
      * folder (launcher.cpp, game_refresh), and paths.elf names that copy, beside no archive (issue #9's Kit). */
@@ -302,12 +391,11 @@ extern "C" int gowa_precompile(void)
         dirs.push_back(slash == std::string::npos ? std::string(".") : e.substr(0, slash));
     }
     if (dirs.empty()) {
-        printf("precompile: error the game's folder is not set\n");
-        return 1;
+        printf("%s: error the game's folder is not set\n", tag);
+        return false;
     }
     /* Every PSARC of those folders, one of each name, from the first folder that has it: a disc's base archives are
      * on the disc and its update's TPPS ones in the update's folder; for an HDD game the two are one folder. */
-    std::vector<std::string> arcs, arc_dir;   /* the names, sorted, and the folder of each */
     {
         std::vector<std::pair<std::string, std::string>> all;
         std::unordered_set<std::string> seen;
@@ -332,39 +420,27 @@ extern "C" int gowa_precompile(void)
     if (arcs.empty()) {
         std::string where;
         for (const std::string& d : dirs) where += (where.empty() ? "" : ", ") + d;
-        printf("precompile: error no PSARC archives in %s\n", where.c_str());
-        return 1;
+        printf("%s: error no PSARC archives in %s\n", tag, where.c_str());
+        return false;
     }
-    char why[256] = "";
-    if (rsx_d3d12_precompile_open(why, sizeof why) != 0) {   /* before 7 GB are read for nothing */
-        printf("precompile: error %s\n", why);
-        return 1;
-    }
-    /* the vertex pass meanwhile: the archives' reading and the programs take longer than its one compile */
-    static VertexPassJob vp;
-    vp.text = vertex_pass_text(vp.why, sizeof vp.why);
-    HANDLE vp_thread = vp.text ? CreateThread(NULL, 0, vertex_pass_worker, &vp, 0, NULL) : NULL;
-    if (!vp_thread) {
-        if (vp.text) snprintf(vp.why, sizeof vp.why, "no thread for it");
-        vp.rc = -1;
-        InterlockedExchange(&s_vp_done, 1);
-    }
-    struct VpJoin {   /* every way out waits for it: it writes the cache */
-        HANDLE h;
-        ~VpJoin() { if (h) { WaitForSingleObject(h, INFINITE); CloseHandle(h); } }
-    } vp_join = { vp_thread };
-    const std::string sc = cache_file();
-    uint64_t arc_bytes = 0;
+    *arc_bytes = 0;
     for (size_t a = 0; a < arcs.size(); a++) {
         WIN32_FILE_ATTRIBUTE_DATA fa;
         if (GetFileAttributesExA((arc_dir[a] + "\\" + arcs[a]).c_str(), GetFileExInfoStandard, &fa))
-            arc_bytes += (uint64_t)fa.nFileSizeHigh << 32 | fa.nFileSizeLow;
+            *arc_bytes += (uint64_t)fa.nFileSizeHigh << 32 | fa.nFileSizeLow;
     }
-    std::unordered_set<std::string> found;
-    const bool listed = !sc.empty() && vp_list_read(sc + ".vprogs", (uint32_t)arcs.size(), arc_bytes, found);
+    return true;
+}
+
+/* Each WAD and AS entry of the archives, unpacked, archive by archive and each in the order its entries lie (the
+ * game's folder may be on a hard disk), to scan. Says "<tag>: read <n> <of> <name>" at each archive. */
+template <typename Scan>
+static void read_archives(const char* tag, const std::vector<std::string>& arcs, const std::vector<std::string>& arc_dir,
+                          Scan scan)
+{
     std::vector<uint8_t> buf, span;
-    for (size_t a = 0; !listed && a < arcs.size(); a++) {
-        printf("precompile: read %u %u %s\n", (unsigned)a + 1, (unsigned)arcs.size(), arcs[a].c_str());
+    for (size_t a = 0; a < arcs.size(); a++) {
+        printf("%s: read %u %u %s\n", tag, (unsigned)a + 1, (unsigned)arcs.size(), arcs[a].c_str());
         HANDLE f = CreateFileA((arc_dir[a] + "\\" + arcs[a]).c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
                                FILE_FLAG_SEQUENTIAL_SCAN, NULL);
         if (f == INVALID_HANDLE_VALUE) continue;
@@ -388,11 +464,54 @@ extern "C" int gowa_precompile(void)
             }
             std::sort(want.begin(), want.end(), [](const PsarcEntry* x, const PsarcEntry* y) { return x->off < y->off; });
             for (const PsarcEntry* e : want)
-                if (psarc_read(f, *e, zs, block, buf, span)) scan_vps(buf, found);
+                if (psarc_read(f, *e, zs, block, buf, span)) scan(buf);
         }
         CloseHandle(f);
     }
-    if (!listed && !sc.empty() && !found.empty()) vp_list_write(sc + ".vprogs", (uint32_t)arcs.size(), arc_bytes, found);
+}
+
+extern "C" int gowa_precompile(void)
+{
+    setvbuf(stdout, NULL, _IONBF, 0);
+    /* Beside the player, who may be doing something else meanwhile; from the gate before the game
+     * (loading_screen.cpp) the player is waiting for it. */
+    if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+    const DWORD t0 = GetTickCount();
+    std::vector<std::string> arcs, arc_dir;   /* the names, sorted, and the folder of each */
+    uint64_t arc_bytes = 0;
+    if (!game_archives("precompile", arcs, arc_dir, &arc_bytes)) return 1;
+    char why[256] = "";
+    if (rsx_d3d12_precompile_open(why, sizeof why) != 0) {   /* before 7 GB are read for nothing */
+        printf("precompile: error %s\n", why);
+        return 1;
+    }
+    /* the vertex pass meanwhile: the archives' reading and the programs take longer than its one compile */
+    static VertexPassJob vp;
+    vp.text = vertex_pass_text(vp.why, sizeof vp.why);
+    HANDLE vp_thread = vp.text ? CreateThread(NULL, 0, vertex_pass_worker, &vp, 0, NULL) : NULL;
+    if (!vp_thread) {
+        if (vp.text) snprintf(vp.why, sizeof vp.why, "no thread for it");
+        vp.rc = -1;
+        InterlockedExchange(&s_vp_done, 1);
+    }
+    struct VpJoin {   /* every way out waits for it: it writes the cache */
+        HANDLE h;
+        ~VpJoin() { if (h) { WaitForSingleObject(h, INFINITE); CloseHandle(h); } }
+    } vp_join = { vp_thread };
+    const std::string sc = cache_file();
+    std::unordered_set<std::string> found;
+    const bool listed = !sc.empty() && vp_list_read(sc + ".vprogs", (uint32_t)arcs.size(), arc_bytes, found);
+    if (!listed) {
+        /* The fragment programs in the same reading, for the pixel shaders' build (gowa_prebuild): it then reads no
+         * archive. */
+        std::unordered_map<std::string, uint32_t> fps;
+        read_archives("precompile", arcs, arc_dir, [&](const std::vector<uint8_t>& d) {
+            scan_vps(d, found);
+            scan_fps(d, fps);
+        });
+        if (!sc.empty() && !found.empty()) vp_list_write(sc + ".vprogs", (uint32_t)arcs.size(), arc_bytes, found);
+        if (!sc.empty() && !fps.empty()) fp_list_write(sc + ".fprogs", (uint32_t)arcs.size(), arc_bytes, fps);
+    }
     printf("precompile: found %u\n", (unsigned)found.size());
     std::vector<const uint8_t*> ptr;
     std::vector<uint32_t> len;
@@ -423,4 +542,156 @@ extern "C" int gowa_precompile(void)
     if (!sc.empty()) marker_write(sc, stats);
     printf("precompile: done %u %u %u %.0f\n", stats[0], stats[1], stats[2], (GetTickCount() - t0) / 1000.0);
     return 0;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------
+ * The pixel shaders ahead of play (graphics.shader_prebuild): Ascension-R.exe --prebuild-pixel-shaders [--background]
+ * [--settings <file>]. The fragment programs of the archives (<cache>.fprogs, from the vertex programs' reading or
+ * read here) into <cache>.dxil.prebuilt, each in the text a draw of it makes with no alpha test, sign expansion or
+ * depth comparison (rsx_d3d12_prebuild_fragment_programs), those it has passed over. The game reads the file when its
+ * store has not a source, while this runs too: the game starts it in the background (--background: the idle
+ * priority, its reading and memory at the background's, a few threads), and the launcher's "Build all shaders now"
+ * runs it in the foreground on every thread but one. <cache>.dxil.prebuilt.done says the version it was finished for.
+ *
+ * Progress, one line each on stdout:
+ *   prebuild: read <archive n> <of> <name>
+ *   prebuild: found <programs>
+ *   prebuild: compile <done> <of>
+ *   prebuild: done <compiled> <had> <failed> <seconds>
+ *   prebuild: error <why>
+ * ------------------------------------------------------------------------------------------------------------- */
+static void prebuild_progress(uint32_t done, uint32_t total)
+{
+    static DWORD last;
+    static uint32_t last_done = UINT32_MAX;
+    const DWORD now = GetTickCount();
+    if (done < total && (now - last < 500 || done == last_done)) return;   /* a line when it moves */
+    last = now;
+    last_done = done;
+    printf("prebuild: compile %u %u\n", done, total);
+}
+
+extern "C" int gowa_prebuild(int background)
+{
+    setvbuf(stdout, NULL, _IONBF, 0);
+    if (background) {
+        SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+        SetPriorityClass(GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);   /* its disk and memory too */
+    } else if (!getenv("GOWA_PRECOMPILE_FOREGROUND")) {
+        SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+    }
+    const DWORD t0 = GetTickCount();
+    const std::string sc = cache_file();
+    if (sc.empty()) {
+        printf("prebuild: error no shader cache in the settings (graphics.shader_cache)\n");
+        return 1;
+    }
+    std::vector<std::string> arcs, arc_dir;
+    uint64_t arc_bytes = 0;
+    if (!game_archives("prebuild", arcs, arc_dir, &arc_bytes)) return 1;
+    std::unordered_map<std::string, uint32_t> found;
+    if (!fp_list_read(sc + ".fprogs", (uint32_t)arcs.size(), arc_bytes, found)) {
+        read_archives("prebuild", arcs, arc_dir, [&](const std::vector<uint8_t>& d) { scan_fps(d, found); });
+        if (!found.empty()) fp_list_write(sc + ".fprogs", (uint32_t)arcs.size(), arc_bytes, found);
+    }
+    printf("prebuild: found %u\n", (unsigned)found.size());
+    std::vector<const uint8_t*> ptr;
+    std::vector<uint32_t> len, ctrl;
+    for (const auto& p : found) {
+        ptr.push_back((const uint8_t*)p.first.data());
+        len.push_back((uint32_t)p.first.size());
+        ctrl.push_back(p.second);
+    }
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    const int lp = (int)si.dwNumberOfProcessors;
+    /* In the background, beside a game that keeps most of the cores busy: from 1 on 8 logical processors to 4. */
+    const int threads = background ? std::max(1, std::min(4, lp / 2 - 3)) : std::max(1, std::min(16, lp - 1));
+    uint32_t stats[3] = {};
+    char why[320] = "";
+    if (rsx_d3d12_prebuild_fragment_programs(ptr.data(), len.data(), ctrl.data(), (uint32_t)ptr.size(), threads,
+                                             background, prebuild_progress, stats, why, sizeof why) != 0) {
+        printf("prebuild: error %s\n", why);
+        return 1;
+    }
+    FILE* f = fopen((sc + ".dxil.prebuilt.done").c_str(), "wb");
+    if (f) {
+        fprintf(f, "Ascension-R %s\n%u found, %u compiled, %u had, %u failed\n", AR_VERSION, (unsigned)ptr.size(),
+                stats[0], stats[1], stats[2]);
+        fclose(f);
+    }
+    printf("prebuild: done %u %u %u %.0f\n", stats[0], stats[1], stats[2], (GetTickCount() - t0) / 1000.0);
+    return 0;
+}
+
+/* The game's start: the build in the background unless this version's is done (<cache>.dxil.prebuilt.done), with
+ * graphics.shader_prebuild on. A process of its own with this one's settings, in a job that ends it with the game
+ * (the next start goes on where it stopped), its lines in <cache>.dxil.prebuilt.log. */
+extern "C" void gowa_prebuild_background(void)
+{
+    static HANDLE s_job;   /* held for the game's life: closing it ends the build */
+    if (s_job || !ps3_settings_bool("graphics", "shader_prebuild", "RSX_FP_DYNAMIC", 0)) return;
+    if (const char* e = getenv("GOWA_PREBUILD_BACKGROUND")) if (!strcmp(e, "0")) return;   /* benches, scripts */
+    const std::string sc = cache_file();
+    if (sc.empty()) return;
+    char line[128] = "";
+    if (FILE* f = fopen((sc + ".dxil.prebuilt.done").c_str(), "rb")) {
+        if (!fgets(line, sizeof line, f)) line[0] = 0;
+        fclose(f);
+    }
+    char want[128];
+    snprintf(want, sizeof want, "Ascension-R %s\n", AR_VERSION);
+    if (!strcmp(line, want)) return;
+    wchar_t exe[MAX_PATH];
+    if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return;
+    std::wstring cmd = L"\"" + std::wstring(exe) + L"\" --prebuild-pixel-shaders --background";
+    wchar_t buf[2200];
+    const char* sp = ps3_settings_path();
+    if (sp && *sp) {
+        swprintf(buf, 2200, L" --settings \"%hs\"", sp);
+        cmd += buf;
+    }
+    /* What this run takes from its command line too, as the vertex programs' build does (loading_screen.cpp). */
+    static const struct { const char* sec; const char* key; } keep[] = {
+        { "graphics", "shader_cache" }, { "graphics", "shader_prebuild" }, { "paths", "elf" }, { "paths", "hdd0" },
+        { "paths", "vfs" }, { "graphics", "gpu" } };
+    for (const auto& k : keep) {
+        const char* v = ps3_settings_str(k.sec, k.key, NULL, NULL);
+        if (v && *v && !strchr(v, '"')) {
+            swprintf(buf, 2200, L" --set \"%hs.%hs=%hs\"", k.sec, k.key, v);
+            cmd += buf;
+        }
+    }
+    SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
+    HANDLE log = CreateFileA((sc + ".dxil.prebuilt.log").c_str(), GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS,
+                             FILE_ATTRIBUTE_NORMAL, NULL);
+    STARTUPINFOW si = {};
+    si.cb = sizeof si;
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdOutput = si.hStdError = log != INVALID_HANDLE_VALUE ? log : NULL;
+    PROCESS_INFORMATION pi = {};
+    std::vector<wchar_t> cl(cmd.begin(), cmd.end());
+    cl.push_back(0);
+    const BOOL ok = CreateProcessW(exe, cl.data(), NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_SUSPENDED |
+                                   IDLE_PRIORITY_CLASS, NULL, NULL, &si, &pi);
+    if (log != INVALID_HANDLE_VALUE) CloseHandle(log);
+    if (!ok) {
+        printf("[prebuild] the pixel shaders' build did not start (%lu)\n", GetLastError());
+        return;
+    }
+    HANDLE job = CreateJobObjectA(NULL, NULL);
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION li = {};
+    li.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (job && SetInformationJobObject(job, JobObjectExtendedLimitInformation, &li, sizeof li) &&
+        AssignProcessToJobObject(job, pi.hProcess)) {
+        s_job = job;
+    } else {
+        if (job) CloseHandle(job);
+        s_job = INVALID_HANDLE_VALUE;   /* not tied to the game: it ends by itself when it is done */
+    }
+    ResumeThread(pi.hThread);
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    printf("[prebuild] the pixel shaders' build in the background: pid %lu, %s.dxil.prebuilt.log\n",
+           (unsigned long)pi.dwProcessId, sc.c_str());
 }

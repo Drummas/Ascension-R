@@ -1357,8 +1357,11 @@ extern "C" int game_module_state(void);
 extern "C" void gowa_cheats_apply(void);
 extern "C" void gowa_trophies_start(void);
 extern "C" void ps3_pad_tune(double stick_full, int flick_hold);
-/* precompile.cpp: the game's vertex programs into the shader cache, without the game. */
+/* precompile.cpp: the game's vertex programs into the shader cache, without the game; its pixel shaders ahead of
+ * play, as a process of its own (--prebuild-pixel-shaders), started in the background by the game. */
 extern "C" int gowa_precompile(void);
+extern "C" int gowa_prebuild(int background);
+extern "C" void gowa_prebuild_background(void);
 
 /* A variable the title needs, unless the environment already has one. */
 static void env_default(const char* name, const char* value)
@@ -1690,7 +1693,7 @@ int main(int argc, char** argv)
     const char* settings = NULL;
     char settings_buf[1100];
     const char* sets[32];
-    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0;
+    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0, prebuild = 0, prebuild_bg = 0;
     const char* prepare = NULL, *prep_rpcs3 = NULL, *prep_rap = NULL, *find_under = NULL;
     int find_game = 0;   /* --find-game [folder]: what Auto detect, or Browse to the folder, finds (game_find.cpp) */
     for (int i = 1; i < argc; i++) {
@@ -1698,6 +1701,8 @@ int main(int argc, char** argv)
         else if (!strcmp(argv[i], "--set") && i + 1 < argc)            { if (nsets < 32) sets[nsets++] = argv[++i]; else ++i; }
         else if (!strcmp(argv[i], "--no-launcher"))                    no_launcher = 1;
         else if (!strcmp(argv[i], "--precompile-shaders"))             precompile = 1;
+        else if (!strcmp(argv[i], "--prebuild-pixel-shaders"))         prebuild = precompile = 1;
+        else if (!strcmp(argv[i], "--background"))                     prebuild_bg = 1;
         else if (!strcmp(argv[i], "--report"))                         report = 1;
         else if (!strcmp(argv[i], "--with-saves"))                     report_saves = 1;
         else if (!strcmp(argv[i], "--prepare-game") && i + 1 < argc)   prepare = argv[++i];
@@ -1756,7 +1761,7 @@ int main(int argc, char** argv)
 #endif
     if (precompile) {
         title_environment();   /* the environment the game runs in: the same shader cache keys */
-        return gowa_precompile();
+        return prebuild ? gowa_prebuild(prebuild_bg) : gowa_precompile();
     }
 #ifdef _WIN32
     s_open_failed_says = !no_launcher;
@@ -1853,6 +1858,8 @@ int main(int argc, char** argv)
      * where its window is about to be (loading_screen.cpp). The frame clock takes the screen down once the
      * game's window is up. */
     gowa_precompile_gate();
+    /* Then the pixel shaders, in the background as the game plays (graphics.shader_prebuild). */
+    gowa_prebuild_background();
 #endif
     /* Install the guest-callback hook, then start the frame clock. It no-ops
      * until the title registers its vblank and flip handlers during init. */

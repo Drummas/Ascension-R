@@ -29,7 +29,9 @@
  * Clear shaders, below it, moves the compiled shaders to the Recycle Bin. The
  * vertex shaders are built by the game itself before its first start of each
  * version (the precompile gate, loading_screen.cpp), so there is no button for
- * them here.
+ * them here. The pixel shaders are built in the background as the game plays
+ * (graphics.shader_prebuild, precompile.cpp); Build all shaders now, below
+ * Clear shaders, builds them at once, and turns that setting on.
  *
  * This file also holds this port's defaults (gowa_port_defaults), so the
  * game and the Defaults button take them from the same tables.
@@ -220,6 +222,10 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "pipeline_wait", "on", "Build pipelines first", 1, SW,
       "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built "
       "while you play: a moment, a few seconds after a GPU driver update." },
+    { T_GRAPHICS, "graphics", "shader_prebuild", "off", "Build pixel shaders ahead", 1, SW,
+      "The pixel shaders of the game's files are built ahead and kept: places you reach later wait for fewer of them. "
+      "Build all shaders now, below Clear shaders, builds them all at once, some minutes; what it has not built is "
+      "built slowly while you play, a few frames a second fewer meanwhile." },
     { T_CONTROLS, "input", "device", "auto", "Device", 0, LIST(k_dev, k_dev_n), k_dev_s,
       "Auto reads a controller and the keyboard and mouse at the same time: either one plays." },
     { T_CONTROLS, "input", "api", "auto", "Controller API", 0, LIST(k_api, k_api_n), k_api_s,
@@ -554,6 +560,14 @@ static struct {
     wchar_t rpcs3[GAME_PATH_MAX], rap[GAME_PATH_MAX], game[GAME_PATH_MAX], update[GAME_PATH_MAX], data[GAME_PATH_MAX];
     wchar_t err[320];
 } s_prep;
+
+/* Build all shaders now (pb_start, below clear_shaders): the pixel shaders' build as a process of its own. */
+enum { WM_PREBUILD = WM_APP + 31 };
+static struct {
+    HANDLE proc, out, job, reader;
+    volatile LONG running, done, total;
+    char result[200];   /* "prebuild: done ..." or "prebuild: error ...", for the toast */
+} s_pb;
 
 #ifdef PORT_GAME_MODULE
 extern "C" int game_module_state(void);                                        /* game_module_host.c */
@@ -1525,7 +1539,7 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
@@ -1894,12 +1908,17 @@ static void draw_sidebar(void)
         hit(r, id);
         y += 46.0f;
     }
-    /* Down at the bottom: Report a problem, the compiled shaders and the save folder. */
-    const float by = WIN_H - 124.0f;
+    /* Down at the bottom: Report a problem, the compiled shaders, building them now and the save folder. */
+    const float by = WIN_H - 160.0f;
     fill(R(18, by - 10, SIDE_W - 38, 2), C_LINE);
     side_link(k_ic_flag, L"Report a problem", by, H_REPORT);
     side_link(k_ic_trash, L"Clear shaders", by + 36, H_SHADERS);
-    side_link(k_ic_folder, L"Open save folder", by + 72, H_SAVES);
+    wchar_t pb[64];
+    if (!s_pb.running) swprintf(pb, 64, L"Build all shaders now");
+    else if (s_pb.total > 0) swprintf(pb, 64, L"Building shaders %ld%%", (long)((s_pb.done * 100LL) / s_pb.total));
+    else swprintf(pb, 64, L"Reading the game's files");
+    side_link(k_ic_bolt, pb, by + 72, H_PREBUILD);
+    side_link(k_ic_folder, L"Open save folder", by + 108, H_SAVES);
 }
 
 static D2D1_RECT_F hero_rect(void) { return R(SIDE_W, 0, WIN_W - SIDE_W, s_tab == T_PLAY ? HERO_PLAY : HERO_TAB); }
@@ -2948,12 +2967,13 @@ static void clear_shaders(void)
         toast_bad("No shader cache in the settings");
         return;
     }
-    /* Each compiler's pack and journal, what a fold cut short leaves, the pipelines from before the store, and the
-     * mark that the vertex shaders were built (the next start builds them again; the list of the programs found,
-     * .vprogs, stays: it is not shaders). */
+    /* Each compiler's pack and journal, what a fold cut short leaves, the pipelines from before the store, the
+     * mark that the vertex shaders were built (the next start builds them again; the lists of the programs found,
+     * .vprogs and .fprogs, stay: they are not shaders), and the pixel shaders built ahead with their mark and log. */
     static const wchar_t* const ext[] = { L"", L".journal", L".tmp", L".journal.tmp", L".pso",
                                           L".dxil", L".dxil.journal", L".dxil.tmp", L".dxil.journal.tmp", L".dxil.pso",
-                                          L".precompiled" };
+                                          L".precompiled", L".dxil.prebuilt", L".dxil.prebuilt.done",
+                                          L".dxil.prebuilt.log" };
     enum { N = sizeof ext / sizeof ext[0], F = GAME_PATH_MAX + 16 };
     static wchar_t list[N * F + 1];     /* for the shell: one after the other, two zeros at the end */
     wchar_t base[GAME_PATH_MAX];
@@ -2987,6 +3007,152 @@ static void clear_shaders(void)
     op.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_WANTNUKEWARNING | FOF_SILENT;
     if (SHFileOperationW(&op) != 0 || op.fAnyOperationsAborted) toast_bad("Not cleared: is the game running?");
     else toast("Shaders cleared");
+}
+
+/* --- Build all shaders now: the pixel shaders' build in the foreground ----------------------------------------
+ * The same exe with --prebuild-pixel-shaders (precompile.cpp, gowa_prebuild) and this window's settings, at the
+ * normal priority on every thread but one, in a job that ends it with this window (pb_stop: Play or Quit); its lines
+ * read on a thread of their own. The sidebar's link shows how far it is and stops it at a second click. The game
+ * starts the same build in the background by itself (graphics.shader_prebuild); one of the two at a time builds, the
+ * other says so. */
+static DWORD WINAPI pb_reader(LPVOID)
+{
+    char buf[4096], line[512];
+    size_t n = 0;
+    DWORD got = 0;
+    while (ReadFile(s_pb.out, buf, sizeof buf, &got, NULL) && got) {
+        for (DWORD i = 0; i < got; i++) {
+            if (buf[i] != '\n' && n + 1 < sizeof line) {
+                if (buf[i] != '\r') line[n++] = buf[i];
+                continue;
+            }
+            line[n] = 0;
+            n = 0;
+            unsigned a = 0, b = 0;
+            if (sscanf(line, "prebuild: compile %u %u", &a, &b) == 2) {
+                InterlockedExchange(&s_pb.done, (LONG)a);
+                InterlockedExchange(&s_pb.total, (LONG)b);
+                PostMessageA(s_main, WM_PREBUILD, 0, 0);
+            } else if (sscanf(line, "prebuild: found %u", &a) == 1) {
+                InterlockedExchange(&s_pb.total, (LONG)a);
+                PostMessageA(s_main, WM_PREBUILD, 0, 0);
+            } else if (!strncmp(line, "prebuild: done", 14) || !strncmp(line, "prebuild: error", 15)) {
+                snprintf(s_pb.result, sizeof s_pb.result, "%s", line);
+            }
+        }
+    }
+    WaitForSingleObject(s_pb.proc, INFINITE);
+    PostMessageA(s_main, WM_PREBUILD, 1, 0);
+    return 0;
+}
+
+static void pb_end(void)
+{
+    if (s_pb.reader) { WaitForSingleObject(s_pb.reader, 2000); CloseHandle(s_pb.reader); s_pb.reader = NULL; }
+    CloseHandle(s_pb.proc);
+    CloseHandle(s_pb.out);
+    if (s_pb.job) CloseHandle(s_pb.job);
+    s_pb.proc = s_pb.out = s_pb.job = NULL;
+    InterlockedExchange(&s_pb.running, 0);
+    unsigned c = 0, had = 0, failed = 0;
+    if (sscanf(s_pb.result, "prebuild: done %u %u %u", &c, &had, &failed) == 3) {
+        char m[160];
+        snprintf(m, sizeof m, "Pixel shaders built: %u new, %u kept from before%s", c, had, failed ? ", some failed" : "");
+        toast(m);
+    } else if (!strncmp(s_pb.result, "prebuild: error ", 16)) {
+        char m[220];
+        snprintf(m, sizeof m, "Shaders not built: %s", s_pb.result + 16);
+        toast_bad(m);
+    } else {
+        toast("Building shaders stopped");
+    }
+}
+
+static void pb_start(void)
+{
+    if (s_pb.running) {   /* a second click: closing the job ends it */
+        if (s_pb.job) { CloseHandle(s_pb.job); s_pb.job = NULL; }
+        return;
+    }
+    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    if (!sc || !*sc || ps3_settings_ieq(sc, "off")) { toast_bad("No shader cache in the settings"); return; }
+    wchar_t exe[MAX_PATH];
+    if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return;
+    /* The game reads what it builds only with Build pixel shaders ahead on: on with it, and saved at once, so a Quit
+     * after the build does not leave it off (the window's other changes wait for Save or Play, as ever). */
+    if (Opt* o = opt_find("graphics", "shader_prebuild"))
+        if (!opt_on(*o)) {
+            opt_set(*o, o->values[1]);
+            ps3_settings_set(o->section, o->key, o->cur);
+            ps3_settings_save(NULL);
+        }
+    static wchar_t cmd[8192];
+    int at = swprintf(cmd, 8192, L"\"%ls\" --prebuild-pixel-shaders --set \"graphics.shader_prebuild=on\"", exe);
+    const char* sp = ps3_settings_path();
+    if (sp && *sp && !strchr(sp, '"')) at += swprintf(cmd + at, 8192 - at, L" --settings \"%hs\"", sp);
+    static const struct { const char* sec; const char* key; } keep[] = {
+        { "graphics", "shader_cache" }, { "paths", "elf" }, { "paths", "hdd0" }, { "paths", "vfs" },
+        { "graphics", "gpu" } };
+    for (const auto& k : keep) {
+        const char* v = ps3_settings_str(k.sec, k.key, NULL, NULL);
+        if (v && *v && !strchr(v, '"') && at < 7000) at += swprintf(cmd + at, 8192 - at, L" --set \"%hs.%hs=%hs\"", k.sec, k.key, v);
+    }
+    SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
+    HANDLE rd = NULL, wr = NULL;
+    HANDLE job = CreateJobObjectW(NULL, NULL);
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION li = {};
+    li.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    if (!job || !SetInformationJobObject(job, JobObjectExtendedLimitInformation, &li, sizeof li) || !CreatePipe(&rd, &wr, &sa, 0)) {
+        if (job) CloseHandle(job);
+        toast_bad("Could not start building shaders");
+        return;
+    }
+    SetHandleInformation(rd, HANDLE_FLAG_INHERIT, 0);
+    STARTUPINFOW si = {};
+    si.cb = sizeof si;
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdOutput = wr;
+    si.hStdError = wr;
+    PROCESS_INFORMATION pi = {};
+    SetEnvironmentVariableA("GOWA_PRECOMPILE_FOREGROUND", "1");   /* the player asked for it: not below normal */
+    BOOL ok = CreateProcessW(exe, cmd, NULL, NULL, TRUE, CREATE_NO_WINDOW | CREATE_SUSPENDED, NULL, NULL, &si, &pi);
+    SetEnvironmentVariableA("GOWA_PRECOMPILE_FOREGROUND", NULL);
+    CloseHandle(wr);
+    if (ok && !AssignProcessToJobObject(job, pi.hProcess)) {
+        TerminateProcess(pi.hProcess, 1);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        ok = FALSE;
+    }
+    if (!ok) {
+        CloseHandle(rd);
+        CloseHandle(job);
+        toast_bad("Could not start building shaders");
+        return;
+    }
+    s_pb.proc = pi.hProcess;
+    s_pb.out = rd;
+    s_pb.job = job;
+    s_pb.done = s_pb.total = 0;
+    s_pb.result[0] = 0;
+    InterlockedExchange(&s_pb.running, 1);
+    ResumeThread(pi.hThread);
+    CloseHandle(pi.hThread);
+    s_pb.reader = CreateThread(NULL, 0, pb_reader, NULL, 0, NULL);
+    redraw();
+}
+
+/* The window's end, Play or Quit: a build it started ends with it, so that it takes none of the cores the game wants.
+ * The next one goes on where it stopped. */
+static void pb_stop(void)
+{
+    if (!s_pb.running) return;
+    if (s_pb.job) { CloseHandle(s_pb.job); s_pb.job = NULL; }   /* the job ends the build */
+    if (s_pb.reader) { WaitForSingleObject(s_pb.reader, 5000); CloseHandle(s_pb.reader); s_pb.reader = NULL; }
+    CloseHandle(s_pb.proc);
+    CloseHandle(s_pb.out);
+    s_pb.proc = s_pb.out = NULL;
+    InterlockedExchange(&s_pb.running, 0);
 }
 
 #ifdef PORT_GAME_MODULE
@@ -3447,6 +3613,7 @@ static void act(int id)
         case H_UPDATE_CLOSE: update_check_dismiss(&s_upd); break;
         case H_REPORT: report_make(NULL); break;
         case H_SHADERS: clear_shaders(); break;
+        case H_PREBUILD: pb_start(); break;
         case H_GAME_BROWSE: game_browse(); break;
         case H_PICK_RPCS3:
             if (pick_file(L"Choose rpcs3.exe", L"rpcs3.exe", L"rpcs3.exe", s_prep.rpcs3, GAME_PATH_MAX)) prepare_begin();
@@ -3695,6 +3862,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         redraw();
         return 0;
 #endif
+    case WM_PREBUILD:
+        if (w == 1) pb_end();   /* it exited */
+        redraw();
+        return 0;
     case WM_TIMER: {
         if (w == 3) {   /* the scene's next frame: the layer stays as it is */
             scene_tick();
@@ -3735,13 +3906,14 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
  * the System tab during a search, the Cheats, Graphics and System tabs scrolled
  * to their end, a toast, the System tab asking for what the decrypting needs, the
  * keyboard keys (one waiting for a key), and in the
- * Kit the game's code being built and not built yet, and last the Play tab
- * with a newer release's notice, into PNG files at the
+ * Kit the game's code being built and not built yet, the Play tab with a
+ * newer release's notice, and last the Graphics tab while Build all shaders
+ * now runs, into PNG files at the
  * window's size times 1.25 (a 125% display),
  * or at GOWA_LAUNCHER_SHOT_DPI. The scene stands still in them, and nothing
  * runs: each state is only set while its shot is drawn, then put back. */
 enum { S_TAB, S_LIST, S_SEARCH, S_END, S_TOAST, S_DECRYPT, S_KEYS, S_KEYS_WAIT, S_KIT_RUN, S_KIT_NEED, S_KIT_ROW,
-       S_UPDATE };
+       S_UPDATE, S_PREBUILD };
 static const int k_shots[][2] = {
     { T_PLAY, S_TAB }, { T_GRAPHICS, S_TAB }, { T_DISPLAY, S_TAB }, { T_CONTROLS, S_TAB }, { T_PATCHES, S_TAB },
     { T_CHEATS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB }, { T_DISPLAY, S_LIST },
@@ -3751,7 +3923,7 @@ static const int k_shots[][2] = {
 #ifdef PORT_GAME_MODULE
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
-    { T_PLAY, S_UPDATE },
+    { T_PLAY, S_UPDATE }, { T_GRAPHICS, S_PREBUILD },
 };
 
 static void shot_state(int what, int on)
@@ -3765,6 +3937,11 @@ static void shot_state(int what, int on)
     if (what == S_TOAST) {
         if (on) toast("Saved");
         else s_toast[0] = 0;
+    }
+    if (what == S_PREBUILD) {   /* Build all shaders now under way: its link says how far */
+        s_pb.running = on;
+        s_pb.done = on ? 21000 : 0;
+        s_pb.total = on ? 49996 : 0;
     }
     if (what == S_DECRYPT) {
         if (on) { game = s_game.g; s_game.g.state = GAME_NO_ELF; }
@@ -3983,6 +4160,7 @@ extern "C" int gowa_launcher(void)
     s_find.stop = 1;
     find_end();
     update_check_end();
+    pb_stop();
     if (s_done == 1) {   /* the game opens on the monitor the launcher was on, and Ultrawide goes by that monitor */
         RECT lr;
         if (GetWindowRect(s_main, &lr)) rsx_d3d12_backend_open_on((lr.left + lr.right) / 2, (lr.top + lr.bottom) / 2);
