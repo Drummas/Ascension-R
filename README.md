@@ -67,6 +67,9 @@ problems further in.
 - **Trophies:** read from the game's own trophy list, in the game's language. A notice over the picture for each one
   won, a Trophies page in the launcher, and the platinum once every single-player trophy is won.
 - **Saves:** backups kept before the game writes over a save.
+- **Mods** (from the next release): a `mods` folder beside the program. A mod's folder or `.zip` dropped in shows on the
+  launcher's Mods tab, where each one is switched on or off and ordered; its files are read in place of the game's, and
+  the game's own folder is never changed ([docs/MODDING.md](docs/MODDING.md)).
 - **Problem reports:** one button makes a zip of the logs, with your paths hidden.
 
 [docs/FEATURES.md](docs/FEATURES.md) describes each one and its setting.
@@ -223,6 +226,13 @@ For a copy that is not supported yet, its serial and version (RPCS3's game list 
 
 One player plays it on Linux through Proton, in a Wine prefix made by Lutris
 ([#12](https://github.com/rigaz29/Ascension-R/issues/12)). The Steam Deck has not been tried.
+
+### Can I use mods?
+
+From the next release, yes: put a mod's folder or its `.zip` into the `mods` folder beside `Ascension-R.exe` (the Mods
+tab's **Open folder** makes it), and the Mods tab lists it, switched on. Mods made for RPCS3 as files over the game's
+(`dev_hdd0\game\<id>\USRDIR\...`) are taken as they are. A mod is files alone: nothing of it runs as a program.
+[docs/MODDING.md](docs/MODDING.md) is for those who make them.
 
 ### Is it safe to run?
 

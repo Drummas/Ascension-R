@@ -60,7 +60,10 @@ class Game:
         return argparse.Namespace(**a)
 
     def built(self, out):
-        arc = os.path.join(out, "dev_hdd0", "game", gt.TITLE_ID, "USRDIR", "TPPS6.PSARC")
+        # A mod of the mods folder (port/mods.h): files\ as USRDIR, and a mod.ini naming it.
+        arc = os.path.join(out, "translation", "files", "TPPS6.PSARC")
+        ini = Path(out, "translation", "mod.ini").read_text(encoding="utf-8")
+        assert ini.startswith("[mod]\nname = Translation (EN)\n"), ini
         return gt.psarc_read(arc, {SP, MP}), Path(arc).with_name("PATCHES").read_bytes()
 
 

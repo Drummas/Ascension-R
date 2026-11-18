@@ -45,6 +45,7 @@
 #include "portable_copy.h"        /* a portable folder's first start: the old folder's files, at the player's word */
 #include "loading_screen.h"       /* the precompile gate: the vertex shaders first, on a screen of their own */
 #include "precompile_music.h"     /* its music: --music-preview */
+#include "mods.h"                 /* the mods folder: the mods that are on, for the file system */
 #include "ps3emu/ps3_settings.h"  /* ascension-r.ini: the player's settings and this machine's paths */
 
 #include <stdint.h>
@@ -1545,8 +1546,16 @@ static void title_environment(void)
         snprintf(boot, sizeof boot, "/dev_hdd0/game/%s/USRDIR/GOWA.SELF", id);
         env_default("PS3_BOOT_PATH", boot);
     }
-    /* A mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...): a file
-     * there replaces the game's or adds one. Empty (the default): none. */
+    /* The mods folder's mods that are on (mods.h), first one first: a file of theirs replaces the game's or adds
+     * one, whichever USRDIR the game reads it from (vfs_mods.h). A zip new since the launcher looked is unpacked. */
+    {
+        ModList mods;
+        mods_scan(&mods, 1);
+        env_default("PS3_MODS_DIRS", mods_dirs(mods).c_str());
+        if (!mods.mods.empty()) printf("[mods] %s\n", mods_summary(mods).c_str());
+    }
+    /* And the older mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...), after them.
+     * Empty (the default): none. */
     env_default("PS3_MODS_ROOT", ps3_settings_str("paths", "mods", "PS3_MODS_ROOT", NULL));
     /* FFmpeg's DLLs are loaded when the first movie plays, from PATH. */
     const char* ff = ps3_settings_str("paths", "ffmpeg", NULL, NULL);

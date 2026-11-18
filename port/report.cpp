@@ -48,6 +48,7 @@
 
 #include "game_find.h"
 #include "game_title.h"
+#include "mods.h"
 #include "ps3emu/ps3_settings.h"
 
 #ifndef GOWA_PORT_COMMIT
@@ -581,6 +582,12 @@ static void hide_init(void)
     for (const auto& k : settings) {
         const char* v = ps3_settings_str(k.section, k.key, NULL, NULL);
         if (v && *v) hide_path(v, k.token);
+    }
+    {   /* the mods folder as mods.h finds it: [mods] folder, GOWA_MODS_DIR, else beside the settings */
+        const std::wstring m = mods_folder();
+        char u[2048];
+        if (!m.empty() && WideCharToMultiByte(CP_UTF8, 0, m.c_str(), -1, u, sizeof u, NULL, NULL) > 0)
+            hide_path(u, "<mods folder>");
     }
     const std::string here = dir_of(exe_path());
     hide_path(here, "<exe>");
@@ -1136,6 +1143,12 @@ int gowa_report_create(int with_saves, char* out, size_t n)
     }
     if (!added) note += "(no session logs)\n";
     note_shaders(note);
+    /* The mods folder's mods as the game takes them (mods.h): names and counts, no paths; a zip not unpacked here. */
+    {
+        ModList mods;
+        mods_scan(&mods, 0);
+        note += "Mods: " + mods_summary(mods) + "\n";
+    }
     note += "\n";
 
 #ifdef PORT_GAME_MODULE

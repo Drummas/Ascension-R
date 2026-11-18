@@ -1,13 +1,13 @@
 """The game's text: write it out for a translator, and build a translation back into a mod folder.
 
     gowa.py text export [--part story] [--context] [--out build/text/en-story.tsv]
-    gowa.py text build build/text/id-story.tsv [more files] [--out build/mods]
+    gowa.py text build build/text/id-story.tsv [more files] [--out build/mods] [--name translation]
 
 Where the text is (docs/notes/2026-11-11-game-text.md): the MSGS_TXT table of R_LANG_<language>.WAD, which each update
 from TPPS1.PSARC (1.06) to TPPS5.PSARC (1.11) replaces through a .WAD.PATCH, and the multiplayer R_LANG_<language>_MP
 the same way, with the same text. The game reads PATCHES, opens TPPS1 to TPPS<n>, and takes a .WAD.PATCH from the
-newest that has it. So `build` writes TPPS<n+1>.PSARC with both patches, and PATCHES holding n+1, into a folder laid
-out like the PS3's paths, for `paths.mods`. The game's folder is only read.
+newest that has it. So `build` writes TPPS<n+1>.PSARC with both patches, and PATCHES holding n+1, as a mod: a folder
+of the mods folder (port/mods.h), its files\ laid out as USRDIR is, with a mod.ini. The game's folder is only read.
 
 The export has a line for each line of text: `<id>.<k><TAB><text>`, k counting the entry's lines that have a letter.
 The subtitle cues (`[[S:...]]`), the `[[F:n]]` lines and lines of tokens alone stay out; `build` takes them from the
@@ -17,7 +17,8 @@ starting with # and empty lines skipped. `build` refuses a line that drops or ad
 that has a character the English text never uses (the font may lack it); curly quotes, dashes and the ellipsis
 become their ASCII forms. One line stays one line, so the table's counts stay right; `\\n` breaks a line inside one.
 
-A disc's text is in its update (RPCS3's dev_hdd0/game/<id>), and its mod goes under that title. English is two
+A disc's text is in its update (RPCS3's dev_hdd0/game/<id>); its mod is no different, as files\ stands for whichever
+USRDIR the game reads. English is two
 languages to the game: EN, English (US), and EN-GB, English (UK); it shows the one the system language names.
 
 What both write is made from the game and stays on this machine: build/ is not tracked.
@@ -33,26 +34,11 @@ import sys
 import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TITLE_ID = "NPUA80918"
 # The releases whose folder holds the text (gowa.py's TITLES, which imports this file): a digital release's own folder,
-# or a disc's update folder; a mod goes under that title's folder.
+# or a disc's update folder.
 TITLES = ("NPUA80918", "BCES01741", "BCUS98232")
 
 
-def title_of(game_dir):
-    """PARAM.SFO's TITLE_ID in the game's folder when it is one of TITLES, else TITLE_ID."""
-    try:
-        with open(os.path.join(game_dir, "PARAM.SFO"), "rb") as f:
-            d = f.read()
-        keys, data, count = struct.unpack_from("<III", d, 8)
-        for i in range(count):
-            koff, _, ln, _, doff = struct.unpack_from("<HHIII", d, 20 + 16 * i)
-            if d[keys + koff:d.index(b"\0", keys + koff)] == b"TITLE_ID":
-                t = d[data + doff:data + doff + ln].rstrip(b"\0").decode("ascii", "replace")
-                return t if t in TITLES else TITLE_ID
-    except (OSError, ValueError, struct.error):
-        pass
-    return TITLE_ID
 WAD_DIR = "/WAD/PS3_BE/"
 BLOCK = 65536
 
@@ -415,17 +401,21 @@ def cmd_build(args):
             apply(t, tr)
         files[name] = patch_with_msgs(patch, t.raw())
     root = os.path.abspath(args.out or os.path.join(ROOT, "build", "mods"))
-    dst = os.path.join(root, "dev_hdd0", "game", title_of(args.game_dir), "USRDIR")
+    mod = os.path.join(root, getattr(args, "name", None) or "translation")
+    dst = os.path.join(mod, "files")
     os.makedirs(dst, exist_ok=True)
     arc = os.path.join(dst, "TPPS%d.PSARC" % (n + 1))
     with open(arc, "wb") as f:
         f.write(psarc_pack(files))
     with open(os.path.join(dst, "PATCHES"), "wb") as f:
         f.write(b"%d" % (n + 1))
+    with open(os.path.join(mod, "mod.ini"), "w", encoding="utf-8", newline="\r\n") as f:
+        f.write("[mod]\nname = Translation (%s)\ndescription = The game's %s text: %d lines from %s.\n"
+                % (args.lang, args.lang, len(tr), ", ".join(os.path.basename(p) for p in args.files)))
     print("%s: TPPS%d.PSARC (%d KB) and PATCHES (%d); %d lines translated, %d of them changed"
-          % (root, n + 1, os.path.getsize(arc) // 1024, n + 1, len(tr), changed))
-    print("the game reads it with `paths.mods = %s` in [paths] of its settings, or --set paths.mods=%s"
-          % (root, root.replace("\\", "/")))
+          % (mod, n + 1, os.path.getsize(arc) // 1024, n + 1, len(tr), changed))
+    print("a mod: the launcher's Mods tab lists it when %s is the mods folder (build\\mods is the one of this tree's "
+          "build), or copy %s into the mods folder" % (root, os.path.basename(mod)))
     return 0
 
 
@@ -446,7 +436,8 @@ def add_args(p):
             q.add_argument("--out", help="the file (default build/text/<lang>-<parts>.tsv)")
         else:
             q.add_argument("files", nargs="+", help="translation files")
-            q.add_argument("--out", help="the mod folder (default build/mods)")
+            q.add_argument("--out", help="the mods folder (default build/mods)")
+            q.add_argument("--name", default="translation", help="the mod's folder in it (default translation)")
 
 
 def main(args):

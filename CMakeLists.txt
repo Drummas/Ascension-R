@@ -285,6 +285,7 @@ add_executable(${PROJECT_NAME}
     port/precompile.cpp
     port/loading_screen.cpp
     port/precompile_music.cpp
+    port/mods.cpp
     ${PS3RECOMP_SCAFFOLD}
     ${HLE_NID_TABLE}
     ${PORT_GAME_SOURCES}

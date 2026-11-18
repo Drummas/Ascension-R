@@ -46,6 +46,7 @@
 #include "update_check.h"
 #include "loading_screen.h"   /* the header's scene and the pixel font */
 #include "trophies.h"         /* the Trophies tab */
+#include "mods.h"             /* the Mods tab */
 extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
 extern "C" int  rsx_d3d12_prebuilt_current(const char* cache);   /* rsx_d3d12_backend.h: the pixel shaders' file */
 
@@ -90,7 +91,7 @@ extern "C" int  gowa_title_patch_default(int i);
 /* ---------------------------------------------------------------------------
  * What the window offers
  * -----------------------------------------------------------------------*/
-enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_TROPHIES, T_SYSTEM, T_N };
+enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_MODS, T_TROPHIES, T_SYSTEM, T_N };
 
 struct Opt {
     int tab;                   /* the tab it is on (T_*) */
@@ -249,6 +250,8 @@ static Opt s_opt[] = {
       "The rage meter stays full." },
     { T_CHEATS, "cheats", "infinite_jumps", "off", "Infinite double jumps", 1, SW,
       "Kratos can jump again in the air, as often as he likes." },
+    { T_MODS, "mods", "use", "on", "Use mods", 1, SW,
+      "Off: the game as it is, every mod left out. Below, each one is switched on its own." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -506,10 +509,13 @@ static void open_saves(void)
     ShellExecuteA(s_main, "open", path, NULL, NULL, SW_SHOWNORMAL);
 }
 
+static void mods_keep(void);
+
 static int save_all(void)
 {
     for (int i = 0; i < N_OPT; i++) ps3_settings_set(s_opt[i].section, s_opt[i].key, s_opt[i].cur);
     for (int i = 0; i < s_npopt; i++) ps3_settings_set(s_popt[i].section, s_popt[i].key, s_popt[i].cur);
+    mods_keep();
     if (ps3_settings_save(NULL) != 0) {
         char m[1200];
         snprintf(m, sizeof m, "Could not write %s.", ps3_settings_path());
@@ -1479,6 +1485,16 @@ static const char k_ic_trash[16][17] = {
     "..############..", "..##.##..##.##..", "..##.##..##.##..", "..##.##..##.##..", "..##.##..##.##..",
     "..##.##..##.##..", "..##.##..##.##..", "..############..", "...##########...", "................",
     "................" };
+static const char k_ic_mods[16][17] = {   /* a piece of a puzzle */
+    "................", ".....###........", "....#####.......", "....#####.......", ".###########....",
+    ".###########....", ".###########....", ".#############..", "...############.", "...############.",
+    "...############.", ".#############..", ".###########....", ".###########....", ".###########....",
+    "................" };
+static const char k_ic_raise[16][17] = {   /* k_ic_down upside down */
+    "................", "................", "................", "................", ".......##.......",
+    "......####......", ".....######.....", "....###..###....", "...###....###...", "..###......###..",
+    "..##........##..", "................", "................", "................", "................",
+    "................" };
 static const char k_ic_folder[16][17] = {
     "................", "................", ".#####..........", ".######.........", ".##############.",
     ".##############.", ".##..........##.", ".##..........##.", ".##..........##.", ".##..........##.",
@@ -1561,12 +1577,13 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
     H_KBIND = 8500,   /* the keyboard keys' bindings */
     H_DDITEM = 9000,
+    H_MOD = 10000,    /* the Mods tab: a mod's switch, up and down (H_MOD + 3 * its place + 0, 1, 2) */
 };
 struct Hit { D2D1_RECT_F r; int id; };
 static Hit s_hit[400];
@@ -1838,12 +1855,14 @@ static float w_row(Opt& o, int oi, float x, float y, float w, int sw_id)
 
 /* --- the parts of the window ---------------------------------------------- */
 static const wchar_t* const k_tab_name[T_N] = { L"Play", L"Graphics", L"Display", L"Controls", L"Game patches", L"Cheats",
-                                                L"Trophies", L"System" };
-static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_cup, k_ic_chip };
+                                                L"Mods", L"Trophies", L"System" };
+static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_mods,
+                                      k_ic_cup, k_ic_chip };
 static const wchar_t* const k_tab_desc[T_N] = {
     L"", L"How the picture is scaled, smoothed and filtered.", L"The window, its pace and the frame rate display.",
     L"Controller and keyboard.", L"Switches that change what the game draws, for speed.",
     L"For an easier fight. The game reads these when it starts.",
+    L"Files that change the game, from the mods folder. The game reads them when it starts.",
     L"What you have won, from the game's own trophy list.",
     L"The game's folder, language, saves and this window." };
 
@@ -2450,6 +2469,193 @@ static void tro_draw(float x, float y, float w, float top, float bottom)
     }
 }
 
+/* --- the Mods tab -----------------------------------------------------------------------------------------------------
+ * The mods folder's mods (mods.h), in their order, the first one winning where two have the same file. Each is
+ * switched on or off and moved up or down here; the settings take that at once, and Save or Play writes it. The
+ * folder is read again when the tab is shown and when the window comes back to the front: a mod dropped into it then
+ * shows, a zip unpacked first. */
+static void toast_bad(const char* s);
+static ModList s_mods;
+static int s_mods_read;        /* read once at least: Save writes the order */
+static int s_mods_stale = 1;   /* to be read again */
+static const float MOD_FOLDER_H = 64.0f, MOD_EMPTY_H = 72.0f, MOD_NOTE_H = 40.0f, MOD_CTL_W = 134.0f;
+
+static void mods_refresh(void)
+{
+    if (!s_mods_stale) return;
+    s_mods_stale = 0;
+    mods_scan(&s_mods, 1);
+    s_mods_read = 1;
+}
+
+/* The order and the switches as the tab has them, into the settings (save_all writes them). */
+static void mods_keep(void)
+{
+    if (s_mods_read) mods_store(s_mods);
+}
+
+/* A mod's switch, up or down: the settings have it at once, and the tab is read again for what each one gives. */
+static void mods_act(int k)
+{
+    const size_t i = (size_t)(k / 3);
+    if (i >= s_mods.mods.size()) return;
+    std::vector<ModInfo>& v = s_mods.mods;
+    if (k % 3 == 0) v[i].on = !v[i].on;
+    else if (k % 3 == 1 && i > 0) std::swap(v[i], v[i - 1]);
+    else if (k % 3 == 2 && i + 1 < v.size()) std::swap(v[i], v[i + 1]);
+    else return;
+    mods_store(s_mods);
+    s_mods_stale = 1;
+}
+
+/* The folder, made if it is not there yet (with a read-me), in Explorer. */
+static const char k_mods_readme[] =
+    "Mods for Ascension-R: one folder or .zip for each mod, here.\r\n"
+    "\r\n"
+    "A mod's files are laid out as the game's USRDIR folder has them, in a folder named files\r\n"
+    "(or USRDIR, PS3_GAME\\USRDIR or dev_hdd0\\game\\<id>\\USRDIR, as mods for RPCS3 come, or right in\r\n"
+    "the mod's folder): files\\TPPS6.PSARC stands for USRDIR\\TPPS6.PSARC. A file there is read in place\r\n"
+    "of the game's, or added where the game has none. The game's own folder is never changed.\r\n"
+    "\r\n"
+    "The launcher's Mods tab lists them: each one on or off, and their order. The first one wins\r\n"
+    "where two have the same file. A mod.ini in a mod's folder names it:\r\n"
+    "\r\n"
+    "  [mod]\r\n"
+    "  name = Readable name\r\n"
+    "  version = 1.0\r\n"
+    "  author = Who made it\r\n"
+    "  description = A line about what it changes.\r\n";
+
+static void mods_open(void)
+{
+    const std::wstring dir = s_mods.dir.empty() ? mods_folder() : s_mods.dir;
+    if (CreateDirectoryW(dir.c_str(), NULL)) {
+        const std::wstring rm = dir + L"\\README.txt";
+        if (FILE* f = _wfopen(rm.c_str(), L"wb")) {
+            fwrite(k_mods_readme, 1, sizeof k_mods_readme - 1, f);
+            fclose(f);
+        }
+    } else if (GetLastError() != ERROR_ALREADY_EXISTS) {
+        toast_bad("The mods folder could not be made");
+        return;
+    }
+    ShellExecuteW(s_main, L"open", dir.c_str(), NULL, NULL, SW_SHOWNORMAL);
+    s_mods_stale = 1;
+}
+
+/* A small square button with an icon; not enabled: greyed, and nothing to click. */
+static void w_icon_button(Icon ic, D2D1_RECT_F r, int id, int enabled)
+{
+    const int hov = enabled && hovered(id), down = enabled && s_press == id && hov;
+    bevel(r, hov ? C_CTL_HI : C_CTL, C_HI, C_LO, 2.0f, 1.0f, 1.0f, down);
+    const float o = down ? 1.0f : 0.0f;
+    icon(ic, snap(r.left + (r.right - r.left - 16.0f) * 0.5f) + o, snap(r.top + (r.bottom - r.top - 16.0f) * 0.5f) + o,
+         enabled ? C_TEXT2 : C_OFF);
+    if (enabled) hit(r, id);
+}
+
+static float mod_desc_h(const ModInfo& m, float tw)
+{
+    if (m.desc.empty()) return 0.0f;
+    const float h = text_h(W(m.desc.c_str()), s_tf_desc, tw);
+    return h > 38.0f ? 38.0f : h;   /* two lines at most */
+}
+static float mod_row_h(const ModInfo& m, float tw)
+{
+    const float dh = mod_desc_h(m, tw);
+    return 14.0f + 22.0f + (dh > 0.0f ? dh + 4.0f : 0.0f) + 24.0f + 12.0f;
+}
+static float mods_h(float w)
+{
+    float h = MOD_FOLDER_H + MOD_NOTE_H;
+    if (s_mods.mods.empty()) return h + MOD_EMPTY_H;
+    for (const ModInfo& m : s_mods.mods) h += mod_row_h(m, w - MOD_CTL_W - 24.0f);
+    return h;
+}
+
+/* The tab's card from y, under Use mods: the folder, then each mod in its order, then how the order counts. top,
+ * bottom: the part in view, the only rows drawn. */
+static void mods_draw(float x, float y, float w, float top, float bottom)
+{
+    const Opt* uo = opt_find("mods", "use");
+    const int use = !uo || opt_on(*uo);
+    w_rule(x, y, w);
+    text(L"Mods folder", s_tf_ui_b, R(x, y + 11, w - 212, 22), C_TEXT);
+    text(s_mods.dir.c_str(), s_tf_path, R(x, y + 35, w - 212, 20), C_MUTED);
+    w_button(L"Open folder\x2026", R(x + w - 180, y + (MOD_FOLDER_H - SEG_H) * 0.5f, 180, SEG_H), H_MODS_OPEN, B_PLAIN);
+    y += MOD_FOLDER_H;
+    if (s_mods.mods.empty()) {
+        w_rule(x, y, w);
+        icon(k_ic_info, x, y + 25, C_MUTED);
+        text(L"No mods yet. Put a mod's folder or its .zip into the mods folder: it shows here, switched on.", s_tf_desc,
+             R(x + 26, y + 20, w - 26, 40), C_TEXT2);
+        y += MOD_EMPTY_H;
+    }
+    const float tw = w - MOD_CTL_W - 24.0f;
+    for (size_t i = 0; i < s_mods.mods.size(); i++) {
+        const ModInfo& m = s_mods.mods[i];
+        const float rh = mod_row_h(m, tw);
+        if (y + rh < top || y > bottom) { y += rh; continue; }
+        w_rule(x, y, w);
+        const int lit = use && m.on;
+        /* Its name, then its version, its author and its zip, smaller. */
+        const wchar_t* name = W(m.name.c_str());
+        const float nw = text_w(name, s_tf_ui_b), name_w = nw < tw ? nw : tw;
+        text(name, s_tf_ui_b, R(x, y + 14, name_w + 2, 22), lit ? C_TEXT : C_TEXT2);
+        std::string meta = m.version;
+        if (!m.author.empty()) meta += (meta.empty() ? "by " : "  \xC2\xB7  by ") + m.author;
+        if (m.zip) meta += (meta.empty() ? "" : "  \xC2\xB7  ") + std::string(U8(m.id.c_str()));
+        if (!meta.empty() && name_w + 14.0f < tw)
+            text(W(meta.c_str()), s_tf_small, R(x + name_w + 14, y + 16, tw - name_w - 14, 20), C_DIM);
+        float ly = y + 14 + 22;
+        const float dh = mod_desc_h(m, tw);
+        if (dh > 0.0f) {
+            text(W(m.desc.c_str()), s_tf_desc, R(x, ly + 4, tw, dh + 2), C_MUTED);
+            ly += dh + 4;
+        }
+        /* What it gives: its files, those a mod above has too, what this build does not read yet, or why it is not
+         * read at all. */
+        wchar_t st[600];
+        unsigned sc = C_DIM;
+        if (!m.error.empty()) {
+            swprintf(st, 600, L"Not read: %ls", W(m.error.c_str()));
+            sc = C_WARN_T;
+        } else {
+            int k = swprintf(st, 600, L"%d %ls", m.files, m.files == 1 ? L"file" : L"files");
+            if (m.on && m.shadowed && k > 0) {
+                const ModInfo* by = NULL;
+                for (const ModInfo& o : s_mods.mods) if (o.id == m.shadowed_by) by = &o;
+                k += swprintf(st + k, 600 - k, L"  \x00B7  %d of them from %ls, above", m.shadowed,
+                              by ? W(by->name.c_str()) : m.shadowed_by.c_str());
+                sc = C_WARN_T;
+            }
+            if (!m.later.empty() && k > 0) {
+                k += swprintf(st + k, 600 - k, L"  \x00B7  not read by this build yet:");
+                for (size_t j = 0; j < m.later.size() && k > 0; j++)
+                    k += swprintf(st + k, 600 - k, L"%ls %ls", j ? L"," : L"", W(m.later[j].c_str()));
+                sc = C_WARN_T;
+            }
+        }
+        if (!lit && sc == C_DIM) sc = C_OFF;
+        if (!m.error.empty()) icon(k_ic_warn, x, ly + 5, C_WARN);
+        text(st, s_tf_small, R(x + (m.error.empty() ? 0.0f : 24.0f), ly + 4, tw - (m.error.empty() ? 0.0f : 24.0f), 20), sc);
+        /* On the right: up, down, and its switch. */
+        const int base = H_MOD + 3 * (int)i;
+        const float cy = y + (rh - 32.0f) * 0.5f;
+        const float sx = x + w - SW_W;
+        w_switch(m.on, sx, y + (rh - SW_H) * 0.5f, base);
+        w_icon_button(k_ic_down, R(sx - 12 - 32, cy, 32, 32), base + 2, i + 1 < s_mods.mods.size());
+        w_icon_button(k_ic_raise, R(sx - 12 - 32 - 6 - 32, cy, 32, 32), base + 1, i > 0);
+        y += rh;
+    }
+    w_rule(x, y, w);
+    icon(k_ic_info, x, y + 13, C_MUTED);
+    text(use ? L"The first one in the list wins where two mods have the same file. Mods are files alone: the game's "
+               L"folder is never changed."
+             : L"Use mods is off: the game starts without any of them.",
+         s_tf_small, R(x + 26, y + 8, w - 26, 26), C_MUTED);
+}
+
 static void draw_settings(int tab)
 {
     const float x0 = SIDE_W + 16, hh = HERO_TAB;
@@ -2477,6 +2683,10 @@ static void draw_settings(int tab)
     if (tab == T_TROPHIES) {
         tro_refresh();
         ch += tro_h();
+    }
+    if (tab == T_MODS) {
+        mods_refresh();
+        ch += mods_h(rw);
     }
     ch += 16.0f;
     const float view = WIN_H - FOOT_H - 12.0f - cy;
@@ -2513,6 +2723,7 @@ static void draw_settings(int tab)
         w_button(L"Edit keys\x2026", R(rx + rw - 180, y + (rh - SEG_H) * 0.5f, 180, SEG_H), H_KEYS, B_PLAIN);
     }
     if (tab == T_TROPHIES) tro_draw(rx, y, rw, cy, cy + view);
+    if (tab == T_MODS) mods_draw(rx, y, rw, cy, cy + view);
     if (tab == T_PATCHES) {
         w_rule(rx, y, rw);
         icon(k_ic_info, rx, y + 13, C_MUTED);
@@ -3612,6 +3823,7 @@ static int pick_file(const wchar_t* title, const wchar_t* kind, const wchar_t* s
 
 static void act(int id)
 {
+    if (id >= H_MOD) { mods_act(id - H_MOD); return; }
     if (id >= H_DDITEM) {
         if (s_dd >= 0 && id - H_DDITEM < s_opt[s_dd].n) opt_set(s_opt[s_dd], s_opt[s_dd].values[id - H_DDITEM]);
         s_dd = -1;
@@ -3655,6 +3867,7 @@ static void act(int id)
         case H_REPORT: report_make(NULL); break;
         case H_SHADERS: clear_shaders(); break;
         case H_PREBUILD: pb_start(); break;
+        case H_MODS_OPEN: mods_open(); break;
         case H_GAME_BROWSE: game_browse(); break;
         case H_PICK_RPCS3:
             if (pick_file(L"Choose rpcs3.exe", L"rpcs3.exe", L"rpcs3.exe", s_prep.rpcs3, GAME_PATH_MAX)) prepare_begin();
@@ -3702,7 +3915,11 @@ static void act(int id)
         return;
     }
     if (id >= H_SEG) { Opt& o = s_opt[(id - H_SEG) / 16]; opt_set(o, o.values[(id - H_SEG) % 16]); return; }
-    if (id >= H_NAV) { s_tab = id - H_NAV; return; }
+    if (id >= H_NAV) {
+        s_tab = id - H_NAV;
+        if (s_tab == T_MODS) s_mods_stale = 1;   /* what the folder has now */
+        return;
+    }
 }
 
 static int hit_at(float x, float y)
@@ -3786,6 +4003,12 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         EndPaint(h, &ps);
         return 0;
     }
+    case WM_ACTIVATE:   /* back to the front: a mod may have been put into the folder meanwhile */
+        if (LOWORD(w) != WA_INACTIVE) {
+            s_mods_stale = 1;
+            if (s_tab == T_MODS) redraw();
+        }
+        break;
     case WM_DPICHANGED:
         place(h, HIWORD(w), (const RECT*)l, 0);
         rt_release();
@@ -3880,6 +4103,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         if (w == VK_TAB || w == VK_NEXT || w == VK_PRIOR) {   /* tabs by keyboard */
             const int back = w == VK_PRIOR || (w == VK_TAB && (GetKeyState(VK_SHIFT) & 0x8000));
             s_tab = (s_tab + (back ? T_N - 1 : 1)) % T_N;
+            if (s_tab == T_MODS) s_mods_stale = 1;
             s_dd = -1;
             redraw();
             return 0;
@@ -3957,14 +4181,15 @@ enum { S_TAB, S_LIST, S_SEARCH, S_END, S_TOAST, S_DECRYPT, S_KEYS, S_KEYS_WAIT, 
        S_UPDATE, S_PREBUILD };
 static const int k_shots[][2] = {
     { T_PLAY, S_TAB }, { T_GRAPHICS, S_TAB }, { T_DISPLAY, S_TAB }, { T_CONTROLS, S_TAB }, { T_PATCHES, S_TAB },
-    { T_CHEATS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB }, { T_DISPLAY, S_LIST },
+    { T_CHEATS, S_TAB }, { T_MODS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB },
+    { T_DISPLAY, S_LIST },
     { T_SYSTEM, S_SEARCH }, { T_CHEATS, S_END },
     { T_GRAPHICS, S_END }, { T_SYSTEM, S_END }, { T_PLAY, S_TOAST }, { T_SYSTEM, S_DECRYPT },
     { T_CONTROLS, S_KEYS }, { T_CONTROLS, S_KEYS_WAIT },
 #ifdef PORT_GAME_MODULE
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
-    { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD },
+    { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD }, { T_MODS, S_END },
 };
 
 static void shot_state(int what, int on)

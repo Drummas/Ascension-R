@@ -195,10 +195,21 @@ damage, its meters and its jump ([note](notes/2026-11-07-cheats.md)).
 
 ## Mods
 
-`paths.mods` names a folder laid out like the PS3's paths, `dev_hdd0\game\NPUA80918\USRDIR\...`. A file there is read in
-place of the game's, or added where the game has none, and the game's folder is left as it is. Empty, the default, means no
-mod folder. The log names each file taken from it (`[fs] mod`). The game's text, subtitles included, is plain UTF-8 inside its
-archives, so a translation can go in as a seventh update: `TPPS6.PSARC` with the text patches, and `PATCHES`
-holding `6` ([note](notes/2026-11-11-game-text.md)). From a build tree, `gowa.py text export [--part story]` writes the
-English text into `build\text\`, a line for each line of text, and `gowa.py text build <translation files>` checks a
-translation and writes that update into `build\mods\`, for `paths.mods`. The game's folder is only read.
+The `mods` folder beside the settings file (`build\mods\` in a build tree; `[mods] folder` names another) holds a folder
+or a `.zip` for each mod. The launcher's **Mods** tab lists them in their order, each with its switch, up and down, and
+what it gives: its files, how many of them a mod above it has too (the first one in the list wins), and what this build
+does not read. **Use mods** (`mods.use`, on) leaves them all out when off. The game takes the files of the mods that are
+on, whichever USRDIR it reads them from (a disc's or its update's), in place of the game's or added where the game has
+none; the game's own folder is never changed. A `.zip` is unpacked once into `mods\.unpacked\`, and again when it
+changes. The log has a `[mods]` line with each mod and its count, and names each file taken (`[fs] mod`); the problem
+report has the same line, without paths. [MODDING.md](MODDING.md) has the layout a mod comes in, its `mod.ini`, and how
+the settings keep the order (`[mods] order` and `off`).
+
+`paths.mods` still names one older folder laid out like the PS3's paths, `dev_hdd0\game\NPUA80918\USRDIR\...`, read after
+the mods folder. Empty, the default, means none.
+
+The game's text, subtitles included, is plain UTF-8 inside its archives, so a translation can go in as a seventh update:
+`TPPS6.PSARC` with the text patches, and `PATCHES` holding `6` ([note](notes/2026-11-11-game-text.md)). From a build tree,
+`gowa.py text export [--part story]` writes the English text into `build\text\`, a line for each line of text, and
+`gowa.py text build <translation files>` checks a translation and writes it as a mod, `build\mods\translation\`
+(`--name` for another), which the Mods tab then lists. The game's folder is only read.
