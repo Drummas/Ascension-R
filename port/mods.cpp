@@ -182,8 +182,8 @@ void read_ini(const std::wstring& path, ModInfo* m)
 }
 
 const wchar_t* const k_direct[] = { L"files", L"USRDIR", L"PS3_GAME\\USRDIR" };
-const wchar_t* const k_packed[] = { L"archive", L"text" };   /* modpack.py's */
-const char* const k_later[] = { "textures", "patches" };
+const wchar_t* const k_packed[] = { L"archive", L"text", L"textures" };   /* modpack.py's, and textures.h's */
+const char* const k_later[] = { "patches" };
 
 /* Whether a folder is a mod's own: its mod.ini, or a folder of one it knows. The old text tool's mod folder was
  * dev_hdd0 itself. */
@@ -259,10 +259,11 @@ void layout(ModInfo* m)
     if (same(m->id, L"dev_hdd0") && is_dir(r + L"\\game")) titles(r + L"\\game");
     if (is_dir(r + L"\\archive")) m->archive = r + L"\\archive";
     if (is_dir(r + L"\\text")) m->text = r + L"\\text";
+    if (is_dir(r + L"\\textures")) m->textures = r + L"\\textures";
     for (const char* d : k_later)
         if (is_dir(r + L"\\" + wide(d))) m->later.push_back(d);
     /* None of those: the folder is laid out as USRDIR is, its files the game's. */
-    if (m->usrdirs.empty() && m->later.empty() && m->archive.empty() && m->text.empty()) {
+    if (m->usrdirs.empty() && m->later.empty() && m->archive.empty() && m->text.empty() && m->textures.empty()) {
         std::vector<std::wstring> ds, fs;
         list_dir(r, &ds, &fs);
         bool any = !ds.empty();
@@ -774,7 +775,18 @@ void mods_scan(ModList* out, int unpack)
                 else if (r.size() > 4 && !r.compare(r.size() - 4, 4, L".TSV")) m.text_files++;
             }
         }
-        if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files) {
+        if (!m.textures.empty()) {   /* the pictures: .png files named by sixteen hex digits (textures.h) */
+            std::vector<std::wstring> rels;
+            walk(m.textures, std::wstring(), &rels, 0);
+            for (const std::wstring& r : rels) {
+                const size_t s = r.find_last_of(L'/');
+                const std::wstring n = s == std::wstring::npos ? r : r.substr(s + 1);
+                bool hex = n.size() >= 20 && !n.compare(n.size() - 4, 4, L".PNG") && (n[16] == L'.' || n[16] == L'_');
+                for (size_t i = 0; hex && i < 16; i++) hex = iswxdigit(n[i]) != 0;
+                if (hex) m.texture_files++;
+            }
+        }
+        if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files && !m.texture_files) {
             if (m.later.empty()) m.error = "it is empty";
             else {
                 m.error = "this build does not read its ";
@@ -896,6 +908,9 @@ std::string mods_summary(const ModList& l)
                 if (m.archive_files) what += (what.empty() ? "" : "; ") + std::string("archive: ") + files_text(m.archive_files);
                 if (m.text_files) what += (what.empty() ? "" : "; ") + std::string("text: ") + files_text(m.text_files);
             }
+            if (m.texture_files)
+                what += (what.empty() ? "" : "; ") + std::string("textures: ") + std::to_string(m.texture_files) +
+                        (m.texture_files == 1 ? " picture" : " pictures");
             if (!m.later.empty()) {
                 what += "; not read yet:";
                 for (const std::string& k : m.later) what += " " + k;

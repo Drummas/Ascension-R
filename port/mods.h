@@ -41,7 +41,9 @@ struct ModInfo {
     int text_files = 0;             /* the .tsv files in text\ */
     std::string packed;             /* what the pack made of them, as of the mods as they are now; "" not packed yet */
     int pack_warn = 0;              /* something of them was left out */
-    std::vector<std::string> later; /* what this build does not read yet: "textures", "patches" */
+    std::wstring textures;          /* its textures\ folder, or "": pictures by texture id (textures.h) */
+    int texture_files = 0;          /* the pictures in it (.png files named by an id) */
+    std::vector<std::string> later; /* what this build does not read yet: "patches" */
     std::string error;              /* why none of it is read, or "" */
 };
 

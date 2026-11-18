@@ -168,6 +168,12 @@ out; SDL3 reads every controller, Xbox ones too. The Play tab's ready check name
 DualShock 3 needs a driver such as DsHidMini, and with DS4Windows XInput is the setting, or the pad counts twice
 ([note](notes/2026-11-10-controllers.md)).
 
+**Button icons** (`input.button_icons`, Controls) chooses the buttons the game shows: PlayStation, the game's own;
+Xbox, Ascension-R's own icons in place of them, A, B, X and Y where Cross, Circle, Square and Triangle are, and View
+for Select; or Auto, the default, Xbox's when an XInput controller is plugged in as the game starts. They are
+pictures in place of the game's button textures, as a texture mod's are (below), drawn by `scripts/button_icons.ps1`
+([note](notes/2026-11-18-mods-textures.md)).
+
 ## Sound
 
 The game's sound goes to Windows through WASAPI in shared mode, so the effects of Windows and of the sound card apply to
@@ -205,7 +211,10 @@ changes. A mod's `archive\` (files for entries of the game's archives, by their 
 game's text, as `gowa.py text export` writes them) go into one more update of the game, which the game makes as it
 starts, with the Kit's Python, and again only when they change: an entry the game's updates patch goes in as a `.PATCH`
 of one step, a line that fails the text checks is left out, and the first mod in the list wins
-([note](notes/2026-11-18-mods-archive-and-text.md)). The log has a `[mods]` line with each mod and what it gave, and
+([note](notes/2026-11-18-mods-archive-and-text.md)). A mod's `textures\` has PNGs named by the id of a texture of the
+game's: each goes in that texture's place as the texture reaches the graphics card, at any size, or over it as an
+overlay; **Write out the game's textures** (`mods.dump_textures`) writes each texture the game loads into
+`textures-dump\`, named by its id ([note](notes/2026-11-18-mods-textures.md)). The log has a `[mods]` line with each mod and what it gave, and
 names each file taken (`[fs] mod`); the problem report has the same line, without paths. [MODDING.md](MODDING.md) has
 the layout a mod comes in, its `mod.ini`, and how the settings keep the order (`[mods] order` and `off`).
 

@@ -46,6 +46,7 @@
 #include "loading_screen.h"       /* the precompile gate: the vertex shaders first, on a screen of their own */
 #include "precompile_music.h"     /* its music: --music-preview */
 #include "mods.h"                 /* the mods folder: the mods that are on, for the file system */
+#include "textures.h"             /* their pictures in place of the game's textures, and the dump */
 #include "ps3emu/ps3_settings.h"  /* ascension-r.ini: the player's settings and this machine's paths */
 
 #include <stdint.h>
@@ -1567,6 +1568,12 @@ static void title_environment(int pack_mods)
                 printf("[mods] pack: %s (%.1f s)\n", mods.pack_error.empty() ? "one more update" : mods.pack_error.c_str(),
                        (double)(GetTickCount64() - t0) / 1000.0);
         }
+        /* Their textures\, the Xbox button icons (Controls, Button icons) and the dump for those who make mods
+         * (textures.h). */
+        if (pack_mods)
+            gowa_textures_start(mods, ps3_settings_bool("mods", "dump_textures", "GOWA_DUMP_TEXTURES", 0)
+                                          ? gowa_textures_dump_folder() : std::wstring(),
+                                gowa_textures_xbox_icons());
         env_default("PS3_MODS_DIRS", mods_dirs(mods).c_str());
         if (!mods.mods.empty()) printf("[mods] %s\n", mods_summary(mods).c_str());
     }

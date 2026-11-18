@@ -63,13 +63,15 @@ problems further in.
 - **Game patches:** switch off MLAA, depth of field, motion blur, mesh trimming or dynamic shadows.
 - **Cheats:** damage to and from Kratos, max red orbs, infinite magic and items, infinite rage and double jumps.
 - **Controls:** a controller or keyboard and mouse. Xbox and other XInput pads, and through SDL3 the DualShock 4, the
-  DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings.
+  DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings,
+  and Xbox button icons (from the next release) in place of the PlayStation ones, by choice or for an Xbox controller.
 - **Trophies:** read from the game's own trophy list, in the game's language. A notice over the picture for each one
   won, a Trophies page in the launcher, and the platinum once every single-player trophy is won.
 - **Saves:** backups kept before the game writes over a save.
 - **Mods** (from the next release): a `mods` folder beside the program. A mod's folder or `.zip` dropped in shows on the
-  launcher's Mods tab, where each one is switched on or off and ordered; its files are read in place of the game's, and
-  the game's own folder is never changed ([docs/MODDING.md](docs/MODDING.md)).
+  launcher's Mods tab, where each one is switched on or off and ordered. Its files are read in place of the game's,
+  files inside the game's archives and lines of its text go in as one more update, and its pictures take the place of
+  the game's textures; the game's own folder is never changed ([docs/MODDING.md](docs/MODDING.md)).
 - **Problem reports:** one button makes a zip of the logs, with your paths hidden.
 
 [docs/FEATURES.md](docs/FEATURES.md) describes each one and its setting.

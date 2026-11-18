@@ -157,6 +157,9 @@ static const char* const k_dz[] = { "0.10", "0.15", "0.20", "0.24", "0.30", "0.3
 static const char* const k_dz_n[] = { "10%", "15%", "20%", "24% (XInput's)", "30%", "35%", "40%" };
 static const char* const k_enter[] = { "cross", "circle" };
 static const char* const k_enter_n[] = { "Cross", "Circle" };
+static const char* const k_icons[] = { "auto", "playstation", "xbox" };
+static const char* const k_icons_n[] = { "Auto: by the controller", "PlayStation", "Xbox" };
+static const char* const k_icons_s[] = { "Auto", "PlayStation", "Xbox" };
 static const char* const k_bak[] = { "0", "3", "5", "10" };
 static const char* const k_bak_n[] = { "Off", "Keep 3", "Keep 5", "Keep 10" };
 static const char* const k_bak_s[] = { "Off", "3", "5", "10" };
@@ -237,6 +240,9 @@ static Opt s_opt[] = {
       "How far a stick moves before it counts." },
     { T_CONTROLS, "input", "enter_button", "cross", "Confirm button", 0, LIST(k_enter, k_enter_n), k_enter_n,
       "The button that confirms in the menus." },
+    { T_CONTROLS, "input", "button_icons", "auto", "Button icons", 0, LIST(k_icons, k_icons_n), k_icons_s,
+      "The buttons the game shows. Auto: Xbox's when an Xbox (XInput) controller is plugged in as the game starts, "
+      "else PlayStation's. Xbox's are A, B, X and Y where Cross, Circle, Square and Triangle are, and View for Select." },
     { T_CONTROLS, "input", "vibration", "on", "Vibration", 1, SW, "Controller rumble." },
     { T_CHEATS, "cheats", "damage_taken", "1", "Damage to Kratos", 0, LIST(k_taken, k_taken_n), k_taken_n,
       "How much of a hit he takes. None: hits take no health from him." },
@@ -252,6 +258,9 @@ static Opt s_opt[] = {
       "Kratos can jump again in the air, as often as he likes." },
     { T_MODS, "mods", "use", "on", "Use mods", 1, SW,
       "Off: the game as it is, every mod left out. Below, each one is switched on its own." },
+    { T_MODS, "mods", "dump_textures", "off", "Write out the game's textures", 1, SW,
+      "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, "
+      "named by the id a picture in its place takes. The game is slower while it is on." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -2643,6 +2652,9 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
                          (m.text_files == 1 ? L" file" : L" files");
                 st += (st.empty() ? L"" : sep) + p + (lit ? L", packed when the game starts" : L"");
             }
+            if (m.texture_files)
+                st += (st.empty() ? L"" : sep) + std::wstring(L"textures: ") + std::to_wstring(m.texture_files) +
+                      (m.texture_files == 1 ? L" picture" : L" pictures");
             if (!m.later.empty()) {
                 st += sep + std::wstring(L"not read by this build yet:");
                 for (size_t j = 0; j < m.later.size(); j++) st += (j ? L", " : L" ") + std::wstring(W(m.later[j].c_str()));

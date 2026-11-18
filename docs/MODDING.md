@@ -21,6 +21,7 @@ MyMod\
     data\fonts\...   stands for USRDIR\data\fonts\...
   archive\           files inside the game's archives (below)
   text\              lines of the game's text (below)
+  textures\          pictures in place of the game's textures (below)
 ```
 
 - A file there is read in place of the game's file of that name, or added where the game has none. Names match
@@ -122,13 +123,45 @@ The languages are the game's: `en`, `en-gb`, `fr`, `es`, `es-la`, `de`, `it`, `n
 - A mod whose `archive\` brings a language's whole `R_LANG_<lang>.WAD` comes first: the text lines for that language
   are left out, and the tab says which mod brings it.
 
+## Pictures in place of the game's textures: textures\
+
+A mod's `textures\` has PNG files, each named by the id of the texture it stands for: sixteen hex digits, the same
+in every release and from run to run.
+
+```
+MyMod\
+  textures\
+    2133aab0625680af.png                    in that texture's place, at any size
+    1f52688dc50e2bfb_64x64_88.overlay.png   drawn over the game's own texture
+```
+
+- **The ids come from the dump.** Mods tab, **Write out the game's textures**: as the game plays, each texture it
+  loads goes once into `textures-dump\` beside the settings (beside `Ascension-R.exe` in a release, `build\` in a
+  build tree), as `<id>_<width>x<height>_<format>.png`. Copy one into a mod's `textures\`, change it, and keep the id
+  at the start of its name: anything after an `_` is free. The game is slower while the dump is on.
+- **A picture** (`<id>.png`) goes in the texture's place. It can be of any size; the mip levels are made from it.
+- **An overlay** (`<id>.overlay.png`, or `<id>_anything.overlay.png`) is drawn over the game's own texture, which is
+  first scaled to the overlay's size: where the overlay's alpha is above 1 it is laid over, where it is 1 the texel is
+  made clear, and where it is 0 the game's shows. So a mod need hold none of the game's own pictures.
+- **Formats.** The game's colour textures (A8R8G8B8, the 16-bit ones, DXT1/3/5) take a picture as RGBA; its
+  one-channel and two-channel ones (B8, X16, G8B8) take a picture's red (and green) channel. A cube map or a volume is
+  not named. A texture that changes as the game runs (a copy of the frame, a video) stops being looked up after four
+  changes; the game's font pages are made as it runs, so their ids are not the same from one run to the next.
+- The first mod in the list wins where two have a picture for the same id. A file that is not a PNG Windows can read
+  is named in the log once and left out.
+- The id is XXH64 of the texture's level 0 as the game has it, with the format, width and height in the seed
+  (ps3recomp's `libs/video/rsx_tex_replace.h`).
+
+**Button icons** (Controls tab) puts Ascension-R's own Xbox icons in place of the game's PlayStation ones: A, B, X
+and Y where Cross, Circle, Square and Triangle are, and View for Select, as a set of pictures like a mod's. A mod's
+picture of the same texture wins over them.
+
 ## What this build does not read yet
 
-A mod can have these folders, which a later Ascension-R is to read. The tab names them, and this build leaves them out:
+A mod can have this folder, which a later Ascension-R may read. The tab names it, and this build leaves it out:
 
 | folder | what it is to hold |
 |---|---|
-| `textures\` | pictures put in place of the game's as they reach the graphics card, by a hash of the game's picture |
 | `patches\` | patches to the game's code, in RPCS3's `patch.yml` form |
 
 ## Checking a mod
@@ -138,4 +171,6 @@ A mod can have these folders, which a later Ascension-R is to read. The tab name
   '<the file>'` for each file taken, the first 64 of them.
 - `mods\.built\` holds the update the last start made, `result.txt` (what each mod gave) and `pack.log` (what the
   packer said).
+- A `[tex]` line says how many pictures the mods have, and each texture given one is named,
+  `[tex] <id> <width>x<height> fmt <format>: a picture in its place`, the first 32 of them.
 - **Report a problem** puts the same `Mods:` line in the report's notes, without the folder's path.
