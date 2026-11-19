@@ -1385,7 +1385,8 @@ def copy_fsr():
 
 def copy_vc_runtime(env):
     """The C++ runtime beside the exe, for a PC without the Visual C++ Redistributable. The FSR DLLs need it too."""
-    redist = os.path.join(env.get("VCToolsRedistDir", ""), "x64")
+    # toolchain_env() keeps the names upper case, as Windows matches them
+    redist = os.path.join(env.get("VCTOOLSREDISTDIR") or env.get("VCToolsRedistDir", ""), "x64")
     crt = [d for d in (os.listdir(redist) if os.path.isdir(redist) else []) if re.match(r"Microsoft\.VC\d+\.CRT$", d)]
     if not crt:
         say("note: no Visual C++ redistributable files; the exe needs the runtime installed")
