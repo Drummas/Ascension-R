@@ -143,6 +143,8 @@ static const char* const k_aa_s[] = { "Off", "SMAA" };
 static const char* const k_sharp[] = { "off", "low", "medium", "high", "max" };
 static const char* const k_sharp_n[] = { "Off", "Low", "Medium", "High (AMD's)", "Max" };
 static const char* const k_sharp_s[] = { "Off", "Low", "Medium", "High", "Max" };
+static const char* const k_grade[] = { "off", "low", "medium", "high", "max" };       /* vibrance, contrast */
+static const char* const k_grade_n[] = { "Off", "Low", "Medium", "High", "Max" };
 static const char* const k_taken[] = { "1", "0.5", "0.25", "0" };
 static const char* const k_taken_n[] = { "Normal", "Half", "Quarter", "None" };
 static const char* const k_dealt[] = { "1", "2", "5", "kill" };
@@ -205,6 +207,11 @@ static Opt s_opt[] = {
       "in place of SMAA, and FSR 1 takes over where there is no scene." },
     { T_GRAPHICS, "graphics", "sharpening", "high", "FSR sharpening", 0, LIST(k_sharp, k_sharp_n), k_sharp_s,
       "The sharpening pass of FSR (RCAS). Only with FSR scaling." },
+    { T_GRAPHICS, "graphics", "vibrance", "off", "Colour vibrance", 0, LIST(k_grade, k_grade_n), k_grade_n,
+      "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. "
+      "On the whole picture, the game's HUD and menus too." },
+    { T_GRAPHICS, "graphics", "contrast", "off", "Contrast", 0, LIST(k_grade, k_grade_n), k_grade_n,
+      "A gentle curve: darks a little darker, lights a little lighter, black and white kept." },
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 1, SW,
       "FSR 3.1: twice the frames on screen, with VSync on. The game is held at half the monitor's refresh rate, "
       "30 at 60 Hz and 60 at 120 Hz. A frame is made between each two, which holds the picture back by about a "

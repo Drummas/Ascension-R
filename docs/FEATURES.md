@@ -129,6 +129,22 @@ hitch. The frame rate turns amber under 29 and red under 20, as the game holds 3
 stats` in `ascension-r.ini` shows the larger stats panel instead, for diagnosis: the loads, memory, the graphics card's
 and CPU's names, and Kratos's position.
 
+## Colour vibrance and contrast
+
+Two rows in the launcher's Graphics tab (#26), Off to Max, both off by default: the game's own muted, golden look stays
+the default. They grade the picture at the end of the presentation pass, after the scaling and before the port's
+overlay, so the game's HUD and menus are graded with it and the frame rate panel is not.
+
+- **Colour vibrance** (`graphics.vibrance`) moves each colour away from its grey by 1 + V x (1 - its saturation): dull
+  colours the most, strong ones (and skin) little. V is 0.2, 0.4, 0.6 and 0.9 from Low to Max.
+- **Contrast** (`graphics.contrast`) puts the luminance on an S-curve (smoothstep, by 0.15, 0.3, 0.45 and 0.65) and
+  scales the colour with it: darks a little darker, lights a little lighter, black and white kept.
+
+Bilinear, sharp bilinear and FSR 1 do it in their last shader; FSR 3.1 does it on the upscaler's output, before the HUD
+goes on, which keeps frame generation's picture without the HUD like the frame. It costs next to nothing. On the
+loading screen's logo, High vibrance with Medium contrast took the mean saturation from 0.74 to 0.86 and left the black
+at 0. Screenshots with `display.screenshot = game` keep the game's own frame, ungraded.
+
 ## FSR 3.1
 
 Two rows in the launcher's Graphics tab, both off by default, measured on a GTX 1650 Ti. `build` copies their DLLs from
