@@ -35,5 +35,7 @@ int ej_read(const spu_context* ctx, ej_view* v, uint32_t base);
 
 /* A mod's proportions (spu_edge_prop.c): a skinned job's palette pieces made anew, at its start. */
 void edge_prop_job(spu_context* ctx);
+/* The program's side of it (port/edge_prop.c; in the Kit's DLL, a jump through game_module.h's table). */
+int gowa_edge_prop(uint8_t* ls, const uint32_t* slot_lsa, const uint32_t* slot_size, const uint32_t* slot_ea);
 
 #endif

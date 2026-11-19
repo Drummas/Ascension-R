@@ -788,7 +788,7 @@ void mods_scan(ModList* out, int unpack)
                 if (hex) m.texture_files++;
             }
         }
-        if (!m.proportions.empty()) {   /* bone lengths for a mesh: .bin files (native/spu_edge_prop.c reads them) */
+        if (!m.proportions.empty()) {   /* bone lengths for a mesh: .bin files (port/edge_prop.c reads them) */
             std::vector<std::wstring> fs;
             list_dir(m.proportions, NULL, &fs);
             for (const std::wstring& f : fs)

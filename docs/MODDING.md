@@ -189,7 +189,7 @@ MyMod\
   a skeleton of the new lengths gives its inverse binds in the JSON, and is then drawn as it was made.
 - What is not changed: the weapons and anything the game places by a joint of its own (the blades on the back stay
   where Kratos's would be), and the Grotto's skinned meshes, which the game builds another way.
-- The lengths are made each frame on the skinning jobs (`native/spu_edge_prop.c`); the file's form is described
+- The lengths are made each frame on the skinning jobs (`port/edge_prop.c`); the file's form is described
   there.
 
 ## What this build does not read yet

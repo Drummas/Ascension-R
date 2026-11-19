@@ -1,4 +1,4 @@
-"""A mod's proportions files (docs/MODDING.md, native/spu_edge_prop.c): a character's bones longer or shorter.
+"""A mod's proportions files (docs/MODDING.md, port/edge_prop.c): a character's bones longer or shorter.
 
     proportions.py <archive> <spec.json> <the mod's proportions folder>
 

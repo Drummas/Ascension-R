@@ -30,12 +30,18 @@ is not relative to the file there.
 
 ## The retarget
 
-`native/spu_edge_prop.c`, at each skinned job's start, for a job whose record lies in a mesh of a size a file names:
+`port/edge_prop.c` (`gowa_edge_prop`, which `native/spu_edge_prop.c` calls with the job's slots), at each skinned
+job's start, for a job whose record lies in a mesh of a size a file names:
 each joint's world matrix from the array and the original bind, its transform to its parent, the translation times
 the joint's ratio, the joints put together again from the root, and the palette made with the file's inverse binds;
 the job's copies of slots 6 and 7 (and 8 and 9) written over. Once an array a frame, kept by its address and a hash of
 its bytes. The memo's skinned jobs read the palette from the local store later (0xE550) and leave it out of their key,
 so a memoised job takes the new palette too. Not covered: the Grotto's own build of the job (0xB7C8).
+
+The work is the program's, not the game DLL's: it reads files and guards its reads of guest memory with `__try`, and
+the Kit's DLL is built with no C runtime (no `fopen`, no `__C_specific_handler`). The DLL reaches it as one more
+function of its table (`port/game_module.h`, `GAME_MODULE_ABI` 7); `tests/test_game_module_crt.py` turned the first
+version away for its C runtime calls, and `gowa.py module` links the DLL with it.
 
 `scripts/proportions.py` writes the files from the archive's skeleton and a JSON of ratios by name; `port/mods.cpp`
 gives the port the `.bin` files of the mods that are on (`GOWA_MOD_PROPORTIONS`).

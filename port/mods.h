@@ -43,7 +43,7 @@ struct ModInfo {
     int pack_warn = 0;              /* something of them was left out */
     std::wstring textures;          /* its textures\ folder, or "": pictures by texture id (textures.h) */
     int texture_files = 0;          /* the pictures in it (.png files named by an id) */
-    std::wstring proportions;       /* its proportions\ folder, or "": bone lengths for a mesh (native/spu_edge_prop.c) */
+    std::wstring proportions;       /* its proportions\ folder, or "": bone lengths for a mesh (port/edge_prop.c) */
     std::vector<std::wstring> proportion_files;   /* the .bin files in it */
     std::vector<std::string> later; /* what this build does not read yet: "patches" */
     std::string error;              /* why none of it is read, or "" */
