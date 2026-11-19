@@ -165,6 +165,40 @@ remainder of a 50/50 split.
   memory, taken from a segment that occurs once.
 - Kratos's three bodies share many identical parts; which mesh a job read needs the base too, not the first match.
 
+## Laying a mesh out anew
+
+A writer that builds every part from its pieces (part head, descriptors, groups, records, streams) rebuilds Kratos's
+five meshes from their own streams **byte for byte**. What it takes, beyond the tables above:
+
+- **The order in a part:** the head; per group (one a sub-block), a 0x38-byte descriptor (its last word the distance to
+  the group header), `0x0D` bytes up to the header at a 128-byte boundary of the mesh; the header (0x24), entries,
+  attribute records, joint list, zeros to 16; the output format, the input format; the segment records; the weights
+  (8 bytes a vertex, to 16; skinned groups only); the culling entries; the vertices (to 16); the RSX-only block; zeros to
+  128; the index streams, each at a 128-byte boundary. The next sub-block's descriptor follows the last index stream;
+  the next part follows the last sub-block (parts are only 4-aligned).
+- **The part head** (0x40 bytes and a table): word 7 the sub-block count (high half); a sphere for the part; for each
+  sub-block after the first, a self-relative pointer to its descriptor and its sphere. The descriptor holds a box.
+- **Attribute records:** the SPU's are the records that point into the first segment's vertex stream (+0, +6, +9 for a
+  body's position, normal, tangent; the hair and eyebrows have only position and normal, so their UV record is the
+  third), size the group's vertex bytes; the RSX block's have its size; a record of size 0 points at (the sub-block's
+  end - the attribute table) past itself.
+- **New segments** take the record of their group's largest segment (flags, hole size, the job's buffer size) and stay
+  within its vertex and index counts; a group may have any number of them (three times the original count was tested).
+- The prisoner's mesh puts its group headers off the 128-byte boundary; the writer does not cover it.
+
+**Where a body is loaded from.** Each body or skirt is a *stream set*: a game object in `R_HERO00.WAD` named by its
+hash (type 0x2D: `00040001`, the set's offset in `R_HERO00.AS`, its size, 5, its resident size, then the names
+`KratosStreamSet`, `KratosBodySet` or `KratosSkirtSet`, and the body's name such as `kratosbodydirty`). The resident size
+is about the set's entries other than textures. `GoStreamInfo` in the same WAD lists the two sets, eleven members each.
+The game reads a set at that offset, so a set copied to the end of the `.AS`, with the object pointed there and its
+resident size grown with the mesh, loads like the original.
+
+**Limits, measured on the fight replay:**
+- A body mesh of 0xB8000 bytes (736 KiB) loads; one of 0xBF000 does not, and the body is then not drawn, with nothing
+  in the log. A resident size raised to 0x139370 with a small mesh loads, so the limit is on the mesh.
+- The three bodies are not drawn whole: each part is drawn from one of them, and which one changes. The textures bound
+  are the dirty body's for all three (only its textures are uploaded in the level).
+
 ## What an importer needs
 
 Done, and shown to work in the game: the index, vertex and weight encoders; the record's fields; refilling a mesh's
@@ -172,11 +206,12 @@ original layout with new geometry (segments grown over shared vertices in strip 
 as the geometry needs, culling entries copied per node); the skeleton for rigging (names, tree, bind pose, palette
 k = node k); getting the file in through the mods folder.
 
+Done since: a mesh laid out anew (above), its stream set moved, up to the mesh limit.
+
 Still open:
-1. **Larger meshes** than a layout holds: a writer that lays the part heads, groups and blocks out anew, and rebuilds
-   the WAD (whether anything points at WAD offsets is not tested).
-2. **The fields not derived:** the buffer size (+0x58), the hole size and the flags; refilling keeps the originals,
-   which hold as long as a segment stays within its old capacity.
+1. **Meshes past the limit:** what sets it (a pool, a buffer) is not found; a bigger figure would need it.
+2. **The fields not derived:** the buffer size (+0x58), the hole size and the flags; new segments take their group's
+   largest segment's, which hold as long as a segment stays within its counts.
 3. **The culling entries' 12 bytes**: copied per node for now (a bigger original shape culls later, never earlier).
 4. **Materials:** the original materials with new pictures through the [textures layer](2026-11-18-mods-textures.md),
    or new `MAT_` and texture entries, which are not mapped.
