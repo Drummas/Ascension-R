@@ -1575,6 +1575,7 @@ static void title_environment(int pack_mods)
                                           ? gowa_textures_dump_folder() : std::wstring(),
                                 gowa_textures_xbox_icons());
         env_default("PS3_MODS_DIRS", mods_dirs(mods).c_str());
+        env_default("GOWA_MOD_PROPORTIONS", mods_proportions(mods).c_str());
         if (!mods.mods.empty()) printf("[mods] %s\n", mods_summary(mods).c_str());
     }
     /* And the older mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...), after them.

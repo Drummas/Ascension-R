@@ -43,6 +43,8 @@ struct ModInfo {
     int pack_warn = 0;              /* something of them was left out */
     std::wstring textures;          /* its textures\ folder, or "": pictures by texture id (textures.h) */
     int texture_files = 0;          /* the pictures in it (.png files named by an id) */
+    std::wstring proportions;       /* its proportions\ folder, or "": bone lengths for a mesh (native/spu_edge_prop.c) */
+    std::vector<std::wstring> proportion_files;   /* the .bin files in it */
     std::vector<std::string> later; /* what this build does not read yet: "patches" */
     std::string error;              /* why none of it is read, or "" */
 };
@@ -74,6 +76,9 @@ void mods_pack(ModList* l, const std::wstring& usrdir);
 /* PS3_MODS_DIRS: the pack's folder first, then the USRDIR folders of the mods that are on, the first one's first, '|'
  * between them. "" when mods are off or none is on. */
 std::string mods_dirs(const ModList& l);
+
+/* GOWA_MOD_PROPORTIONS: the proportions files of the mods that are on, the first one's first, '|' between them. */
+std::string mods_proportions(const ModList& l);
 
 /* One line for the log and the report: "Xbox icons 1.0 (12 files), Big text (3 files); off: Other". */
 std::string mods_summary(const ModList& l);

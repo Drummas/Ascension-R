@@ -33,4 +33,7 @@ typedef struct {
  * jobs). */
 int ej_read(const spu_context* ctx, ej_view* v, uint32_t base);
 
+/* A mod's proportions (spu_edge_prop.c): a skinned job's palette pieces made anew, at its start. */
+void edge_prop_job(spu_context* ctx);
+
 #endif

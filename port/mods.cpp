@@ -260,10 +260,12 @@ void layout(ModInfo* m)
     if (is_dir(r + L"\\archive")) m->archive = r + L"\\archive";
     if (is_dir(r + L"\\text")) m->text = r + L"\\text";
     if (is_dir(r + L"\\textures")) m->textures = r + L"\\textures";
+    if (is_dir(r + L"\\proportions")) m->proportions = r + L"\\proportions";
     for (const char* d : k_later)
         if (is_dir(r + L"\\" + wide(d))) m->later.push_back(d);
     /* None of those: the folder is laid out as USRDIR is, its files the game's. */
-    if (m->usrdirs.empty() && m->later.empty() && m->archive.empty() && m->text.empty() && m->textures.empty()) {
+    if (m->usrdirs.empty() && m->later.empty() && m->archive.empty() && m->text.empty() && m->textures.empty() &&
+        m->proportions.empty()) {
         std::vector<std::wstring> ds, fs;
         list_dir(r, &ds, &fs);
         bool any = !ds.empty();
@@ -786,7 +788,15 @@ void mods_scan(ModList* out, int unpack)
                 if (hex) m.texture_files++;
             }
         }
-        if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files && !m.texture_files) {
+        if (!m.proportions.empty()) {   /* bone lengths for a mesh: .bin files (native/spu_edge_prop.c reads them) */
+            std::vector<std::wstring> fs;
+            list_dir(m.proportions, NULL, &fs);
+            for (const std::wstring& f : fs)
+                if (f.size() > 4 && same(f.substr(f.size() - 4), L".bin"))
+                    m.proportion_files.push_back(m.proportions + L"\\" + f);
+        }
+        if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files && !m.texture_files &&
+            m.proportion_files.empty()) {
             if (m.later.empty()) m.error = "it is empty";
             else {
                 m.error = "this build does not read its ";
@@ -894,6 +904,17 @@ std::string mods_dirs(const ModList& l)
     return s;
 }
 
+std::string mods_proportions(const ModList& l)
+{
+    std::string s;
+    if (!l.use) return s;
+    for (const ModInfo& m : l.mods) {
+        if (!m.on || !m.error.empty()) continue;
+        for (const std::wstring& f : m.proportion_files) s += (s.empty() ? "" : "|") + u8(f);
+    }
+    return s;
+}
+
 std::string mods_summary(const ModList& l)
 {
     std::string on, off;
@@ -911,6 +932,9 @@ std::string mods_summary(const ModList& l)
             if (m.texture_files)
                 what += (what.empty() ? "" : "; ") + std::string("textures: ") + std::to_string(m.texture_files) +
                         (m.texture_files == 1 ? " picture" : " pictures");
+            if (!m.proportion_files.empty())
+                what += (what.empty() ? "" : "; ") + std::string("proportions: ") +
+                        files_text((int)m.proportion_files.size());
             if (!m.later.empty()) {
                 what += "; not read yet:";
                 for (const std::string& k : m.later) what += " " + k;

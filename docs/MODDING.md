@@ -22,6 +22,7 @@ MyMod\
   archive\           files inside the game's archives (below)
   text\              lines of the game's text (below)
   textures\          pictures in place of the game's textures (below)
+  proportions\       other bone lengths for a character's meshes (below)
 ```
 
 - A file there is read in place of the game's file of that name, or added where the game has none. Names match
@@ -162,6 +163,35 @@ MyMod\
 and Y where Cross, Circle, Square and Triangle are, and View for Select, as a set of pictures like a mod's. A mod's
 picture of the same texture wins over them.
 
+## Other bone lengths: proportions\
+
+The game takes the length of each bone from its animations, not from the skeleton in the archive, so a character
+whose mesh is made for longer legs or a shorter neck still moves with Kratos's. A mod's `proportions\` changes the
+lengths as the game draws: each bone keeps the direction the animation gives it, and its length is the animation's
+times the mod's ratio.
+
+```
+MyMod\
+  proportions\
+    81BC3F6F.bin    one file a skeleton, named after it
+```
+
+- **Make the files with `scripts/proportions.py`**, from the archive that has the skeleton and its meshes (the game's
+  `R_HERO00.AS` for Kratos's body, or the mod's own when it brings meshes) and a JSON file of the ratios by joint
+  name, `{"81BC3F6F": {"ratio": {"JOLeftWrist1": 0.8, "JORightWrist1": 0.8}}}`. The script's help has the rest:
+  which meshes, by their sizes, and the inverse binds of a mesh bound to a skeleton of other lengths.
+- **A ratio belongs to the joint at the bone's end**: it scales the joint's distance from its parent. A shorter
+  forearm is the wrist's ratio, a shorter upper arm the elbow's (`JOLeftLowerArm1`). The joints below it move with it.
+- **The meshes it changes** are the ones of the sizes the file names (by default the skeleton's own meshes in the
+  archive); a mesh of another size is drawn as it was. The game draws Kratos's body with one of three skeletons
+  (`81BC3F6F`, `4E90421D`, `34AE727F`), so a mod gives all three.
+- **Inverse binds.** With the skeleton's own (the default), the mesh's skin goes where the bones go. A mesh bound to
+  a skeleton of the new lengths gives its inverse binds in the JSON, and is then drawn as it was made.
+- What is not changed: the weapons and anything the game places by a joint of its own (the blades on the back stay
+  where Kratos's would be), and the Grotto's skinned meshes, which the game builds another way.
+- The lengths are made each frame on the skinning jobs (`native/spu_edge_prop.c`); the file's form is described
+  there.
+
 ## What this build does not read yet
 
 A mod can have this folder, which a later Ascension-R may read. The tab names it, and this build leaves it out:
@@ -180,4 +210,6 @@ A mod can have this folder, which a later Ascension-R may read. The tab names it
 - A `[tex]` line says how many pictures the mods have, for how many textures, and how many of those are other copies
   of the same textures of the game's; each texture given one is named,
   `[tex] <id> <width>x<height> fmt <format>: a picture in its place`, the first 32 of them.
+- `[props]` lines name each proportions file read (`<file>: <n> joints, for meshes of <size> bytes`) or turned away,
+  and each mesh that takes one when the game first draws it.
 - **Report a problem** puts the same `Mods:` line in the report's notes, without the folder's path.

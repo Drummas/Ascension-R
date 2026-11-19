@@ -113,6 +113,7 @@ static void ej_stats(void)
 int gowa_edge_job_ad98(spu_context* ctx)
 {
     edge_memo_job();
+    edge_prop_job(ctx);
     static int on = -1, stats;
     if (on < 0) {
         const char* e = getenv("GOWA_EDGE_JOB");
