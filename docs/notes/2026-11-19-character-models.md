@@ -218,7 +218,8 @@ k = node k); getting the file in through the mods folder.
 Done since: a mesh laid out anew (above), its stream set moved, up to the mesh limit.
 
 Still open:
-1. **Meshes past the limit:** what sets it (a pool, a buffer) is not found; a bigger figure would need it.
+1. **Meshes past the limit:** found since: two memory budgets in the game's DCB files, the body stream set's heap and
+   the hero WAD's heap, which a mod can raise ([note](2026-11-19-mesh-limit.md)).
 2. **The fields not derived:** the buffer size (+0x58), the hole size and the flags; new segments take their group's
    largest segment's, which hold as long as a segment stays within its counts.
 3. **The culling entries' 12 bytes**: copied per node for now (a bigger original shape culls later, never earlier).
