@@ -1,14 +1,17 @@
 # Character models: the mesh and skeleton formats, written back and checked in the game (2026-11-19)
 
+**Correction, later the same day.** The first version of this note took `R_PRISONER00.WAD` for the player's body. It
+holds the prisoners behind the bars of the first level; Kratos's body is in `R_HERO00.AS` (below). The format findings
+and the tests stand: they were made on the prisoner's mesh, which has the same format, and were repeated on Kratos's.
+
 ## Goal
 
 Can a mod replace a character's model? Map the mesh and skeleton formats far enough to write a mesh the game takes,
-and check that against the game itself. Structure only: no model was exported to another format or drawn outside the
-game; every decode below ran in memory and gave counts, sizes and errors.
+and check that against the game itself.
 
 ## Method
 
-- **The files:** the WADs of `RESOURCES.PSARC`, read with `scripts/gametext.py`'s PSARC and WAD readers.
+- **The files:** the WAD-format files of `RESOURCES.PSARC`, read with `scripts/gametext.py`'s PSARC and WAD readers.
 - **The streams:** Python ports of the EDGE decoders in `native/` ([index decompression](../../native/spu_edge_idx.c),
   [vertex unpacking](../../native/spu_edge_vtx.c), [skinning](../../native/spu_edge_skin.c) and its
   [palette layout](../../native/spu_edge_skinmat.c)), and encoders written as their inverses.
@@ -16,18 +19,23 @@ game; every decode below ran in memory and gave counts, sizes and errors.
   replay of the [parasite-fight probes](2026-11-18-parasite-fight-probes.md), `SPU_JOB_CAPTURE` of w14-16 from 70 s on,
   450 EDGE jobs a run. A job's own inputs are in its local store at its start: the 22-slot DMA list of the
   [output contract](2026-11-04-edge-output-contract.md). A slot's EA, less the mesh's base in memory, is an offset in
-  the WAD's mesh entry.
-- The study's scripts are kept outside the tree; an importer would start from them.
+  the mesh entry. Screenshots (F12, as `gowa.py bench` takes them) for what the SPU never reads (UVs).
+- The study's scripts are kept outside the tree.
 
-## Where the player's body is
+## Where the bodies are
 
-- **First level:** `R_PRISONER00.WAD`, mesh `MG_7b771621_0`: 10 parts, 47 segments (45 skinned), about 20,800
-  vertices and 32,600 triangles. 75 of a run's 450 jobs read it, and its bytes in memory are the file's.
-- `R_HERO00.WAD` holds the hero's shared rigid parts (25 meshes, 120 segments, none skinned), a template skeleton
-  (`heroA`, 261 nodes, no inverse binds), the animation entry `ANM_heroa` and sound banks; `R_HERO00.TS` and `.AS` are
-  streamed textures and animations.
-- The Blades' chains and other forms are WADs of their own: `R_KRATOSCHAINLEFT00`, `R_KRATOSCHAINRIGHT00`,
-  `R_FURYKRATOS00`, `R_KRATOSOLIVEWT00`, `R_KRATOSMP`.
+- **Kratos: `R_HERO00.AS`**, a WAD-format file of 127 MB (not only animations): 22 costumes or states, each a mesh
+  `MG_<hash>_30000_0`, a skeleton named `<hash>`, materials and textures; `R_HERO00.WAD` has a small game object per
+  hash. In the first level's fight the game draws parts of three body meshes in the same frame, all three with the same
+  18-20 parts (`chest` in 16 segments, `hands`, `legs`, `feet`, `armArmor`, `legArmor`, `Belt`, `beard`, `eyebrows`,
+  eyes, teeth, tongue): `kratosBodyDirty` (`81BC3F6F`), `kratosBodyOlive` (`4E90421D`), `kratosBodyDirtyInk`
+  (`34AE727F`, two ink parts more); and two skirts with their own skeletons (`kratosSkirtTattered` `FF05E07`,
+  `kratosSkirtPristine` `993B9D89`). About 20,300 vertices a body.
+- **The prisoners: `R_PRISONER00.WAD`**, `MG_7b771621_0`: 10 parts, 47 segments, about 20,800 vertices; the figures in
+  the cells.
+- `R_HERO00.WAD` also holds the hero's shared rigid parts (25 meshes), a template skeleton (`heroA`, 261 nodes), the
+  animation entry `ANM_heroa` and sound banks. The Blades' chains and other forms are WADs of their own
+  (`R_KRATOSCHAINLEFT00`, `R_KRATOSCHAINRIGHT00`, `R_FURYKRATOS00`, `R_KRATOSOLIVEWT00`, `R_KRATOSMP`).
 
 ## The WAD
 
@@ -37,8 +45,8 @@ tags 2 and 3 open and close a group. The types here:
 
 | type | what |
 |---|---|
-| 0x75 | mesh (`MG_<hash>_0`) |
-| 0x83 | model (`MDL_<hash>`) |
+| 0x75 | mesh (`MG_...`) |
+| 0x83 | model (`MDL_...`) |
 | 0x77 | material (`MAT_...`): a shader id and its textures' names |
 | 0x16 | texture: a DDS |
 | 0x2D | game object; the skeleton is one |
@@ -47,16 +55,29 @@ tags 2 and 3 open and close a group. The types here:
 
 ## A mesh (type 0x75)
 
-- **Header:** `0x0001000D` (in every mesh seen), the size, 0, 0, the parts' count in the high half of word 4, then from
-  word 8 the parts' offsets, `0xFFFF0000` and floats (bounds).
-- **A part:** a 0x100-byte head (word 5 the skeleton node it belongs to: a mesh node such as `bodyMesh00`, or a joint
-  such as `JOHead1`; floats, bounds), then:
-  - one record per segment (a run of the part's joint list, the vertex count, two words not mapped);
-  - the RSX-only attributes, each (a self-relative offset, a format word, a size): the UV block, F32 u v a vertex, one
-    block for all of the part's segments, which the SPU never reads;
-  - a u16 list of the part's joints, the output and input vertex formats, then the segments.
+- **Header:** `0x0001000D` (in every mesh seen), the size, 0, 0; word 4 the parts' count (high half) and a count of
+  bound records (low half); from word 8 the parts' offsets, then the bound records (`0xFFFF0000` and four floats each).
+- **A part:** a head (word 5 the skeleton node it belongs to: a mesh node such as `chest` or a joint; bounds as floats;
+  a run of `0x0D` bytes), then one or more **sub-blocks**: a run of 0x70-byte segment records, each sub-block with its own
+  groups and its own blocks of streams in this order: weights, culling entries, vertices, the RSX-only block, indices
+  (each index stream 128-aligned). A sub-block after the first opens with a head of its own.
+- **A draw group** (in a part's head or a sub-block's): a header of 0x24 bytes (u16 attribute records, u16 segments,
+  u16 1, u16 culling entries, a mask, a word, then self-relative offsets of the joint list, of the attribute records,
+  the record size 12, of the first segment record and of the culling entries), one 16-byte entry a segment (u32 vertex
+  count, u32 triangles << 8 | hole size, the index stream self-relative, u16 first and u16 count of its culling
+  entries), 9 or 10 attribute records (12 bytes: a self-relative offset, a format word, a size) and a u16 list of the
+  joints the group uses.
+  - The first three attribute records point into the first segment's vertex stream (position +0, normal +6, tangent +9
+    in a 12-byte vertex).
+  - The others with data form the **RSX-only block**, which the SPU never reads: interleaved records of a stride
+    given by the format word's third byte (stride x 2): UVs (`0x0A...`, two F32) alone (stride 8), or with a second UV
+    (`0x0B...`, stride 16), with three F16 (`0x11...`, stride 14), or behind four bytes of something else (stride 12, the
+    UV at +4). A segment's records start after the earlier segments' vertex counts x the stride. Groups without such
+    records (teeth, eyes) have no UVs.
+  - A culling entry: 12 bytes not decoded (a quantized box, it seems), the node (its low byte: nodes past 255 keep only
+    that), `0x7F`, 0.
 - **A segment:** a 0x70-byte record, then its streams. Every field the EDGE job reads is mapped, each one against its
-  DMA slot in all 24 captured segments of the body:
+  DMA slot in all captured segments:
 
 | record | what | slot |
 |---|---|---|
@@ -87,8 +108,8 @@ tags 2 and 3 open and close a group. The types here:
   - 8: 16-bit fixed point, `(raw + offset) / 2^fraction bits`, with the offsets of +0x60;
   - 9: a unit vector in 3 bytes. Two 10-bit components `A (1 + m 2^-23) + B` (A, B = `0x46352E7C`, `0xC6353150`: about
     -0.707 to 0.707), the left-out one rebuilt as `sqrt(1 - c1^2 - c2^2)`. A 4-bit pattern names its axis (pattern / 4),
-    its sign (negative for an even pattern) and w (-1 for pattern % 4 < 2: the tangent's handedness).
-  - The body: a type-8 position, a type-9 normal and a type-9 tangent, 12 bytes a vertex.
+    its sign (negative for an even pattern) and w (-1 for pattern % 4 < 2; the normals carry a sign there too).
+  - The bodies: a type-8 position, a type-9 normal and a type-9 tangent, 12 bytes a vertex.
 - **Weights:** 8 bytes a vertex, (weight, index) four times. The weight is /255 and the four sum to 255. The index
   points into the two palette pieces, the first then the second. Empty pairs are (0, 0), at the end.
 - **The job's skinning:** `p' = sum of weight/255 x (x q0 + y q1 + z q2 + q3)` over the matrices' rows q0-q3, row
@@ -98,22 +119,27 @@ tags 2 and 3 open and close a group. The types here:
 
 - **Nodes:** the count at +8; from +0x24, 8 bytes a node: flags (0x8000; 0x8020 a joint), first child, next sibling,
   parent (0xFFFF: none). Then 56-byte names, `names[k]` for node k (node 0 the object).
-- **Tables:** at +0x14 the offset of a table header (count, count, offset, 3). After the header, a 4x4 a node: a rest
-  pose, not the bind pose, since the local transforms the inverse binds imply differ from it. At header + offset, the
-  **inverse bind matrices**: row vectors, rigid to 1e-6. The template skeleton of `R_HERO00` has no such table (its
-  header ends in 0).
-- **Palette matrix k is node k:** of the 14,830 vertices with two or more bones, 99.9% have their two heaviest bones
-  next to each other in the tree (71% parent and child, 29% two steps). Shifting k by one breaks that.
+- **Tables:** at +0x14 the offset of a table header (count, count, offset, kind). After the header, a 4x4 a node: a
+  rest pose, not the bind pose. At header + offset, the **inverse bind matrices**: row vectors, rigid to 1e-6. Kratos's
+  bodies have them with kind 0; the template `heroA` has none.
+- **Joints no vertex uses keep an identity inverse bind** (35 in a Kratos body, 43 in the prisoner): the main upper arm
+  and upper leg joints among them, whose skin hangs on twist joints (`JO*UpperArm1Twist0-3`, `JO*UpperLeg1Twist0-2`),
+  and helpers, IK solvers and contact points. A bind pose for rigging takes those joints' places from their twist
+  joints. The earlier "arm palettes keep no bone length" came from comparing against those identities.
+- **Palette matrix k is node k:** of the prisoner's 14,830 vertices with two or more bones, 99.9% have their two
+  heaviest bones next to each other in the tree (71% parent and child, 29% two steps). Shifting k by one breaks that.
 - **The bind pose sits on the mesh:** the joints' positions from the inverse binds lie next to the centroids of the
-  vertices weighted only to them (hips, knees, ankles, head, wrists); the body stands in a T pose.
+  vertices weighted only to them; the bodies stand in a T pose (Kratos's head joint 2.165 high, wrists 0.987 out).
+- Kratos's body skeletons have 174-176 nodes, the skirts' 298-329, and nodes past 255 do occur.
 
 ## Verification
 
 | check | result |
 |---|---|
-| decode, the two WADs' 167 segments | indices decode to exactly their vertices, none past them, no degenerate triangle; 66,988 unit vectors of length 1, the left-out component the largest but at 215 quantization ties (within 0.002); 20,352 skinned vertices: weights sum to 255, indices inside the palette, 1-4 bones |
+| decode, the prisoner's and `R_HERO00.WAD`'s 167 segments | indices decode to exactly their vertices, none past them, no degenerate triangle; 66,988 unit vectors of length 1, the left-out component the largest but at 215 quantization ties (within 0.002); 20,352 skinned vertices: weights sum to 255, indices inside the palette, 1-4 bones |
 | decode against the game (the capture) | positions from the file, skinned with the job's own palette and the file's weights, equal the job's PUTs within 0.00004 (SPU rounding); rigid segments through slot 18 within 0.00002 |
-| byte for byte, every mesh of the level's WADs (the level, `R_PERM`, Megaera, the parasites, the chains, Kratos's forms) | indices 2,103 of 2,103 streams (two with a degenerate triangle among them); vertices 2,103 of 2,103 (660,369 vertices); weights 249 of 249 |
+| streams byte for byte, every mesh of the level's WADs (the level, `R_PERM`, Megaera, the parasites, the prisoners, the chains, Kratos's other forms) | indices 2,103 of 2,103 streams (two with a degenerate triangle among them); vertices 2,103 of 2,103 (660,369 vertices); weights 249 of 249 |
+| whole meshes rebuilt from their decoded parts (segments filled again, every block packed again, the records, group entries, attribute records and culling entries rewritten) | the prisoner's and Kratos's five (three bodies, two skirts): every triangle back with its positions, UVs and weights |
 | written back, in the game | below |
 
 The byte-for-byte vertex check carries each unit vector's stored pattern: an encoder that picks the largest component
@@ -121,52 +147,46 @@ itself writes 5,138 of 660,369 vertices differently, all at ties, and the decode
 their stored order. That is heaviest first, but for 116 vertices whose two weights differ by 1 (127, 128): the rounding
 remainder of a 50/50 split.
 
-**The game test.** A test WAD (local, deleted after) had Kratos's body re-encoded in place: every position moved +0.05 in
-y, and three segments' weights all on each vertex's heaviest bone. It went in through the
-[mods folder](2026-11-18-mods-archive-and-text.md) three times: as a whole WAD, as a one-step `.PATCH`, and once more
-with the FIOS cache moved aside. The FIOS cache is the game's 2 GB cache of raw disc-archive blocks in
-`vfs/cache/BCES01741/fios`; it was put back after. The replay ran 150 s each time, with no crash. In all three runs
-every captured job that read the body (41-83 a run) read the written bytes, and put out the positions computed from the
-test WAD within 0.000048; the one job on a one-bone segment did too. Jobs whose triangles EDGE culled put out fewer
-indices and were left out of the comparison.
+**The game tests** (local files, deleted after), all through the [mods folder](2026-11-18-mods-archive-and-text.md):
+- The prisoner re-encoded in place, every position +0.05 in y, three segments' weights on one bone: as a whole WAD, as a
+  one-step `.PATCH`, and with the FIOS cache (`vfs/cache/BCES01741/fios`, the game's 2 GB cache of raw disc-archive
+  blocks) moved aside and put back. Every captured job that read the mesh (41-83 a run) read the written bytes and put
+  out the positions computed from the test file within 0.000048.
+- The prisoner rebuilt with new segments (the same triangles cut again): 49 jobs on 31 segments match the new layout
+  within 0.000042, and the screenshots show it as before.
+- A different mesh refilled into Kratos's three bodies in their original layout (each segment within its original
+  vertex, index and palette capacity; palettes up to 100 matrices), the skirts emptied: the fight replay ran, the
+  player drawn as the new shape and moved by Kratos's animations. Kratos's own textures on the new UVs show through
+  their alpha (parts of it vanish), so textures are the next part of such a mod.
 
-**Pitfall:** parts 2 and 4 (`bodyMesh00`, `bodyMesh01and02`) are twins, and the records are self-relative. A segment
-of part 4 therefore also "fits" part 2 at a base 0x40C80 off, and reads as a copy of the mesh with mixed data. Matching
-jobs to segments needs the mesh's one base in memory, taken from a segment that occurs once.
+**Pitfalls:**
+- Twin parts (the prisoner's `bodyMesh00` and `bodyMesh01and02`) have the same self-relative records, so a segment of
+  one also "fits" the other at a base off by their distance. Matching jobs to segments needs the mesh's one base in
+  memory, taken from a segment that occurs once.
+- Kratos's three bodies share many identical parts; which mesh a job read needs the base too, not the first match.
 
 ## What an importer needs
 
-Done, and shown to work in the game: the index, vertex and weight encoders; the record's fields; the skeleton for
-rigging (names, tree, bind pose, palette k = node k); getting the file in through the mods folder.
+Done, and shown to work in the game: the index, vertex and weight encoders; the record's fields; refilling a mesh's
+original layout with new geometry (segments grown over shared vertices in strip order, the fixed-point formats widened
+as the geometry needs, culling entries copied per node); the skeleton for rigging (names, tree, bind pose, palette
+k = node k); getting the file in through the mods folder.
 
-Still to write:
-1. **A segmenter.** At most about 568 vertices, 3,156 indices and 183 palette matrices a segment, as the originals
-   have it; the true limit is the job's 48 KB buffer. Each segment's bones must fit two runs of node numbers.
-2. **Vertex order.** First-use order of the triangle list, the same in the position, normal, weight and UV streams.
-3. **Fixed-point parameters** from the bounding box: the originals put the offset at the minimum and give the integer
-   bits the range needs.
-4. **The fields not derived yet:** the buffer size (+0x58), the hole size and the flags. The originals' values for the
-   same formats will do at first; the formula comes from the job's code.
-5. **The part head:** its segment records, the UV record, the joint list and the bounds, for the new segment count.
-6. **Materials:** Kratos's own (skin, skirt, bracers) with new pictures through the [textures layer](2026-11-18-mods-textures.md),
+Still open:
+1. **Larger meshes** than a layout holds: a writer that lays the part heads, groups and blocks out anew, and rebuilds
+   the WAD (whether anything points at WAD offsets is not tested).
+2. **The fields not derived:** the buffer size (+0x58), the hole size and the flags; refilling keeps the originals,
+   which hold as long as a segment stays within its old capacity.
+3. **The culling entries' 12 bytes**: copied per node for now (a bigger original shape culls later, never earlier).
+4. **Materials:** the original materials with new pictures through the [textures layer](2026-11-18-mods-textures.md),
    or new `MAT_` and texture entries, which are not mapped.
-7. **The WAD:** a larger mesh moves every entry after it. gametext.py writes WADs, but whether anything points at WAD
-   offsets is not tested.
-8. **Both twins**, and one WAD for each form of Kratos (`R_PRISONER00` is the first level's).
-9. **Limits outside the WAD:** a new mesh moves with Kratos's skeleton and animations, so his proportions stay;
+5. **Every form of the character:** one mesh for each body the game draws, in each place it draws them.
+6. **Limits outside the files:** a new mesh moves with the character's skeleton and animations, so his proportions stay;
    pre-rendered movies keep the old model.
-
-## Verdict
-
-Feasible. The two risks are answered: the formats are mapped field by field, and the game takes a mesh written by
-these encoders. What is left is an importer's work, about two to four weeks: segmenting, the part head, the three
-fields' formulas and rebuilding the WAD, then a test on each form of Kratos.
 
 ## Open points
 
-- The part head's per-segment words, the RSX format words, and which material each part draws with.
+- The part head's bound records and per-part floats, the group header's mask and word, and the RSX format words past
+  their stride byte.
 - The buffer size, hole size and flags formulas.
-- The palettes: for two thirds of the parent-child pairs in the captured palettes, inverse bind x world keeps the bone
-  length. The arm chains (clavicle, upper and lower arm) do not, the same way in every job, so those palettes carry
-  more (twist helpers). The game builds the palettes itself: a mesh in the same bind space, weighted to the same nodes,
-  is skinned as the original is (the end-to-end check above). This matters only for reading animations.
+- Which material each part draws with.
