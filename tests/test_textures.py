@@ -10,6 +10,7 @@ Usage:
 """
 
 import os
+import re
 import shutil
 import struct
 import subprocess
@@ -184,6 +185,37 @@ class Textures(unittest.TestCase):
         self.assertEqual(out[6], "picture 1 4x4 0,0,255,255 100,100,100,200 0,0,255,255 100,100,100,200 0,0,0,0")
         # A file that is no picture: not taken, and not asked again.
         self.assertEqual(out[7:], ["picture 0 0x0", "has 00000000000000cc 0"])
+
+    def test_a_picture_for_the_other_copies_of_its_texture(self):
+        # port/texture_copies.inc: a texture with a whole copy and one of its level 2 (a quarter of each side).
+        groups = {}
+        for m in re.finditer(r"\{ 0x([0-9a-f]{16})ULL, (\d+), (\d+), (\d+) \}", (ROOT / "port" / "texture_copies.inc").read_text()):
+            groups.setdefault(int(m.group(4)), []).append((m.group(1), int(m.group(2)), int(m.group(3))))
+        pick = next(((a, b) for g in groups.values() for a in g for b in g
+                     if b[1] * 4 == a[1] and b[2] * 4 == a[2]), None)
+        if not pick:
+            self.skipTest("no texture with a level 2 copy in port/texture_copies.inc")
+        (big, bw, bh), (small, sw, sh) = pick
+        # A picture of 16 x 16 for the whole copy, its left half red, its right half blue.
+        png(os.path.join(self.mods, "A", "textures", big + ".png"), 16, 16,
+            lambda x, y: (255, 0, 0, 255) if x < 8 else (0, 0, 255, 255))
+        out = self.run_t("-", 0, "has", big, "has", small, "picture", small, str(sw), str(sh), "0,0,0,0",
+                         "picture", big, str(bw), str(bh), "0,0,0,0")
+        self.assertEqual(out[0], "textures 2")
+        self.assertEqual(out[1:3], ["has %s 1" % big, "has %s 1" % small])
+        # The copy a quarter of the size: the picture a quarter too, 4 x 4, the halves kept.
+        self.assertEqual(out[3], "picture 1 4x4 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255")
+        self.assertEqual(out[4], "picture 1 16x16 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255")
+        # A copy with a picture of its own keeps it; the picture of the small one goes to the big one as it is.
+        os.remove(os.path.join(self.mods, "A", "textures", big + ".png"))
+        png(os.path.join(self.mods, "A", "textures", small + "_mine.png"), 2, 2, lambda x, y: (7, 7, 7, 255))
+        out = self.run_t("-", 0, "picture", big, str(bw), str(bh), "0,0,0,0")
+        self.assertEqual(out[0], "textures 2")
+        self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
+        png(os.path.join(self.mods, "A", "textures", big + ".png"), 4, 4, lambda x, y: (9, 9, 9, 255))
+        out = self.run_t("-", 0, "picture", small, str(sw), str(sh), "0,0,0,0")
+        self.assertEqual(out[0], "textures 2")
+        self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
 
     def test_the_dump_and_the_xbox_icons_ids(self):
         dump = os.path.join(self.d, "dump")

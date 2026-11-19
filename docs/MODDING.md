@@ -140,6 +140,12 @@ MyMod\
   build tree), as `<id>_<width>x<height>_<format>.png`. Copy one into a mod's `textures\`, change it, and keep the id
   at the start of its name: anything after an `_` is free. The game is slower while the dump is on.
 - **A picture** (`<id>.png`) goes in the texture's place. It can be of any size; the mip levels are made from it.
+- **Copies.** The game keeps many textures in more than one copy: whole, in an archive's stream or a WAD, and in a
+  level's WAD as their levels from level 2 down, which it draws with as a texture of their own size until the whole
+  one has streamed in (in some cinematics, all along). Each copy has its own id; a picture for any of them goes in the
+  place of all of them, and a smaller copy gets it smaller by as much: a 2048x4096 texture's 512x1024 copy takes a
+  4096x4096 picture at 1024x1024. A copy with a picture of its own keeps that. The copies are listed in
+  `port/texture_copies.inc`, which `scripts/texture_copies.py` makes from the game's archives.
 - **An overlay** (`<id>.overlay.png`, or `<id>_anything.overlay.png`) is drawn over the game's own texture, which is
   first scaled to the overlay's size: where the overlay's alpha is above 1 it is laid over, where it is 1 the texel is
   made clear, and where it is 0 the game's shows. So a mod need hold none of the game's own pictures.
@@ -171,6 +177,7 @@ A mod can have this folder, which a later Ascension-R may read. The tab names it
   '<the file>'` for each file taken, the first 64 of them.
 - `mods\.built\` holds the update the last start made, `result.txt` (what each mod gave) and `pack.log` (what the
   packer said).
-- A `[tex]` line says how many pictures the mods have, and each texture given one is named,
+- A `[tex]` line says how many pictures the mods have, for how many textures, and how many of those are other copies
+  of the same textures of the game's; each texture given one is named,
   `[tex] <id> <width>x<height> fmt <format>: a picture in its place`, the first 32 of them.
 - **Report a problem** puts the same `Mods:` line in the report's notes, without the folder's path.

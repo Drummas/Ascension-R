@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#include <algorithm>
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -31,7 +32,17 @@ struct Pic {
     std::wstring path;
     int kind;     /* 1 in the texture's place, 2 over the game's own */
     int res = 0;  /* a picture in the exe (app.rc's RCDATA) in place of a file */
+    /* A copy's: the size of the copy the picture is for (another id of the same texture of the game's), which a
+     * smaller copy has the picture scaled down by. 0 for a picture of its own. */
+    uint32_t ref_w = 0, ref_h = 0;
 };
+
+/* The textures the game keeps in more than one copy (scripts/texture_copies.py): a whole one, in an archive's stream
+ * or a WAD, and the levels a stream does not hold, kept apart in a level's WAD from level 2 down, which the game draws
+ * with as a texture of their own size until the stream's arrive (all along in some cinematics). Each reaches the GPU
+ * with its own id, so a picture for one copy goes to the others too. */
+struct TexCopy { uint64_t id; uint32_t w, h, group; };
+#include "texture_copies.inc"
 
 /* Button icons: Xbox. The game's button textures, the same in every release, by the button each is of, and the
  * port's own picture for it (app.rc, scripts/button_icons.ps1): the face buttons by where each sits on the pad. */
@@ -185,6 +196,62 @@ bool parse_name(const wchar_t* name, uint64_t* id, int* kind)
     return true;
 }
 
+/* The other copies of the textures pictures are for: each given the picture, with the size of the copy it is for.
+ * A copy with a picture of its own keeps that. The number of copies given one. */
+int add_copies(std::unordered_map<uint64_t, Pic>* pics)
+{
+    static std::unordered_map<uint64_t, size_t> by_id;     /* id -> its entry */
+    static std::vector<size_t> first;                       /* group -> its first entry */
+    const size_t n = sizeof k_tex_copies / sizeof k_tex_copies[0];
+    if (by_id.empty()) {
+        by_id.reserve(n);
+        for (size_t i = 0; i < n; i++) {
+            by_id.emplace(k_tex_copies[i].id, i);
+            if (k_tex_copies[i].group >= first.size()) first.resize(k_tex_copies[i].group + 1, i);
+        }
+    }
+    std::vector<std::pair<uint64_t, Pic>> add;
+    for (const auto& kv : *pics) {
+        if (kv.second.ref_w) continue;
+        auto e = by_id.find(kv.first);
+        if (e == by_id.end()) continue;
+        const TexCopy& mine = k_tex_copies[e->second];
+        for (size_t i = first[mine.group]; i < n && k_tex_copies[i].group == mine.group; i++) {
+            const TexCopy& c = k_tex_copies[i];
+            if (c.id == mine.id || pics->count(c.id)) continue;
+            Pic p = kv.second;
+            p.ref_w = mine.w;
+            p.ref_h = mine.h;
+            add.emplace_back(c.id, p);
+        }
+    }
+    int k = 0;
+    for (auto& a : add)
+        if (pics->emplace(a.first, a.second).second) k++;   /* two pictures for copies of one texture: the first */
+    return k;
+}
+
+/* A picture scaled down to w x h, each texel the mean of the ones it covers. */
+void shrink(std::vector<uint8_t>* rgba, uint32_t pw, uint32_t ph, uint32_t w, uint32_t h)
+{
+    std::vector<uint8_t> out((size_t)w * h * 4);
+    for (uint32_t y = 0; y < h; y++) {
+        const uint32_t y0 = (uint32_t)((uint64_t)y * ph / h), y1 = (std::max)(y0 + 1, (uint32_t)((uint64_t)(y + 1) * ph / h));
+        for (uint32_t x = 0; x < w; x++) {
+            const uint32_t x0 = (uint32_t)((uint64_t)x * pw / w), x1 = (std::max)(x0 + 1, (uint32_t)((uint64_t)(x + 1) * pw / w));
+            uint32_t sum[4] = { 0, 0, 0, 0 };
+            for (uint32_t sy = y0; sy < y1; sy++) {
+                const uint8_t* p = rgba->data() + ((size_t)sy * pw + x0) * 4;
+                for (uint32_t sx = x0; sx < x1; sx++, p += 4)
+                    for (int c = 0; c < 4; c++) sum[c] += p[c];
+            }
+            const uint32_t cnt = (y1 - y0) * (x1 - x0);
+            for (int c = 0; c < 4; c++) out[((size_t)y * w + x) * 4 + c] = (uint8_t)((sum[c] + cnt / 2) / cnt);
+        }
+    }
+    rgba->swap(out);
+}
+
 void index_dir(const std::wstring& dir, int depth, std::unordered_map<uint64_t, Pic>* out, int* found)
 {
     if (depth > 16) return;
@@ -230,6 +297,16 @@ int picture_hook(u64 id, u32 w, u32 h, const u8* base, rsx_tex_picture* out)
             fprintf(stderr, "[tex] %s: not a picture this program can read%c", u8, 10);
         }
         return 0;
+    }
+    /* A smaller copy of the texture the picture is for: the picture smaller by as much. */
+    if (it->second.ref_w && (w < it->second.ref_w || h < it->second.ref_h)) {
+        const uint32_t nw = w < it->second.ref_w ? (std::max)(1u, (uint32_t)((uint64_t)pw * w / it->second.ref_w)) : pw;
+        const uint32_t nh = h < it->second.ref_h ? (std::max)(1u, (uint32_t)((uint64_t)ph * h / it->second.ref_h)) : ph;
+        if (nw < pw || nh < ph) {
+            shrink(&png, pw, ph, nw, nh);
+            pw = nw;
+            ph = nh;
+        }
     }
     if (it->second.kind == 2) {   /* over the game's own, scaled to the overlay's size */
         if (!base) return 0;
@@ -353,7 +430,7 @@ std::wstring gowa_textures_dump_folder(void)
 int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox_icons)
 {
     State& s = st();
-    int found = 0, builtin = 0;
+    int found = 0, builtin = 0, copies = 0;
     {
         std::lock_guard<std::mutex> lk(s.mu);
         s.pics.clear();
@@ -371,6 +448,7 @@ int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox
                     s.pics.emplace(b.id, p);
                     builtin++;
                 }
+        copies = add_copies(&s.pics);
         s.dump = dump_dir;
         if (!s.dump.empty() && !CreateDirectoryW(s.dump.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
             s.dump.clear();
@@ -386,7 +464,7 @@ int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox
     rsx_tex_set_hooks(&hk);
     char u8[1200] = "";
     if (!s.dump.empty()) WideCharToMultiByte(CP_UTF8, 0, s.dump.c_str(), -1, u8, sizeof u8, NULL, NULL);
-    printf("[tex] %d pictures of mods, %d of the Xbox button icons, for %d textures%s%s\n", found, builtin,
-           (int)s.pics.size(), u8[0] ? "; the dump: " : "", u8);
+    printf("[tex] %d pictures of mods, %d of the Xbox button icons, for %d textures (%d of them other copies of the "
+           "game's)%s%s\n", found, builtin, (int)s.pics.size(), copies, u8[0] ? "; the dump: " : "", u8);
     return (int)s.pics.size();
 }
