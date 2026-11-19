@@ -21,6 +21,12 @@
  *
  * GOWA_POLL_WAIT_US=0 turns it off.
  *
+ * The freeze watch (report.cpp) asks gowa_poll_report which loops the guest
+ * threads are polling, for how long, and, for func_0049D688's, which of the job
+ * queue's counters stand behind its target (#28: the main thread waited there
+ * at the start for jobs that never ran). Each pass notes the time and its loop
+ * head, whether the wait is on or not.
+ *
  * Under PS3_FTRACE the passes at one loop head, first to last, are one span of
  * the thread's, kind usleep with the loop head for its call site: `gowa.py
  * frames` lists them with the usleeps ("usleep@49D708") and draws them as 'u'.
@@ -223,10 +229,109 @@ static const int s_rsx_slow_init = [] {
 }();
 #endif
 
+/* What each guest thread polls, for the freeze watch: per thread and loop head, when the wait began (a pass
+ * more than 2 ms after the last starts another; in a wait they come microseconds apart), the last pass, the
+ * passes, and for func_0049D688's loop the registers it waits with. A thread writes only its own row; the
+ * watch reads them without a lock. */
+#ifdef _WIN32
+namespace {
+struct PollSeen {
+    uint32_t head, r31, r4, r5;
+    long long first, last;   /* QueryPerformanceCounter */
+    unsigned long long passes;
+};
+constexpr int POLL_THREADS = 64, POLL_HEADS = 8;
+PollSeen s_seen[POLL_THREADS][POLL_HEADS];
+long long s_qpc_hz;
+}
+
+static void poll_seen(ppu_context* ctx, uint32_t addr)
+{
+    if (ctx->thread_id >= (uint64_t)POLL_THREADS) return;
+    PollSeen* row = s_seen[ctx->thread_id];
+    int i = 0;
+    while (i < POLL_HEADS && row[i].head && row[i].head != addr) i++;
+    if (i == POLL_HEADS) return;
+    PollSeen& p = row[i];
+    if (!s_qpc_hz) {
+        LARGE_INTEGER f;
+        QueryPerformanceFrequency(&f);
+        s_qpc_hz = f.QuadPart;
+    }
+    LARGE_INTEGER t;
+    QueryPerformanceCounter(&t);
+    if (p.head != addr || t.QuadPart - p.last > s_qpc_hz / 500) {
+        p.first = t.QuadPart;
+        p.passes = 0;
+    }
+    if (addr == 0x0049D708u) {
+        p.r31 = (uint32_t)ctx->gpr[31];
+        p.r4 = (uint32_t)ctx->gpr[4];
+        p.r5 = (uint32_t)ctx->gpr[5];
+    }
+    p.passes++;
+    p.last = t.QuadPart;
+    p.head = addr;
+}
+
+/* func_0049D688's wait (head 0x0049D708): r31 the job manager, r4 the queue, r5 the target. [r31] is the
+ * manager's block: at +0x30 + 4 * queue the queue's job list (8 bytes a job, the u16 at +2 non-zero while
+ * the list goes on) and at +0x40 + 16 * queue the queue's first job, then seven u16 progress counters, one
+ * per SPU, that its jobs raise. The loop ends once the least counter reaches the target: the first job and
+ * the jobs in the list after it. Guest memory read under __try: a bad pointer ends the lines. */
+static void poll_report_jobs(const PollSeen& p)
+{
+    const uint32_t mgr = p.r31, q = p.r4, reg_target = p.r5 & 0xFFFFu;
+    __try {
+        const uint32_t blk = vm_read32(mgr), qa = blk + (q << 4) + 0x40, list = vm_read32(blk + (q << 2) + 0x30);
+        const uint32_t first = vm_read16(qa);
+        uint32_t n = 0;
+        while (n < 4096 && vm_read16(list + (first + n) * 8 + 2)) n++;
+        uint32_t c[7], least = 0xFFFFu;
+        for (int k = 0; k < 7; k++) {
+            c[k] = vm_read16(qa + 2 + 2 * k);
+            if (c[k] < least) least = c[k];
+        }
+        fprintf(stderr, "[freeze]   job queue %u of the manager at 0x%08X (block 0x%08X, [+8] %u): counters "
+                        "%u %u %u %u %u %u %u, the least %u; target %u (the loop's r5 %u): first job %u and %u after it "
+                        "in the list at 0x%08X\n",
+                q, mgr, blk, vm_read32(blk + 8), c[0], c[1], c[2], c[3], c[4], c[5], c[6], least, first + n, reg_target,
+                first, n, list);
+        const uint32_t from = least < first + n ? least : first, to = from + 6 < first + n ? from + 6 : first + n;
+        for (uint32_t j = from; j < to; j++)
+            fprintf(stderr, "[freeze]   job %u: %016llX\n", j, (unsigned long long)vm_read64(list + j * 8));
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        fprintf(stderr, "[freeze]   (the job manager at 0x%08X, queue %u, could not be read)\n", mgr, q);
+    }
+}
+#endif
+
+/* The freeze watch's lines: each loop a guest thread passed in the last two seconds. */
+extern "C" void gowa_poll_report(void)
+{
+#ifdef _WIN32
+    if (!s_qpc_hz) return;
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    for (int t = 0; t < POLL_THREADS; t++)
+        for (int h = 0; h < POLL_HEADS; h++) {
+            const PollSeen p = s_seen[t][h];
+            if (!p.head || now.QuadPart - p.last > 2 * s_qpc_hz) continue;
+            fprintf(stderr, "[freeze] guest thread %d polls the loop at 0x%08X: for %.1f s, %llu passes, the last "
+                            "%.0f ms ago\n", t, p.head, (double)(p.last - p.first) / (double)s_qpc_hz, p.passes,
+                    (double)(now.QuadPart - p.last) * 1000.0 / (double)s_qpc_hz);
+            if (p.head == 0x0049D708u) poll_report_jobs(p);
+        }
+#endif
+}
+
 extern "C" void gowa_poll_wait(ppu_context* ctx, uint32_t addr)
 {
 #if POLL_X86
     if (ctx->thread_id == 1) s_main_poll_tsc = __rdtsc();
+#endif
+#ifdef _WIN32
+    poll_seen(ctx, addr);
 #endif
     if (s_poll.us < 0) s_poll.init();
     if (PS3_FT_ON()) poll_trace(ctx, addr);

@@ -7,8 +7,9 @@
  *  - At the start of a session's log: the build, Windows, the CPU, the memory, each GPU with its
  *    driver, the display and the game's version.
  *  - The freeze watch: no new frame for GOWA_FREEZE_WATCH seconds (15; 0 = off) and what each guest
- *    thread is inside, and each host thread's CPU and stack, go in the log; once more at four times
- *    that. A game that froze and was closed by force says nothing otherwise.
+ *    thread is inside, the polling loops they spin in, the SPURS scheduler's workloads, and each host
+ *    thread's CPU and stack, go in the log; once more at four times that. A game that froze and was
+ *    closed by force says nothing otherwise.
  *  - How a session ended, read back from its log, so the launcher can offer a report for one that
  *    did not end normally.
  *  - The report: a zip beside the logs, for the player to attach to an issue. Nothing is sent from
@@ -61,6 +62,8 @@
 extern "C" unsigned cellGcm_flip_request_count(void);
 extern "C" const char* g_hle_inflight[64];
 extern "C" void ppu_report_guest_lrs(void);
+extern "C" void gowa_poll_report(void);                /* poll_wait.cpp: the polling loops the guest threads are in */
+extern "C" void spurs_debug_dump(const char* why);    /* cellSpurs.c: the SPURS scheduler's state */
 extern "C" int rsx_d3d12_backend_generating(void);   /* rsx_d3d12_backend.c: frame generation runs */
 extern "C" int rsx_d3d12_backend_gpu_stuck(void);    /* and the GPU's queue has stopped */
 extern "C" int rsx_d3d12_prebuilt_current(const char* cache);   /* and the pixel shaders' file is of this build's form */
@@ -366,6 +369,10 @@ static void freeze_report(ULONGLONG idle, unsigned frames)
     for (unsigned t = 0; t < 64; t++)
         if (g_hle_inflight[t]) fprintf(stderr, "[freeze] guest thread %u is inside %s\n", t, g_hle_inflight[t]);
     ppu_report_guest_lrs();
+    /* The polling loops the guest threads spin in, and what SPURS would run: #28 stopped with the main thread
+     * waiting for jobs and every SPU worker idle, and the log could not say which side lost the other. */
+    gowa_poll_report();
+    spurs_debug_dump("freeze");
     for (int i = 0; i < nb; i++) {
         ULONGLONG before = b[i].cpu;
         for (int j = 0; j < na; j++) if (a[j].tid == b[i].tid) { before = a[j].cpu; break; }
