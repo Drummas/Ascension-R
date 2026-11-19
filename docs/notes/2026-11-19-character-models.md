@@ -184,6 +184,15 @@ five meshes from their own streams **byte for byte**. What it takes, beyond the 
   end - the attribute table) past itself.
 - **New segments** take the record of their group's largest segment (flags, hole size, the job's buffer size) and stay
   within its vertex and index counts; a group may have any number of them (three times the original count was tested).
+- **The group header's u16 at +0x0E** is the most weights a vertex of the group may have (0 for a rigid group; 2 or 3
+  for the feet, the leg armour and the belt; 4 for the rest): no original vertex has more. Vertices written with more
+  are pulled out of shape in the game.
+- **The joint list** may grow: segments that use joints of other parts' lists, added to their group's list, skin
+  right. A weight on a joint that is not in the list and has no ancestor in it must go to a joint near the vertex: the
+  lowest-numbered joint of the list can be the other foot's.
+- **Materials** seen from the meshes: the beard and eyebrow material (`alpha_m`) samples only a strand mask, its colour
+  is the shader's (its float parameters do not change it); the eye gasket material samples the face's colour map and
+  the same mask, so geometry drawn with it is cut out and coloured.
 - The prisoner's mesh puts its group headers off the 128-byte boundary; the writer does not cover it.
 
 **Where a body is loaded from.** Each body or skirt is a *stream set*: a game object in `R_HERO00.WAD` named by its
