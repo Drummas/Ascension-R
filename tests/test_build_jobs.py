@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""How many at a time the build runs (gowa.py: free_jobs, module_jobs), and the lazy-flags pass's quick path.
+"""How many at a time the build runs (gowa.py: free_jobs, module_jobs), the tools it starts in UTF-8 mode, and the
+lazy-flags pass's quick path.
 
 free_jobs: an explicit --jobs stands; "auto" takes the cores, as far as free memory allows with 2 GB left over, and
-never less than one. ppu_lazy_flags.py: line_flags and the rewrite pass a line that names neither ctx->cr nor ctx->xer
-without trying the forms, which holds while every form names one of them; a form that does not fails here.
+never less than one. same_python: a tool runs in UTF-8 mode when gowa.py does, so the text it writes with a path in
+it is UTF-8 on a PC whose code page is not (issue #32). ppu_lazy_flags.py: line_flags and the rewrite pass a line that
+names neither ctx->cr nor ctx->xer without trying the forms, which holds while every form names one of them; a form
+that does not fails here.
 
 Usage:
     python tests/test_build_jobs.py
 """
+import os
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -57,6 +63,31 @@ def forms():
             yield name, value
     for rx, _field, _value in lf._W_FIXED:
         yield "_W_FIXED", rx
+
+
+class ToolsInUtf8(unittest.TestCase):
+    """issue #32: the tools gowa.py starts write text with paths that gowa.py reads back as UTF-8, so they run in UTF-8
+    mode when it does (the Kit's -X utf8), whatever the locale's code page."""
+
+    def test_a_tool_runs_in_utf8_mode_when_gowa_does(self):
+        flags = mock.Mock(utf8_mode=1)
+        with mock.patch.object(gowa.sys, "flags", flags):
+            self.assertEqual(gowa.same_python([sys.executable, "-E", "-s", "t.py"]),
+                             [sys.executable, "-X", "utf8", "-E", "-s", "t.py"])
+            self.assertEqual(gowa.same_python([sys.executable, "-X", "utf8", "t.py"]), [sys.executable, "-X", "utf8", "t.py"])
+            self.assertEqual(gowa.same_python(["clang-cl.exe", "/c"]), ["clang-cl.exe", "/c"])   # not a Python
+        with mock.patch.object(gowa.sys, "flags", mock.Mock(utf8_mode=0)):
+            self.assertEqual(gowa.same_python([sys.executable, "t.py"]), [sys.executable, "t.py"])
+
+    def test_a_tool_started_so_writes_utf8(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "jogos á", "list.txt")
+            os.makedirs(os.path.dirname(out))
+            code = "import sys, pathlib; pathlib.Path(sys.argv[1]).write_text(sys.argv[1])"   # the locale's encoding
+            with mock.patch.object(gowa.sys, "flags", mock.Mock(utf8_mode=1)):
+                cmd = gowa.same_python([sys.executable, "-c", code, out])
+            self.assertEqual(subprocess.run(cmd).returncode, 0)
+            self.assertEqual(Path(out).read_bytes().decode("utf-8"), out)
 
 
 class LazyFlagsQuickPath(unittest.TestCase):

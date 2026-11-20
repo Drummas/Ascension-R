@@ -140,9 +140,21 @@ class NoProgress:
 PROGRESS = NoProgress()
 
 
+def same_python(cmd):
+    """A command that starts this Python, in UTF-8 mode when this one is. The Kit runs gowa.py with -X utf8, and its tools
+    write text files that hold paths (generated_spu\\sources.cmake) which gowa.py reads back as UTF-8: a tool left in
+    the locale's code page wrote a player's folder with an accented letter in it as cp1252, and the build stopped there
+    (issue #32)."""
+    cmd = [str(c) for c in cmd]
+    if cmd and cmd[0] == sys.executable and sys.flags.utf8_mode and \
+            not any(a == "-X" and b in ("utf8", "utf8=1") for a, b in zip(cmd, cmd[1:])):
+        cmd = cmd[:1] + ["-X", "utf8"] + cmd[1:]
+    return cmd
+
+
 def run(cmd, **kw):
     say("> " + " ".join(str(c) for c in cmd))
-    cmd = [str(c) for c in cmd]
+    cmd = same_python(cmd)
     if not PROGRESS.listens or "stdout" in kw:
         return subprocess.run(cmd, **kw).returncode
     # kit-build reads how far a tool is from what it prints: unbuffered, line by line, into the log as it comes.
@@ -2043,7 +2055,7 @@ def cmd_module(args):
     os.makedirs(out, exist_ok=True)
     log = open(os.path.join(out, "module.log"), "a", encoding="utf-8")
     t0 = time.monotonic()
-    py = [sys.executable, "-E", "-s"]   # not -I: a tool imports its neighbours from its own folder
+    py = same_python([sys.executable, "-E", "-s"])   # not -I: a tool imports its neighbours from its own folder
 
     def step(what, cmd, env=None):
         log.write("> %s\n" % " ".join(cmd))
