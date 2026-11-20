@@ -41,7 +41,8 @@ It boots, plays the cinematics and goes through the menus into the levels. It ha
 problems further in.
 
 - **Game:** God of War: Ascension at version 1.12: the digital US release NPUA80918, or the European disc BCES01741 or
-  the US disc BCUS98232 with its updates installed in RPCS3. Each needs the game and its updates 1.04 to 1.12.
+  the US disc BCUS98232 with its updates installed in RPCS3 (the Asian disc BCAS25016 too, from the next release). Each
+  needs the game and its updates 1.04 to 1.12.
 - **Platform:** Windows 10 or 11, 64-bit. Tested on Windows 11.
 - **Speed:** above 30 frames a second in the two scenes measured, a fight of the first level and the gate, on a Ryzen 5 4600H with
   a GTX 1650 Ti and the Smooth preset.
@@ -96,7 +97,8 @@ opened and copied out first), and its updates installed in RPCS3, which puts the
 launcher finds the two together, and decrypts the update's GOWA.SELF with no `.rap`: the key is in the update's own
 EBOOT.BIN, which it hands to RPCS3. Both releases run the same GOWA.elf at 1.12, byte for byte, so the same game code.
 The US disc (BCUS98232) is taken the same way, its updates in `dev_hdd0\game\BCUS98232`: its update is the European
-disc's (the same PPU cache folders in RPCS3, [#4](https://github.com/rigaz29/Ascension-R/issues/4)). Its files are not
+disc's (the same PPU cache folders in RPCS3, [#4](https://github.com/rigaz29/Ascension-R/issues/4)). So is the Asian
+disc (BCAS25016) from the next release, its updates in `dev_hdd0\game\BCAS25016`. The files of these two are not
 checked yet, as a list of them is not in the port.
 
 ## What you need
@@ -218,6 +220,7 @@ At version 1.12, with every update from 1.04 installed:
 | Digital, US | NPUA80918 | supported |
 | Disc, Europe and Australia | BCES01741 | supported: a decrypted dump of the disc, its updates in RPCS3 |
 | Disc, US | BCUS98232 | supported, as the European disc: a decrypted dump of the disc, its updates in RPCS3 |
+| Disc, Asia | BCAS25016 | in the next release (a build from source has it): as the European disc |
 | Digital, Europe, and the others | | not yet |
 
 For a copy that is not supported yet, its serial and version (RPCS3's game list shows both) in

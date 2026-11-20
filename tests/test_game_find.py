@@ -266,14 +266,16 @@ class GameFind(unittest.TestCase):
         # game_title.h: a folder's title when the table has it, else the default (the C++ and gowa.py alike), and the
         # ids the launcher takes for its lines. A disc the launcher does not take yet is another release to it.
         make_game(self.p("eu"), title_id="BCES01741")
+        make_game(self.p("asia"), title_id="BCAS25016")
         make_game(self.p("other"), title_id="BLES99999")
         out = self.run_t("title", self.p("eu"))
         self.assertEqual(out[1], "BCES01741")
-        self.assertEqual(" ".join(out[2:]), "NPUA80918, BCES01741 or BCUS98232")
+        self.assertEqual(" ".join(out[2:]), "NPUA80918, BCES01741, BCUS98232 or BCAS25016")
+        self.assertEqual(self.run_t("title", self.p("asia"))[1], "BCAS25016")
         self.assertEqual(self.run_t("title", self.p("other"))[1], "NPUA80918")
         self.assertEqual(self.run_t("title", self.p("nothing"))[1], "NPUA80918")
-        self.assertEqual([self.gowa.title_of(self.p(d)) for d in ("eu", "other", "nothing")],
-                         ["BCES01741", "NPUA80918", "NPUA80918"])
+        self.assertEqual([self.gowa.title_of(self.p(d)) for d in ("eu", "asia", "other", "nothing")],
+                         ["BCES01741", "BCAS25016", "NPUA80918", "NPUA80918"])
         # A disc's title in a folder that is neither its disc (DG) nor its update (GD) is not the game.
         self.assertEqual(self.run_t("probe", self.p("eu"))[1], "other_title")
 
@@ -383,7 +385,7 @@ class GameFind(unittest.TestCase):
     def test_what_a_disc_cannot_start_without(self):
         for path, title, want in (("USRDIR/GAME.PSARC", "BCES01741", "1"), ("USRDIR/TPPS1.PSARC", "BCES01741", "1"),
                                   ("USRDIR/ENGLISH.PSARC", "BCES01741", "0"), ("USRDIR/ENGLISH.PSARC", "NPUA80918", "1"),
-                                  ("USRDIR/GAME.PSARC", "BCUS98232", "0")):
+                                  ("USRDIR/GAME.PSARC", "BCUS98232", "0"), ("USRDIR/GAME.PSARC", "BCAS25016", "0")):
             with self.subTest((path, title)):
                 self.assertEqual(self.run_t("needed", path, title)[1], want)
 

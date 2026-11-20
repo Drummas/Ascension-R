@@ -1,7 +1,7 @@
 Ascension-R @VERSION@ @RELEASE@
 
-A native Windows port of God of War: Ascension (PS3, version 1.12: the digital US release NPUA80918 or the European disc
-BCES01741), made by static recompilation.
+A native Windows port of God of War: Ascension (PS3, version 1.12: the digital US release NPUA80918, or the European, US
+or Asian disc), made by static recompilation.
 https://github.com/rigaz29/Ascension-R
 
 This download holds none of the game's assets. You need your own copy of the game and its license.
@@ -18,6 +18,7 @@ WHAT YOU NEED
     and its license file (.rap), which the launcher finds in that RPCS3;
   - the European disc BCES01741: a decrypted dump of the disc in a folder (an ISO has to be opened and all of it copied
     out), and its updates installed in RPCS3 (dev_hdd0\game\BCES01741). No .rap: the key is in the update itself.
+    The US disc BCUS98232 and the Asian disc BCAS25016 are taken the same way, their updates in dev_hdd0\game\<id>.
   It has to be whole: the launcher checks the game's files before it decrypts or builds anything, and says which are
   missing.
 - RPCS3, once, to decrypt your copy of the game. If you do not have it, the launcher offers to download the official

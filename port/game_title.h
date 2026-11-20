@@ -39,6 +39,10 @@ static const GameTitle k_game_titles[] = {
      * code, and the decrypted GOWA.elf is checked against k_elf_sha256 all the same. No list of its files yet: they are
      * not looked at. */
     { "BCUS98232", L"US disc", GAME_KIND_DISC, NULL, 1, "BCUS98232" },
+    /* As the EU disc too: its 1.12 update has the same two PPU cache folders in RPCS3 (issue #4, 2026-11-19), and the
+     * game's own region tables name it beside BCES01741 and BCUS98232 (GOWA.elf 0x66B4A4, 0x683AB8). Its saves are taken
+     * to be under its own id, as the EU disc's are: not seen yet. No list of its files. */
+    { "BCAS25016", L"Asian disc", GAME_KIND_DISC, NULL, 1, "BCAS25016" },
 };
 enum { GAME_TITLES = (int)(sizeof k_game_titles / sizeof k_game_titles[0]) };
 

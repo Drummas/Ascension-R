@@ -36,7 +36,7 @@ import zlib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # The releases whose folder holds the text (gowa.py's TITLES, which imports this file): a digital release's own folder,
 # or a disc's update folder.
-TITLES = ("NPUA80918", "BCES01741", "BCUS98232")
+TITLES = ("NPUA80918", "BCES01741", "BCUS98232", "BCAS25016")
 
 
 WAD_DIR = "/WAD/PS3_BE/"
