@@ -191,6 +191,16 @@ class Mods(unittest.TestCase):
         self.assertEqual(out["dirs"], "Icons\\files")
         self.assertEqual(out["summary"], "Xbox icons 1.0 (2 files)")
 
+    def test_a_patch_base_is_no_entry_and_aliases_are_counted(self):
+        put(os.path.join(self.mods, "Hero", "archive", "WAD", "PS3_BE", "R_X.AS.PATCH"), b"a patch")
+        put(os.path.join(self.mods, "Hero", "archive", "WAD", "PS3_BE", "R_X.AS.PATCH.base"), "entry /WAD/PS3_BE/R_X.AS\n")
+        put(os.path.join(self.mods, "Skin", "textures", "aliases.txt"),
+            "# a comment\n0123456789abcdef atlas.png\nnot a line\n00000000000000aa\n00000000000000bb\t00000000000000aa\n")
+        self.settings(order="Hero|Skin")
+        order, m, out = self.run_t("look")
+        self.assertEqual((m["Hero"]["archive"], m["Skin"]["error"]), ("1", ""))   # aliases alone are not empty
+        self.assertEqual(out["summary"], "Hero (archive: 1 file), Skin (textures: 0 pictures, 2 more by aliases.txt)")
+
     def test_the_layouts_a_mod_comes_in(self):
         # As RPCS3's mods come: dev_hdd0\game\<id>\USRDIR, USRDIR, PS3_GAME\USRDIR; files right in the folder, with a
         # read-me beside them; a folder of the game's own (data) taken as USRDIR's, not gone into.

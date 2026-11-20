@@ -300,6 +300,95 @@ void index_dir(const std::wstring& dir, int depth, std::unordered_map<uint64_t, 
     FindClose(h);
 }
 
+/* Sixteen hex digits, the whole of s: the id they make. */
+bool parse_hex16(const std::string& s, uint64_t* id)
+{
+    if (s.size() != 16) return false;
+    uint64_t v = 0;
+    for (char c : s) {
+        const int d = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+        if (d < 0) return false;
+        v = v << 4 | (uint64_t)d;
+    }
+    *id = v;
+    return true;
+}
+
+/* textures\aliases.txt: more textures for the pictures a mod has, one a line: the texture's id, then the picture,
+ * either the id of one the folder has or a file of the folder by its path there (any name, as long as it is a .png:
+ * a picture reached only through the list need not be named by an id). '#' starts a comment line. A texture the
+ * folder has a picture of its own for keeps that. Into mine; added counts the ids given, bad the lines not taken,
+ * and why the first was. */
+void read_aliases(const std::wstring& dir, std::unordered_map<uint64_t, Pic>* mine, int* added, int* bad,
+                  std::string* why)
+{
+    HANDLE h = CreateFileW((dir + L"\\aliases.txt").c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+                           FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) return;
+    std::string text;
+    LARGE_INTEGER size;
+    if (GetFileSizeEx(h, &size) && size.QuadPart > 0 && size.QuadPart < (16 << 20)) {
+        text.resize((size_t)size.QuadPart);
+        DWORD got = 0;
+        if (!ReadFile(h, &text[0], (DWORD)text.size(), &got, NULL)) got = 0;
+        text.resize(got);
+    }
+    CloseHandle(h);
+    if (text.size() >= 3 && !text.compare(0, 3, "\xEF\xBB\xBF")) text.erase(0, 3);
+    std::vector<std::pair<uint64_t, Pic>> add;
+    int line = 0;
+    size_t at = 0;
+    while (at < text.size()) {
+        size_t e = text.find('\n', at);
+        if (e == std::string::npos) e = text.size();
+        std::string ln = text.substr(at, e - at);
+        at = e + 1;
+        line++;
+        while (!ln.empty() && (ln.back() == '\r' || ln.back() == ' ' || ln.back() == '\t')) ln.pop_back();
+        size_t b = ln.find_first_not_of(" \t");
+        if (b == std::string::npos || ln[b] == '#') continue;
+        size_t sp = ln.find_first_of(" \t", b);
+        const std::string first = ln.substr(b, sp == std::string::npos ? std::string::npos : sp - b);
+        const size_t tb = sp == std::string::npos ? std::string::npos : ln.find_first_not_of(" \t", sp);
+        const std::string target = tb == std::string::npos ? std::string() : ln.substr(tb);
+        auto fail = [&](const std::string& w) {
+            if (!(*bad)++) *why = "line " + std::to_string(line) + ": " + w;
+        };
+        uint64_t id, to;
+        if (!parse_hex16(first, &id)) { fail("not a texture id: " + first); continue; }
+        if (target.empty()) { fail("no picture after " + first); continue; }
+        Pic p;
+        if (parse_hex16(target, &to)) {
+            auto it = mine->find(to);
+            if (it == mine->end()) { fail("no picture of " + target + " in the folder"); continue; }
+            p = it->second;
+        } else {
+            wchar_t w[1024];
+            if (!MultiByteToWideChar(CP_UTF8, 0, target.c_str(), -1, w, 1024)) { fail("a name too long"); continue; }
+            std::wstring rel(w);
+            for (wchar_t& c : rel) if (c == L'/') c = L'\\';
+            if (rel.find(L':') != std::wstring::npos || rel[0] == L'\\' || (L"\\" + rel + L"\\").find(L"\\..\\") !=
+                std::wstring::npos) {
+                fail("a picture outside the folder: " + target);
+                continue;
+            }
+            std::wstring low(rel);
+            for (wchar_t& c : low) c = (wchar_t)towlower(c);
+            const DWORD a = GetFileAttributesW((dir + L"\\" + rel).c_str());
+            if (low.size() < 5 || low.compare(low.size() - 4, 4, L".png") || a == INVALID_FILE_ATTRIBUTES ||
+                (a & FILE_ATTRIBUTE_DIRECTORY)) {
+                fail("no picture " + target + " in the folder");
+                continue;
+            }
+            p.path = dir + L"\\" + rel;
+            p.kind = low.size() >= 12 && !low.compare(low.size() - 12, 12, L".overlay.png") ? 2 : 1;
+        }
+        add.emplace_back(id, p);
+    }
+    for (auto& a : add)
+        if (mine->emplace(a.first, a.second).second) (*added)++;   /* a picture of its own for it: that one */
+}
+
 int has_hook(u64 id)
 {
     State& s = st();
@@ -557,14 +646,27 @@ std::wstring gowa_textures_dump_folder(void)
 int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox_icons)
 {
     State& s = st();
-    int found = 0, builtin = 0, copies = 0;
+    int found = 0, builtin = 0, copies = 0, aliased = 0;
     {
         std::lock_guard<std::mutex> lk(s.mu);
         s.pics.clear();
         s.bad.clear();
         if (l.use)
-            for (const ModInfo& m : l.mods)
-                if (m.on && m.error.empty() && !m.textures.empty()) index_dir(m.textures, 0, &s.pics, &found);
+            for (const ModInfo& m : l.mods) {
+                if (!m.on || !m.error.empty() || m.textures.empty()) continue;
+                std::unordered_map<uint64_t, Pic> mine;   /* the mod's own, then the ids its aliases.txt adds */
+                index_dir(m.textures, 0, &mine, &found);
+                int bad = 0;
+                std::string why;
+                read_aliases(m.textures, &mine, &aliased, &bad, &why);
+                if (bad) {
+                    char id8[512] = "";
+                    WideCharToMultiByte(CP_UTF8, 0, m.id.c_str(), -1, id8, sizeof id8, NULL, NULL);
+                    printf("[tex] %s: aliases.txt: %d line%s not taken; %s\n", id8, bad, bad == 1 ? "" : "s",
+                           why.c_str());
+                }
+                for (auto& kv : mine) s.pics.emplace(kv.first, kv.second);   /* a mod above has it: that one */
+            }
         if (xbox_icons)   /* after the mods: a mod's picture of a button wins over the port's */
             for (const Builtin& b : k_xbox_icons)
                 if (!s.pics.count(b.id)) {
@@ -591,7 +693,9 @@ int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox
     rsx_tex_set_hooks(&hk);
     char u8[1200] = "";
     if (!s.dump.empty()) WideCharToMultiByte(CP_UTF8, 0, s.dump.c_str(), -1, u8, sizeof u8, NULL, NULL);
-    printf("[tex] %d pictures of mods, %d of the Xbox button icons, for %d textures (%d of them other copies of the "
-           "game's)%s%s\n", found, builtin, (int)s.pics.size(), copies, u8[0] ? "; the dump: " : "", u8);
+    char more[64] = "";
+    if (aliased) snprintf(more, sizeof more, " (%d more textures by aliases.txt)", aliased);
+    printf("[tex] %d pictures of mods%s, %d of the Xbox button icons, for %d textures (%d of them other copies of the "
+           "game's)%s%s\n", found, more, builtin, (int)s.pics.size(), copies, u8[0] ? "; the dump: " : "", u8);
     return (int)s.pics.size();
 }

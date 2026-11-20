@@ -2659,9 +2659,10 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
                          (m.text_files == 1 ? L" file" : L" files");
                 st += (st.empty() ? L"" : sep) + p + (lit ? L", packed when the game starts" : L"");
             }
-            if (m.texture_files)
+            if (m.texture_files || m.texture_aliases)
                 st += (st.empty() ? L"" : sep) + std::wstring(L"textures: ") + std::to_wstring(m.texture_files) +
-                      (m.texture_files == 1 ? L" picture" : L" pictures");
+                      (m.texture_files == 1 ? L" picture" : L" pictures") +
+                      (m.texture_aliases ? L", " + std::to_wstring(m.texture_aliases) + L" more by aliases.txt" : L"");
             if (!m.later.empty()) {
                 st += sep + std::wstring(L"not read by this build yet:");
                 for (size_t j = 0; j < m.later.size(); j++) st += (j ? L", " : L" ") + std::wstring(W(m.later[j].c_str()));

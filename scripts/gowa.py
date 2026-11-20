@@ -2189,7 +2189,8 @@ KIT_TOOLS = ("ppu_loader.py", "extract_spu_images.py", "wrap_spu_elf.py", "spu_l
              "lift_spu_pic.py", "ppu_lifter.py", "build_spu_workloads.py")
 # What of scripts/ the build reads: this script, its three modules, the routines' writer and the lists of the lift;
 # and the mods' packer, which the game runs with the Kit's Python (port/mods.h).
-KIT_SCRIPTS = ("gowa.py", "bench.py", "frames.py", "gametext.py", "modpack.py", "spu_to_native.py", "jobmods_extra.json",
+KIT_SCRIPTS = ("gowa.py", "bench.py", "frames.py", "gametext.py", "modpack.py", "modtools.py", "spu_to_native.py",
+               "jobmods_extra.json",
                "ppu_hooks.json", "spu_g6_routines.json", "spu_native_hooks.json", "spu_pic_pieces.json",
                "title_patches.json")
 # Never in the Kit, whatever names them: what decrypts.

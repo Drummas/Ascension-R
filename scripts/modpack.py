@@ -10,7 +10,10 @@ game reads before any mod's own files (docs/notes/2026-11-18-mods-archive-and-te
 - An entry the game changes through a .PATCH in an update (its WADs, .TS and .AS files) goes in as a .PATCH of one
   step that takes all of its bytes from the patch's own data: the game puts the newest .PATCH over the base, and a
   whole file in the base's place gets the older update's .PATCH put over it (the EU disc then hangs at its load).
-  Any other entry goes in whole, as the game's own updates bring the DCB files. A mod's own .PATCH goes in as it is.
+  Any other entry goes in whole, as the game's own updates bring the DCB files. A mod's own .PATCH goes in as it is;
+  with a <entry>.PATCH.base beside it (modtools.py patch writes one), only when the game's own file, the one the
+  .PATCH is put over, is the one the .base names (its size and SHA-1): a patch made for another copy of the game would
+  take its ranges from the wrong places. The .base itself never goes in.
 - Text: lines in the form `gowa.py text export` writes (<id>.<k><TAB><text>), in .tsv files named for the language
   (en.tsv, en-gb-story.tsv, or text\\fr\\menus.tsv). English, en, is the game's EN and also its EN-GB (the EU disc's
   English) where the mod has no en-gb file of its own. Each line is checked as `text build` checks it, and one that
@@ -20,6 +23,7 @@ game reads before any mod's own files (docs/notes/2026-11-18-mods-archive-and-te
 
 input.txt, UTF-8, a tab between the fields:
     usrdir  <folder>              the game's folder of its updates: PATCHES, TPPS.PSARC, TPPS1.PSARC...
+    disc    <folder>              the disc's USRDIR, its archives (for the files a mod's .PATCH.base names)
     updates <n>                   the updates the game reads before this one (PATCHES, or a mod's own PATCHES)
     mod     <id> <archive folder or -> <text folder or ->   in the list's order
 
@@ -36,6 +40,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gametext as gt  # noqa: E402
+import modtools  # noqa: E402
 
 # The game's languages as its R_LANG_<lang>.WAD files name them; a file's name is matched with the longest first.
 LANGS = ("EN-GB", "ES-LA", "PT-BR", "EN", "FR", "ES", "DE", "IT", "NL", "PT", "RU", "PL", "TR", "EL", "JA", "KO", "ZH")
@@ -45,12 +50,14 @@ LITTER = {"desktop.ini", "thumbs.db", ".ds_store"}
 
 
 def read_input(path):
-    cfg = {"usrdir": None, "updates": 0, "mods": []}
+    cfg = {"usrdir": None, "disc": None, "updates": 0, "mods": []}
     with open(path, encoding="utf-8-sig") as f:
         for ln in f.read().splitlines():
             c = ln.split("\t")
             if c[0] == "usrdir" and len(c) > 1:
                 cfg["usrdir"] = c[1]
+            elif c[0] == "disc" and len(c) > 1:
+                cfg["disc"] = c[1] or None
             elif c[0] == "updates" and len(c) > 1:
                 cfg["updates"] = int(c[1])
             elif c[0] == "mod" and len(c) > 3:
@@ -108,19 +115,36 @@ def one_step(data):
     return struct.pack(">HHII", PATCH_VERSION, 1, 0x80000000, len(data)) + data
 
 
-def pack_archive(mods, official, files, results):
+def pack_archive(mods, official, files, results, usrdir=None, disc=None):
     """The archive\\ folders into files; {entry: the mod that gave it}."""
     owner = {}
+    bases = {}   # entry -> the game's own file a .PATCH of it is put over (None: the game has none)
     for m in mods:
         if not m["archive"]:
             continue
         got = patched = 0
         left = []
-        for name, path in files_under(m["archive"]):
+        listed = files_under(m["archive"])
+        sidecars = {name[:-5]: path for name, path in listed if name.endswith(".PATCH.BASE")}
+        for name, path in listed:
+            if name.endswith(".PATCH.BASE"):
+                continue
             entry = name if name.endswith(".PATCH") or name + ".PATCH" not in official else name + ".PATCH"
             if entry in owner:
                 left.append(name)
                 continue
+            if name in sidecars:   # a patch for one copy of the game's file: that one only
+                with open(sidecars[name], encoding="utf-8-sig", errors="replace") as f:
+                    info = modtools.read_base_text(f.read())
+                target = name[:-len(".PATCH")]
+                if target not in bases:
+                    found = modtools.newest_whole(target, disc, usrdir)
+                    bases[target] = found[1] if found else None
+                why = ("the game has no %s" % target if bases[target] is None
+                       else modtools.base_matches(info, bases[target]))
+                if why:
+                    results.append(["error", m["id"], "%s: %s" % (name.rsplit("/", 1)[-1], why)])
+                    continue
             with open(path, "rb") as f:
                 data = f.read()
             if entry != name:
@@ -187,7 +211,7 @@ def pack(cfg, out_dir, log=print):
     results, files = [], {}
     usrdir = cfg["usrdir"]
     official = official_names(usrdir) if usrdir and os.path.isdir(usrdir) else set()
-    owner = pack_archive(cfg["mods"], official, files, results)
+    owner = pack_archive(cfg["mods"], official, files, results, usrdir, cfg.get("disc"))
     pack_text(cfg["mods"], usrdir, owner, files, results)
     n = cfg["updates"]
     dst = os.path.join(out_dir, "files")

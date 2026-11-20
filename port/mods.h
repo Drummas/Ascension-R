@@ -43,6 +43,7 @@ struct ModInfo {
     int pack_warn = 0;              /* something of them was left out */
     std::wstring textures;          /* its textures\ folder, or "": pictures by texture id (textures.h) */
     int texture_files = 0;          /* the pictures in it (.png files named by an id) */
+    int texture_aliases = 0;        /* the lines of its aliases.txt that give a texture a picture (textures.h) */
     std::wstring proportions;       /* its proportions\ folder, or "": bone lengths for a mesh (port/edge_prop.c) */
     std::vector<std::wstring> proportion_files;   /* the .bin files in it */
     std::vector<std::string> later; /* what this build does not read yet: "patches" */
@@ -69,9 +70,10 @@ void mods_store(const ModList& l);
 
 /* The archive\ and text\ folders of the mods that are on, as one more update in mods\.built\files\ (modpack.py, run
  * with the Kit's Python, else the build tree's): made again only when they, the game's updates (usrdir: the folder of
- * its PATCHES and TPPS<n>.PSARC) or the update number before it have changed. Sets l->built, each mod's packed, and
- * l->pack_error when it could not be made. */
-void mods_pack(ModList* l, const std::wstring& usrdir);
+ * its PATCHES and TPPS<n>.PSARC) or the update number before it have changed. disc: the disc's USRDIR, whose archives
+ * have the game's own files a mod's .PATCH with a .PATCH.base is checked against. Sets l->built, each mod's packed,
+ * and l->pack_error when it could not be made. */
+void mods_pack(ModList* l, const std::wstring& usrdir, const std::wstring& disc = std::wstring());
 
 /* PS3_MODS_DIRS: the pack's folder first, then the USRDIR folders of the mods that are on, the first one's first, '|'
  * between them. "" when mods are off or none is on. */

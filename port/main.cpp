@@ -1562,8 +1562,15 @@ static void title_environment(int pack_mods)
             wchar_t usr[1200];
             if (!MultiByteToWideChar(CP_ACP, 0, u8usr, -1, usr, (int)(sizeof usr / sizeof usr[0]))) usr[0] = 0;
             for (wchar_t* c = usr; *c; c++) if (*c == L'/') *c = L'\\';
+            /* the disc's archives, for the game's own files a mod's .PATCH.base names */
+            wchar_t disc[1200] = L"";
+            if (const char* vfs = getenv("PS3_VFS_ROOT"))
+                if (*vfs && MultiByteToWideChar(CP_ACP, 0, vfs, -1, disc, 1100)) {
+                    wcscat(disc, L"\\PS3_GAME\\USRDIR");
+                    for (wchar_t* c = disc; *c; c++) if (*c == L'/') *c = L'\\';
+                }
             const ULONGLONG t0 = GetTickCount64();
-            mods_pack(&mods, usr);
+            mods_pack(&mods, usr, disc);
             if (!mods.built.empty() || !mods.pack_error.empty())
                 printf("[mods] pack: %s (%.1f s)\n", mods.pack_error.empty() ? "one more update" : mods.pack_error.c_str(),
                        (double)(GetTickCount64() - t0) / 1000.0);

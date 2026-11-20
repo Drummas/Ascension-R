@@ -227,10 +227,13 @@ changes. A mod's `archive\` (files for entries of the game's archives, by their 
 game's text, as `gowa.py text export` writes them) go into one more update of the game, which the game makes as it
 starts, with the Kit's Python, and again only when they change: an entry the game's updates patch goes in as a `.PATCH`
 of one step, a line that fails the text checks is left out, and the first mod in the list wins
-([note](notes/2026-11-18-mods-archive-and-text.md)). A mod's `textures\` has PNGs named by the id of a texture of the
-game's: each goes in that texture's place as the texture reaches the graphics card, at any size, or over it as an
-overlay; **Write out the game's textures** (`mods.dump_textures`) writes each texture the game loads into
-`textures-dump\`, named by its id ([note](notes/2026-11-18-mods-textures.md)). The log has a `[mods]` line with each mod and what it gave, and
+([note](notes/2026-11-18-mods-archive-and-text.md)). A mod can bring only what it changes of a big file: a `.PATCH` in
+the game's own form, made by `scripts/modtools.py patch`, with a `.PATCH.base` naming the game's file it is for, which
+the packer checks first ([note](notes/2026-11-20-mods-aliases-and-patches.md)). A mod's `textures\` has PNGs named by
+the id of a texture of the game's: each goes in that texture's place as the texture reaches the graphics card, at any
+size, or over it as an overlay; its `aliases.txt` gives one picture to more textures; **Write out the game's
+textures** (`mods.dump_textures`) writes each texture the game loads into `textures-dump\`, named by its id
+([note](notes/2026-11-18-mods-textures.md)). The log has a `[mods]` line with each mod and what it gave, and
 names each file taken (`[fs] mod`); the problem report has the same line, without paths. [MODDING.md](MODDING.md) has
 the layout a mod comes in, its `mod.ini`, and how the settings keep the order (`[mods] order` and `off`).
 

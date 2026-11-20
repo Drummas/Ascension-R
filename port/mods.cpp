@@ -635,7 +635,8 @@ std::string game_part(const ModList& l, const std::wstring& usrdir, const std::w
         for (int k = 0; k <= 9; k++)
             s += stamp_of(usrdir + (k ? L"\\TPPS" + std::to_wstring(k) + L".PSARC" : std::wstring(L"\\TPPS.PSARC"))) + "\n";
     }
-    s += "packer " + stamp_of(script) + " " + stamp_of(script.substr(0, script.find_last_of(L'\\') + 1) + L"gametext.py");
+    const std::wstring dir = script.substr(0, script.find_last_of(L'\\') + 1);
+    s += "packer " + stamp_of(script) + " " + stamp_of(dir + L"gametext.py") + " " + stamp_of(dir + L"modtools.py");
     return s;
 }
 
@@ -773,8 +774,9 @@ void mods_scan(ModList* out, int unpack)
             walk(d, std::wstring(), &rels, 0);
             for (const std::wstring& r : rels) {
                 if (litter(r)) continue;
-                if (!k) m.archive_files++;
-                else if (r.size() > 4 && !r.compare(r.size() - 4, 4, L".TSV")) m.text_files++;
+                if (!k) {   /* a .PATCH's .base names the game's file it is for (modtools.py): not an entry */
+                    if (!(r.size() > 11 && !r.compare(r.size() - 11, 11, L".PATCH.BASE"))) m.archive_files++;
+                } else if (r.size() > 4 && !r.compare(r.size() - 4, 4, L".TSV")) m.text_files++;
             }
         }
         if (!m.textures.empty()) {   /* the pictures: .png files named by sixteen hex digits (textures.h) */
@@ -787,6 +789,19 @@ void mods_scan(ModList* out, int unpack)
                 for (size_t i = 0; hex && i < 16; i++) hex = iswxdigit(n[i]) != 0;
                 if (hex) m.texture_files++;
             }
+            /* aliases.txt: a texture's id and a picture a line (textures.h); the lines of that shape */
+            const std::string al = read_all(m.textures + L"\\aliases.txt", 16u << 20);
+            for (size_t at = 0; at < al.size();) {
+                size_t e = al.find('\n', at);
+                if (e == std::string::npos) e = al.size();
+                const std::string ln = al.substr(at, e - at);
+                at = e + 1;
+                const size_t b = ln.find_first_not_of(" \t\r\xEF\xBB\xBF");
+                if (b == std::string::npos || ln[b] == '#' || b + 17 > ln.size()) continue;
+                bool hex = ln[b + 16] == ' ' || ln[b + 16] == '\t';
+                for (size_t i = b; hex && i < b + 16; i++) hex = isxdigit((unsigned char)ln[i]) != 0;
+                if (hex && ln.find_first_not_of(" \t\r", b + 16) != std::string::npos) m.texture_aliases++;
+            }
         }
         if (!m.proportions.empty()) {   /* bone lengths for a mesh: .bin files (port/edge_prop.c reads them) */
             std::vector<std::wstring> fs;
@@ -796,7 +811,7 @@ void mods_scan(ModList* out, int unpack)
                     m.proportion_files.push_back(m.proportions + L"\\" + f);
         }
         if (m.error.empty() && m.usrdirs.empty() && !m.archive_files && !m.text_files && !m.texture_files &&
-            m.proportion_files.empty()) {
+            !m.texture_aliases && m.proportion_files.empty()) {
             if (m.later.empty()) m.error = "it is empty";
             else {
                 m.error = "this build does not read its ";
@@ -812,7 +827,7 @@ void mods_scan(ModList* out, int unpack)
     if (!st.empty() && st.substr(0, st.find('\n')) == hash_hex(mods_part(*out))) read_result(out, built);
 }
 
-void mods_pack(ModList* l, const std::wstring& usrdir)
+void mods_pack(ModList* l, const std::wstring& usrdir, const std::wstring& disc)
 {
     l->built.clear();
     l->pack_error.clear();
@@ -826,7 +841,8 @@ void mods_pack(ModList* l, const std::wstring& usrdir)
         return;
     }
     const std::wstring out = l->dir + L"\\.built";
-    const std::string stamp = hash_hex(mods_part(*l)) + "\n" + hash_hex(game_part(*l, usrdir, script)) + "\n";
+    const std::string stamp = hash_hex(mods_part(*l)) + "\n" + hash_hex(game_part(*l, usrdir, script) + "\ndisc " +
+                                                                      u8(disc)) + "\n";
     if (read_all(out + L"\\stamp.txt", 256) == stamp) {
         read_result(l, out);
         return;
@@ -838,7 +854,8 @@ void mods_pack(ModList* l, const std::wstring& usrdir)
     SetFileAttributesW(out.c_str(), FILE_ATTRIBUTE_HIDDEN);
     DeleteFileW((out + L"\\stamp.txt").c_str());
     DeleteFileW((out + L"\\result.txt").c_str());
-    std::string in = "usrdir\t" + u8(usrdir) + "\nupdates\t" + std::to_string(updates_before(*l, usrdir)) + "\n";
+    std::string in = "usrdir\t" + u8(usrdir) + "\ndisc\t" + u8(disc) + "\nupdates\t" +
+                     std::to_string(updates_before(*l, usrdir)) + "\n";
     for (const ModInfo& m : l->mods)
         if (packs(m))
             in += "mod\t" + u8(m.id) + "\t" + (m.archive_files ? u8(m.archive) : "-") + "\t" +
@@ -929,9 +946,10 @@ std::string mods_summary(const ModList& l)
                 if (m.archive_files) what += (what.empty() ? "" : "; ") + std::string("archive: ") + files_text(m.archive_files);
                 if (m.text_files) what += (what.empty() ? "" : "; ") + std::string("text: ") + files_text(m.text_files);
             }
-            if (m.texture_files)
+            if (m.texture_files || m.texture_aliases)
                 what += (what.empty() ? "" : "; ") + std::string("textures: ") + std::to_string(m.texture_files) +
-                        (m.texture_files == 1 ? " picture" : " pictures");
+                        (m.texture_files == 1 ? " picture" : " pictures") +
+                        (m.texture_aliases ? ", " + std::to_string(m.texture_aliases) + " more by aliases.txt" : "");
             if (!m.proportion_files.empty())
                 what += (what.empty() ? "" : "; ") + std::string("proportions: ") +
                         files_text((int)m.proportion_files.size());

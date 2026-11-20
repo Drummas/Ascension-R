@@ -88,10 +88,39 @@ change; the Mods tab says what the last start made of each mod.
   ([note](notes/2026-11-18-mods-archive-and-text.md)).
 - **Any other file** goes in whole, as the game's own updates bring its DCB files. A file the archives do not have is
   added.
-- **A `.PATCH` of the mod's own** goes in as it is.
+- **A `.PATCH` of the mod's own** goes in as it is. With a `<name>.PATCH.base` beside it, only for the copy of the
+  game it was made for: see below.
 - Names are taken in upper case, as the archives have them. `desktop.ini`, `Thumbs.db` and files whose name starts
   with a dot are left out.
 - The first mod in the list wins where two have the same file.
+
+**Only what the mod changes: a `.PATCH`.** A mod that changes part of a big file need not bring it whole: Kratos's
+`R_HERO00.AS` is 127 MB, and a new body for him changes 23 MB of it. The game puts a `.PATCH` over its own file as it
+loads it, the way its updates change their WADs, so a mod can bring that instead:
+
+```
+python scripts\modtools.py patch <the mod's whole R_HERO00.AS> WAD/PS3_BE/R_HERO00.AS MyMod\archive
+```
+
+writes `MyMod\archive\WAD\PS3_BE\R_HERO00.AS.PATCH` and `R_HERO00.AS.PATCH.base` (the Kit's Python is
+`kit\python\python.exe`, its scripts `kit\scripts\`). The patch takes the ranges the mod's file has at the same place
+as the game's from the game's, and the rest from its own data: the body above is a 22.6 MB patch, the WAD that goes
+with it, 11.8 MB whole, 476 bytes. The script reads the game's file from the newest update that brings it whole, else
+from the disc's archives (`--game` names the disc's `PS3_GAME` folder, `--updates` the updates' `USRDIR`), and checks
+that the patch gives the mod's file back before it writes it.
+
+- **The `.base`** names the game's file the patch was made for: its size and SHA-1. As the game starts, the packer
+  checks it against the game's own file, the one the patch would go over, and leaves the patch out when it is
+  another (another release's disc, an update that changed it): the patch's ranges would be taken from the wrong
+  places. The Mods tab says so: `not packed: R_HERO00.AS.PATCH: made for another copy of the file`. The `.base` itself
+  never goes into the game.
+- **What the patch holds**, in the form the game's updates bring theirs (version 4): `u16` version, `u16` n, n steps of
+  (`u32` from, `u32` length), then the patch's own data. A step with the top bit of `from` set takes `length` bytes of
+  the patch's own data, from the offset the other bits give; any other takes them from the game's file at `from`. The
+  file is the steps' bytes, one after the other. The script only finds what is at the same place in both; data the
+  mod moved goes into the patch whole.
+- A patch is put over the game's file, never over another mod's: two mods with a patch of the same file are not
+  added together, the first one wins.
 
 A mod that brings an update of its own in `files\` (a `TPPS6.PSARC` and `PATCHES`, as `gowa.py text build` made them
 before) still works: the launcher's update comes after it (`TPPS7.PSARC`), and wins where both change the same file.
@@ -144,9 +173,25 @@ MyMod\
 - **Size and memory.** A picture goes to the GPU uncompressed, 4 bytes a texel with its levels: 85 MB for 4096x4096,
   21 MB for 2048x2048, where the game's own textures are compressed and smaller. The textures held at once share a
   third of the card's memory, at most 2 GB; past that the game's are let go and loaded again, which stutters. One
-  picture for many textures (the same file under each texture's name, an atlas for a whole character) is read once
-  and held once for all of them, so pictures that repeat cost nothing more; keep each picture about the size its
-  texture needs on screen.
+  picture for many textures (an atlas for a whole character, through `aliases.txt` or the same file under each
+  texture's name) is read once and held once for all of them, so pictures that repeat cost nothing more; keep each
+  picture about the size its texture needs on screen.
+- **One picture for many textures: `aliases.txt`.** A character's atlas stands for each texture of the character, and
+  a file of it under each texture's name makes the mod as big again for every one (8 copies of a 10 MB atlas). The
+  folder's `aliases.txt` gives more textures a picture the folder has, one a line: the texture's id, then the picture,
+  either the id of one in the folder or its file by its path there. A picture only the list names can have any name
+  that ends in `.png`. A line that starts with `#` is a comment.
+
+  ```
+  # <texture id> <the picture it takes>
+  0b0c9bbf4142f441 127490984add5370
+  12fd992d99d6d6ed atlas\body.png
+  ```
+
+  A texture the folder has a picture of its own for keeps that one. A line whose picture is not in the folder, or
+  outside it, is left out, and the log says how many were and why the first one was. `python scripts\modtools.py
+  textures MyMod\textures` folds the pictures that are one file, byte for byte, into the list: the first by name
+  stays, the others' files go.
 - **Copies.** The game keeps many textures in more than one copy: whole, in an archive's stream or a WAD, and in a
   level's WAD as their levels from level 2 down, which it draws with as a texture of their own size until the whole
   one has streamed in (in some cinematics, all along). Each copy has its own id; a picture for any of them goes in the
@@ -213,9 +258,11 @@ A mod can have this folder, which a later Ascension-R may read. The tab names it
   '<the file>'` for each file taken, the first 64 of them.
 - `mods\.built\` holds the update the last start made, `result.txt` (what each mod gave) and `pack.log` (what the
   packer said).
-- A `[tex]` line says how many pictures the mods have, for how many textures, and how many of those are other copies
-  of the same textures of the game's; each texture given one is named,
-  `[tex] <id> <width>x<height> fmt <format>: a picture in its place`, the first 32 of them.
+- A `[tex]` line says how many pictures the mods have (and how many more textures their `aliases.txt` give them), for
+  how many textures, and how many of those are other copies of the same textures of the game's; each texture given
+  one is named, `[tex] <id> <width>x<height> fmt <format>: a picture in its place`, the first 32 of them. A mod whose
+  `aliases.txt` has lines that were left out gets a line of its own: `[tex] MyMod: aliases.txt: 2 lines not taken;
+  line 5: no picture of 00000000000000ff in the folder`.
 - `[props]` lines name each proportions file read (`<file>: <n> joints, for meshes of <size> bytes`) or turned away,
   and each mesh that takes one when the game first draws it.
 - **Report a problem** puts the same `Mods:` line in the report's notes, without the folder's path.

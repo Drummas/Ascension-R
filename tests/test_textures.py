@@ -217,6 +217,41 @@ class Textures(unittest.TestCase):
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
 
+    def test_aliases_give_a_picture_to_more_textures(self):
+        # A: a picture by its id and one by any name; aliases.txt gives them to more textures.
+        png(os.path.join(self.mods, "A", "textures", "00000000000000aa.png"), 2, 2, lambda x, y: (10, 20, 30, 255))
+        png(os.path.join(self.mods, "A", "textures", "atlas", "body.png"), 2, 2, lambda x, y: (40, 50, 60, 255))
+        Path(self.mods, "A", "textures", "aliases.txt").write_text(
+            "﻿# the id, then the picture\n"
+            "00000000000000a1 00000000000000aa\n"
+            "00000000000000a2   atlas/body.png\r\n"
+            "00000000000000AA atlas/body.png\n"        # the folder has a picture of aa: that one
+            "00000000000000a3 00000000000000ff\n"      # no picture of ff in the folder
+            "00000000000000a4 ../outside.png\n"        # outside the folder
+            "zz 00000000000000aa\n", encoding="utf-8")
+        # B, below: its own picture of a1 loses to A's alias; its own alias is taken.
+        png(os.path.join(self.mods, "B", "textures", "00000000000000a1.png"), 2, 2, lambda x, y: (1, 1, 1, 255))
+        png(os.path.join(self.mods, "B", "textures", "00000000000000bb.png"), 2, 2, lambda x, y: (2, 2, 2, 255))
+        Path(self.mods, "B", "textures", "aliases.txt").write_text("00000000000000b1 00000000000000bb\n")
+        Path(self.ini).write_text("[mods]\nfolder = %s\norder = A|B\n" % self.mods)
+        r = subprocess.run([self.exe, self.ini, "-", "0", "has", "a1", "has", "a2", "has", "a3", "has", "a4", "has",
+                            "b1", "picture", "a1", "2", "2", "0,0,0,0", "picture", "a2", "2", "2", "0,0,0,0",
+                            "picture", "aa", "2", "2", "0,0,0,0", "picture", "b1", "2", "2", "0,0,0,0"],
+                           capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        log = [ln for ln in r.stdout.splitlines() if ln.startswith("[tex]")]
+        out = [ln for ln in r.stdout.splitlines() if not ln.startswith("[")]
+        self.assertIn("[tex] A: aliases.txt: 3 lines not taken; line 5: no picture of 00000000000000ff in the folder", log)
+        self.assertTrue(any(ln.startswith("[tex] 3 pictures of mods (3 more textures by aliases.txt), 0 of the Xbox")
+                            for ln in log), log)
+        self.assertEqual(out[0], "textures 5")   # aa, a1, a2; bb, b1
+        self.assertEqual(out[1:6], ["has 00000000000000a1 1", "has 00000000000000a2 1", "has 00000000000000a3 0",
+                                    "has 00000000000000a4 0", "has 00000000000000b1 1"])
+        self.assertEqual(out[6], "picture 1 2x2 " + " ".join(["10,20,30,255"] * 5))
+        self.assertEqual(out[7], "picture 1 2x2 " + " ".join(["40,50,60,255"] * 5))
+        self.assertEqual(out[8], "picture 1 2x2 " + " ".join(["10,20,30,255"] * 5))
+        self.assertEqual(out[9], "picture 1 2x2 " + " ".join(["2,2,2,255"] * 5))
+
     def test_the_dump_and_the_xbox_icons_ids(self):
         dump = os.path.join(self.d, "dump")
         out = self.run_t(dump, 1, "has", "d8c17e20cbbe71ac", "has", "2133aab0625680af", "has", "a4f295497b5454b7",

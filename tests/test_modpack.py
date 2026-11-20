@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "tests"))
 import gametext as gt  # noqa: E402
 import modpack  # noqa: E402
+import modtools  # noqa: E402
 from test_gametext import MSGS, MP, SP, patch  # noqa: E402
 
 SP_GB = gt.WAD_DIR + "R_LANG_EN-GB.WAD.PATCH"
@@ -46,6 +47,12 @@ class Pack(unittest.TestCase):
                  "/WAD/PS3_BE/SHELL.WAD.PATCH": b"an update's patch", "/WAD/PS3_BE/SHELL.TS.PATCH": b"and another"}
         Path(self.usr, "TPPS5.PSARC").write_bytes(gt.psarc_pack(files))
         Path(self.usr, "TPPS.PSARC").write_bytes(gt.psarc_pack({"/DC/PS3_BE/X.DCB": b"the game's"}))
+        # The disc's archives: a hero file no update changes, and the DCB an update brings whole again.
+        self.disc = os.path.join(self.d, "disc", "USRDIR")
+        os.makedirs(self.disc)
+        self.hero = bytes(range(256)) * 400
+        Path(self.disc, "RESOURCES.PSARC").write_bytes(gt.psarc_pack({"/WAD/PS3_BE/R_X.AS": self.hero,
+                                                                      "/DC/PS3_BE/X.DCB": b"the disc's"}))
         self.out = os.path.join(self.d, "built")
 
     def tearDown(self):
@@ -59,7 +66,8 @@ class Pack(unittest.TestCase):
                 "text": os.path.join(root, "text") if os.path.isdir(os.path.join(root, "text")) else None}
 
     def pack(self, *mods, updates=5):
-        res = modpack.pack({"usrdir": self.usr, "updates": updates, "mods": list(mods)}, self.out, log=lambda s: None)
+        res = modpack.pack({"usrdir": self.usr, "disc": self.disc, "updates": updates, "mods": list(mods)}, self.out,
+                           log=lambda s: None)
         arc = os.path.join(self.out, "files", "TPPS%d.PSARC" % (updates + 1))
         names = gt.psarc_names(arc) if os.path.isfile(arc) else []
         return res, names, arc
@@ -80,6 +88,35 @@ class Pack(unittest.TestCase):
         self.assertEqual(got["/WAD/PS3_BE/OWN.WAD.PATCH"], b"its own patch")
         self.assertEqual((got["/DC/PS3_BE/X.DCB"], got["/WAD/PS3_BE/NEW.WAD"]), (b"my dcb", b"a new one"))
         self.assertEqual(Path(self.out, "files", "PATCHES").read_bytes(), b"6")
+
+    def test_a_patch_with_its_base_goes_in_for_that_copy_of_the_game_only(self):
+        mine = bytearray(self.hero)
+        mine[1000:1100] = b"\x00" * 100
+        mine = bytes(mine) + b"added"
+        p = modtools.make_patch(self.hero, mine)
+        a = self.mod("A", {"archive/WAD/PS3_BE/R_X.AS.PATCH": p,
+                           "archive/WAD/PS3_BE/R_X.AS.PATCH.base": modtools.base_text("/WAD/PS3_BE/R_X.AS", self.hero)})
+        res, names, arc = self.pack(a)
+        self.assertIn(["archive", "A", 1, 0, 0, "-"], res)
+        self.assertEqual(names, ["/WAD/PS3_BE/R_X.AS.PATCH"])   # the .base is not an entry
+        got = gt.psarc_read(arc, set(names))["/WAD/PS3_BE/R_X.AS.PATCH"]
+        self.assertEqual(modtools.apply_patch(self.hero, got), mine)
+        # Made for another copy of the file: left out, and said why.
+        b = self.mod("B", {"archive/WAD/PS3_BE/R_X.AS.PATCH": p,
+                           "archive/WAD/PS3_BE/R_X.AS.PATCH.base": modtools.base_text("/WAD/PS3_BE/R_X.AS",
+                                                                                        self.hero[:-1] + b"?")})
+        res, names, _ = self.pack(b)
+        self.assertIn(["error", "B", "R_X.AS.PATCH: made for another copy of the file (its SHA-1 differs)"], res)
+        self.assertEqual((res[0], names), (["update", 0, 0], []))
+        # The file a patch goes over is the newest update's that brings it whole, not the disc's.
+        c = self.mod("C", {"archive/DC/PS3_BE/X.DCB.PATCH": modtools.make_patch(b"the game's", b"the mod's"),
+                           "archive/DC/PS3_BE/X.DCB.PATCH.base": modtools.base_text("/DC/PS3_BE/X.DCB", b"the game's")})
+        d = self.mod("D", {"archive/WAD/PS3_BE/R_Y.AS.PATCH": p,
+                           "archive/WAD/PS3_BE/R_Y.AS.PATCH.base": modtools.base_text("/WAD/PS3_BE/R_Y.AS", b"")})
+        res, names, _ = self.pack(c, d)
+        self.assertIn(["archive", "C", 1, 0, 0, "-"], res)
+        self.assertIn(["error", "D", "R_Y.AS.PATCH: the game has no /WAD/PS3_BE/R_Y.AS"], res)
+        self.assertEqual(names, ["/DC/PS3_BE/X.DCB.PATCH"])
 
     def test_text_lines_first_mod_first_and_english_for_both(self):
         a = self.mod("A", {"text/en.tsv": "1.1\tJeda\n2.1\tTekan [XButton] untuk melompat\n3.1\tTidak ada\n"})
