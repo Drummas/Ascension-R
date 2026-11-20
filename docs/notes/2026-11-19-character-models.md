@@ -217,6 +217,12 @@ k = node k); getting the file in through the mods folder.
 
 Done since: a mesh laid out anew (above), its stream set moved, up to the mesh limit.
 
+Found later (2026-11-20): **the triangles' winding.** The game's meshes wind their front faces the other way from
+glTF's, and the body's draws cull back faces. A mesh imported from glTF as it is gets drawn inside out: from every side
+the game shows the inner side of its far surfaces (in a frame capture, a head seen from behind had its depth deepest in
+the middle, where a convex surface is nearest), which reads as flat, oddly lit and see-through. With each triangle
+turned, (a, b, c) to (a, c, b), it draws right.
+
 Still open:
 1. **Meshes past the limit:** found since: two memory budgets in the game's DCB files, the body stream set's heap and
    the hero WAD's heap, which a mod can raise ([note](2026-11-19-mesh-limit.md)).
