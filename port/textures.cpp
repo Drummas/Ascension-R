@@ -9,11 +9,13 @@
 #include <wincodec.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #include <algorithm>
 #include <condition_variable>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -62,13 +64,32 @@ struct DumpJob {
     std::vector<uint8_t> rgba;
 };
 
+/* Pictures decoded once. A mod gives one picture to many textures, under a file of each one's name: a character's
+ * atlas to every texture of the character, 9 pictures in 35 files. Each upload of each of those textures read its
+ * file and decoded it again, and an upload comes again whenever the texture cache lets a texture go and it is bound
+ * again: with 4096x4096 atlases, 9-53 ms a frame of decoding on the render thread for the first minute of a level.
+ * A file is known by its size and time, and its bytes' XXH64 once read; its texels are kept by that, and a smaller
+ * copy's by that and its size, the least recently used going past GOWA_PICTURE_CACHE_MB (default 512). The same
+ * texels also get one key for the backend (rsx_tex_picture.key), which uploads them once for all the textures. */
+struct Decoded {
+    uint32_t w = 0, h = 0;
+    std::shared_ptr<std::vector<uint8_t>> rgba;
+    uint64_t used = 0;                 /* the tick of its last use */
+};
+struct FileSeen { uint64_t size = 0, time = 0, content = 0; };
+
 struct State {
     std::mutex mu;
     std::unordered_map<uint64_t, Pic> pics;
     std::wstring dump;                 /* the dump's folder, or "" */
     std::unordered_set<uint64_t> dumped;
     std::unordered_set<uint64_t> bad;  /* pictures WIC could not read: said once */
-    std::vector<uint8_t> out;          /* the last picture handed over */
+    std::vector<uint8_t> out;          /* the last picture handed over, when made for this call (over the game's own) */
+    std::shared_ptr<std::vector<uint8_t>> held;          /* else the cached texels handed over last */
+    std::unordered_map<std::wstring, FileSeen> files;    /* a picture file as last seen */
+    std::unordered_map<uint64_t, Decoded> decoded;       /* texels by content (and size) */
+    size_t decoded_bytes = 0;
+    uint64_t tick = 0;
     /* The dump is written on a thread of its own, so the game does not wait for PNGs; the frame waits only when
      * more than k_dump_queue bytes are queued. */
     std::mutex dmu;
@@ -104,8 +125,9 @@ template <class T> void release(T*& p)
     p = NULL;
 }
 
-/* A PNG from its file, or from the exe's resource res. */
-bool load_png(const std::wstring& path, int res, uint32_t* w, uint32_t* h, std::vector<uint8_t>* rgba)
+/* A PNG from its file, from the exe's resource res, or from its file's bytes already read (bytes). */
+bool load_png(const std::wstring& path, int res, uint32_t* w, uint32_t* h, std::vector<uint8_t>* rgba,
+              const std::vector<uint8_t>* bytes = NULL)
 {
     IWICImagingFactory* f = wic();
     if (!f) return false;
@@ -115,7 +137,11 @@ bool load_png(const std::wstring& path, int res, uint32_t* w, uint32_t* h, std::
     IWICStream* mem = NULL;
     bool ok = false, opened = false;
     UINT fw = 0, fh = 0;
-    if (res) {
+    if (bytes && !bytes->empty()) {
+        opened = SUCCEEDED(f->CreateStream(&mem)) &&
+                 SUCCEEDED(mem->InitializeFromMemory((BYTE*)bytes->data(), (DWORD)bytes->size())) &&
+                 SUCCEEDED(f->CreateDecoderFromStream(mem, NULL, WICDecodeMetadataCacheOnDemand, &dec));
+    } else if (res) {
         HRSRC r = FindResourceW(NULL, MAKEINTRESOURCEW(res), MAKEINTRESOURCEW(10) /* RT_RCDATA */);
         HGLOBAL g = r ? LoadResource(NULL, r) : NULL;
         void* data = g ? LockResource(g) : NULL;
@@ -282,38 +308,133 @@ int has_hook(u64 id)
     return it == s.pics.end() || s.bad.count(id) ? 0 : it->second.kind;
 }
 
+/* The content of a picture: its file's bytes' XXH64, read again only when the file's size or time is not as last
+ * seen (left in bytes when read now), or a constant for a picture in the exe. 0 when the file cannot be read. */
+uint64_t content_of(State& s, const Pic& p, std::vector<uint8_t>* bytes)
+{
+    if (p.res) return (0x9E3779B97F4A7C15ull * (uint64_t)(p.res + 1)) | 1u;
+    WIN32_FILE_ATTRIBUTE_DATA fa;
+    if (!GetFileAttributesExW(p.path.c_str(), GetFileExInfoStandard, &fa)) return 0;
+    const uint64_t size = (uint64_t)fa.nFileSizeHigh << 32 | fa.nFileSizeLow;
+    const uint64_t time = (uint64_t)fa.ftLastWriteTime.dwHighDateTime << 32 | fa.ftLastWriteTime.dwLowDateTime;
+    auto f = s.files.find(p.path);
+    if (f != s.files.end() && f->second.size == size && f->second.time == time) return f->second.content;
+    if (!size || size > 0x7FFFFFFFu) return 0;
+    HANDLE h = CreateFileW(p.path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                           NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    bytes->resize((size_t)size);
+    DWORD got = 0;
+    const bool ok = ReadFile(h, bytes->data(), (DWORD)size, &got, NULL) && got == size;
+    CloseHandle(h);
+    if (!ok) {
+        bytes->clear();
+        return 0;
+    }
+    const uint64_t c = rsx_tex_xxh64(bytes->data(), bytes->size(), 0) | 1u;
+    s.files[p.path] = FileSeen{ size, time, c };
+    return c;
+}
+
+/* A picture's texels at a size: the key they are cached by and the backend's key for them. */
+uint64_t texels_key(uint64_t content, uint32_t w, uint32_t h)
+{
+    const uint64_t k[3] = { content, w, h };
+    return rsx_tex_xxh64(k, sizeof k, 0x7069637475726573ull) | 1u;
+}
+
+Decoded* cached(State& s, uint64_t key)
+{
+    auto it = s.decoded.find(key);
+    if (it == s.decoded.end()) return NULL;
+    it->second.used = ++s.tick;
+    return &it->second;
+}
+
+/* Texels kept under key; past the cache's size the least recently used go first. */
+Decoded* keep(State& s, uint64_t key, uint32_t w, uint32_t h, std::vector<uint8_t>&& rgba)
+{
+    static size_t cap = 0;
+    if (!cap) {
+        const char* e = getenv("GOWA_PICTURE_CACHE_MB");
+        const int mb = e ? atoi(e) : 0;
+        cap = (size_t)(mb > 0 ? mb : 512) << 20;
+    }
+    auto had = s.decoded.find(key);
+    if (had != s.decoded.end()) {
+        s.decoded_bytes -= had->second.rgba->size();
+        s.decoded.erase(had);
+    }
+    const size_t n = rgba.size();
+    while (s.decoded_bytes + n > cap && !s.decoded.empty()) {
+        auto old = s.decoded.begin();
+        for (auto it = s.decoded.begin(); it != s.decoded.end(); ++it)
+            if (it->second.used < old->second.used) old = it;
+        s.decoded_bytes -= old->second.rgba->size();
+        s.decoded.erase(old);
+    }
+    Decoded& d = s.decoded[key];
+    d.w = w;
+    d.h = h;
+    d.used = ++s.tick;
+    d.rgba = std::make_shared<std::vector<uint8_t>>(std::move(rgba));
+    s.decoded_bytes += n;
+    return &d;
+}
+
 int picture_hook(u64 id, u32 w, u32 h, const u8* base, rsx_tex_picture* out)
 {
     State& s = st();
     std::lock_guard<std::mutex> lk(s.mu);
     auto it = s.pics.find(id);
     if (it == s.pics.end()) return 0;
+    const Pic& pic = it->second;
+    std::vector<uint8_t> bytes;
+    const uint64_t content = content_of(s, pic, &bytes);
+    std::shared_ptr<std::vector<uint8_t>> tex;
     uint32_t pw = 0, ph = 0;
-    std::vector<uint8_t> png;
-    if (!load_png(it->second.path, it->second.res, &pw, &ph, &png)) {
-        if (s.bad.insert(id).second) {
-            char u8[1200];
-            WideCharToMultiByte(CP_UTF8, 0, it->second.path.c_str(), -1, u8, sizeof u8, NULL, NULL);
-            fprintf(stderr, "[tex] %s: not a picture this program can read%c", u8, 10);
+    if (Decoded* d = content ? cached(s, content) : NULL) {
+        tex = d->rgba;
+        pw = d->w;
+        ph = d->h;
+    } else {
+        std::vector<uint8_t> png;
+        if (!load_png(pic.path, pic.res, &pw, &ph, &png, &bytes)) {
+            if (s.bad.insert(id).second) {
+                char u8[1200];
+                WideCharToMultiByte(CP_UTF8, 0, pic.path.c_str(), -1, u8, sizeof u8, NULL, NULL);
+                fprintf(stderr, "[tex] %s: not a picture this program can read%c", u8, 10);
+            }
+            return 0;
         }
-        return 0;
+        if (content) tex = keep(s, content, pw, ph, std::move(png))->rgba;
+        else tex = std::make_shared<std::vector<uint8_t>>(std::move(png));   /* not read whole: not kept */
     }
     /* A smaller copy of the texture the picture is for: the picture smaller by as much. */
-    if (it->second.ref_w && (w < it->second.ref_w || h < it->second.ref_h)) {
-        const uint32_t nw = w < it->second.ref_w ? (std::max)(1u, (uint32_t)((uint64_t)pw * w / it->second.ref_w)) : pw;
-        const uint32_t nh = h < it->second.ref_h ? (std::max)(1u, (uint32_t)((uint64_t)ph * h / it->second.ref_h)) : ph;
+    if (pic.ref_w && (w < pic.ref_w || h < pic.ref_h)) {
+        const uint32_t nw = w < pic.ref_w ? (std::max)(1u, (uint32_t)((uint64_t)pw * w / pic.ref_w)) : pw;
+        const uint32_t nh = h < pic.ref_h ? (std::max)(1u, (uint32_t)((uint64_t)ph * h / pic.ref_h)) : ph;
         if (nw < pw || nh < ph) {
-            shrink(&png, pw, ph, nw, nh);
+            const uint64_t sk = content ? texels_key(content, nw, nh) : 0;
+            if (Decoded* d = sk ? cached(s, sk) : NULL) {
+                tex = d->rgba;
+            } else {
+                std::vector<uint8_t> scaled(*tex);
+                shrink(&scaled, pw, ph, nw, nh);
+                if (sk) tex = keep(s, sk, nw, nh, std::move(scaled))->rgba;
+                else tex = std::make_shared<std::vector<uint8_t>>(std::move(scaled));
+            }
             pw = nw;
             ph = nh;
         }
     }
-    if (it->second.kind == 2) {   /* over the game's own, scaled to the overlay's size */
+    if (pic.kind == 2) {   /* over the game's own, scaled to the overlay's size: made for this call, no key */
         if (!base) return 0;
+        s.out.assign(tex->begin(), tex->end());
         for (uint32_t y = 0; y < ph; y++) {
             const uint8_t* brow = base + (size_t)((uint64_t)y * h / ph) * w * 4;
             for (uint32_t x = 0; x < pw; x++) {
-                uint8_t* o = &png[((size_t)y * pw + x) * 4];
+                uint8_t* o = &s.out[((size_t)y * pw + x) * 4];
                 const uint8_t* b = brow + (size_t)((uint64_t)x * w / pw) * 4;
                 const uint32_t a = o[3];
                 if (a == 0) {
@@ -326,11 +447,17 @@ int picture_hook(u64 id, u32 w, u32 h, const u8* base, rsx_tex_picture* out)
                 }
             }
         }
+        out->w = pw;
+        out->h = ph;
+        out->rgba = s.out.data();
+        out->key = 0;
+        return 1;
     }
-    s.out.swap(png);
+    s.held = tex;   /* the backend reads it until its next call */
     out->w = pw;
     out->h = ph;
-    out->rgba = s.out.data();
+    out->rgba = s.held->data();
+    out->key = content ? texels_key(content, pw, ph) : 0;
     return 1;
 }
 

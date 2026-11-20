@@ -29,11 +29,23 @@ specification.
   hashed. Level 0 is decoded to RGBA (DXT by its own decoder) only for an overlay or the dump.
 - **Churn.** A slot uploaded again four times for a change of its bytes is not asked any more: in the first dump, 151
   of 694 textures were 1280x720 A8R8G8B8 copies of the frame, new every frame; with the rule, 8.
+- **One upload of a picture** (2026-11-20). The port gives each picture a key (`rsx_tex_picture.key`, the same for the
+  same texels at the same size); the slots of one key hold one resource, `VPTexPic`: the first upload's, its heap
+  block and bytes counted once, the others a reference with nothing staged, and the last to go gives the block back.
+  Such a resource is never taken over or written again, and a slot letting go of it forgets only the views it named
+  (`srvq_forget_slot`). `[tex-stats]` counts the shares. Found with a character mod of 35 files that held 9
+  pictures, atlases of 4096x4096 given to each texture of the character: as RGBA8 with their chains they took 1.3 GB
+  of the cache's 2 GB, which then let 6-8 textures go and uploaded them again each frame for the first minute of a
+  level, each upload decoding its picture again (9-53 ms a frame): 27 flips a second against 57 without the mod on
+  the bench route. Shared, the cache peaked at 1.1 GB, the decoding at 0.8 ms a frame: 53 against 55, no dip.
 
 ## The port
 
 `port/textures.cpp`: the pictures of the mods that are on (`textures\`, `<id>.png` or `<id>_<anything>.png`, an
-`.overlay.png` drawn over the game's own), the first mod's where two have one id, read and written with WIC; the
+`.overlay.png` drawn over the game's own), the first mod's where two have one id, read and written with WIC. A file
+is decoded once: known by its size and time and, once read, by its bytes' XXH64, its texels kept by that (a smaller
+copy's by its size too) up to `GOWA_PICTURE_CACHE_MB` (512 by default), the least recently used going first; before,
+each upload read and decoded it again. An overlay is made over the game's own for each upload and has no key. The
 dump on a thread of its own, `textures-dump\<id>_<w>x<h>_<fmt>.png`, once a run for each id (the first dump, written
 on the render thread, slowed the fight to 31-37 flips a second and the replay went another way; on its own thread,
 42-46). Mods tab: **Write out the game's textures**.

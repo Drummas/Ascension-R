@@ -141,6 +141,12 @@ MyMod\
   build tree), as `<id>_<width>x<height>_<format>.png`. Copy one into a mod's `textures\`, change it, and keep the id
   at the start of its name: anything after an `_` is free. The game is slower while the dump is on.
 - **A picture** (`<id>.png`) goes in the texture's place. It can be of any size; the mip levels are made from it.
+- **Size and memory.** A picture goes to the GPU uncompressed, 4 bytes a texel with its levels: 85 MB for 4096x4096,
+  21 MB for 2048x2048, where the game's own textures are compressed and smaller. The textures held at once share a
+  third of the card's memory, at most 2 GB; past that the game's are let go and loaded again, which stutters. One
+  picture for many textures (the same file under each texture's name, an atlas for a whole character) is read once
+  and held once for all of them, so pictures that repeat cost nothing more; keep each picture about the size its
+  texture needs on screen.
 - **Copies.** The game keeps many textures in more than one copy: whole, in an archive's stream or a WAD, and in a
   level's WAD as their levels from level 2 down, which it draws with as a texture of their own size until the whole
   one has streamed in (in some cinematics, all along). Each copy has its own id; a picture for any of them goes in the
