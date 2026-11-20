@@ -3661,11 +3661,14 @@ static void kit_log(void)
 /* --- reporting a problem ------------------------------------------------------- */
 static const wchar_t k_issue_url[] = L"https://github.com/rigaz29/Ascension-R/issues/new?template=problem.yml";
 
-/* Not imported: only version 6 of comctl32 has it. */
+/* Not imported: only version 6 of comctl32 has it, and the manifest (gowa.manifest) makes LoadLibrary give that one.
+ * GetModuleHandle found it only once something else had loaded it, Browse's file dialog: otherwise the dialogs fell back
+ * to a message box, and the report's "Include my saves" box was never seen (issue #27). */
 typedef HRESULT (WINAPI *task_dialog_fn)(const TASKDIALOGCONFIG*, int*, int*, BOOL*);
 static task_dialog_fn task_dialog(void)
 {
-    HMODULE m = GetModuleHandleA("comctl32.dll");
+    static HMODULE m;
+    if (!m) m = LoadLibraryW(L"comctl32.dll");
     return m ? (task_dialog_fn)(void*)GetProcAddress(m, "TaskDialogIndirect") : NULL;
 }
 
