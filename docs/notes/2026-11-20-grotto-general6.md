@@ -3,7 +3,8 @@
 Issue #27: on 0.2.0 the swim in Chapter 15, The Grotto, runs at 24-28 fps by the reporter's recording, against 27-29 at
 the same spot on 0.1.0-alpha.15. The reporter sent their saves. Renamed to the European disc's id, they load here, and
 Continue Game on their Profile 1 puts Kratos in the room after the two ice brutes (CYN850), about two minutes before the
-swim. Their own session ran that room at about 50 flips a second.
+swim. Their session went on through that room at about 50 flips a second, and their input played from the checkpoint
+here ran the same stretch at 50-58: what is dear is the view from where Continue puts Kratos, measured below.
 
 ## Where the time goes
 
@@ -41,11 +42,18 @@ four octaves run for every pixel, as lifted code: `0x4930`'s chain is ~860 SPU i
 General6 25% slower (`SPURS_WID_SLOW=2:25`), one run against the baseline: 27.75 flips a second against 30.33, -8.5%.
 At the gate the same probe changed nothing.
 
+## Not a matter of SPUs
+
+Its workload allows six SPUs (`maxContention` 6), and it takes them: a temporary probe of the workers running it, at
+each pick and each run's end, over 10 s windows: none 79%, one 1.7%, two 6.5%, three 2.2%, four 2.8%, five 3.8%, six
+4.0% of the time. So it runs ~21% of the time on ~3.6 workers, ~7 ms of each 33 ms frame; the ready count at the picks
+was 7 or more for a third of them. Two more host workers of its own (`SPURS_LANE=7:5,2:4,2:3`, beside the audio's)
+made it worse, 26.73 flips a second against 30.3, and the time on two to six workers barely moved. What is left is the
+noise's own cost.
+
 ## Not done
 
 - A native noise (the chain `0x4930`, `0x4AB0`, `0x4E9C`, `0x4F00`, four lanes as the SPU's): it has to give the SPU's
   results, and a capture of the Grotto's noise jobs to check it against.
-- Why General6 stays under one core here when its workload allows six SPUs (`maxContention` 6): if the 16 tiles of a
-  band could run side by side, the chain's wait would shrink without touching the noise.
 - The swim's own spot: the reporter's logs show the vertex pass out of room there (alpha.15 and 0.2.0 alike); a
   playback from the checkpoint drifted before it.
