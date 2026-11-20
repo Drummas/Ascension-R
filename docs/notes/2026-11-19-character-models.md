@@ -109,7 +109,9 @@ tags 2 and 3 open and close a group. The types here:
   - 9: a unit vector in 3 bytes. Two 10-bit components `A (1 + m 2^-23) + B` (A, B = `0x46352E7C`, `0xC6353150`: about
     -0.707 to 0.707), the left-out one rebuilt as `sqrt(1 - c1^2 - c2^2)`. A 4-bit pattern names its axis (pattern / 4),
     its sign (negative for an even pattern) and w (-1 for pattern % 4 < 2; the normals carry a sign there too).
-  - The bodies: a type-8 position, a type-9 normal and a type-9 tangent, 12 bytes a vertex.
+  - The bodies: a type-8 position, a type-9 tangent (id 3, its w the handedness) and a type-9 bitangent (id 4), 12
+    bytes a vertex. No normal: the game takes it as cross(T, B) * w (corrected 2026-11-20, below). The eyes, the brows
+    and the beard carry a type-9 normal instead (id 2).
 - **Weights:** 8 bytes a vertex, (weight, index) four times. The weight is /255 and the four sum to 255. The index
   points into the two palette pieces, the first then the second. Empty pairs are (0, 0), at the end.
 - **The job's skinning:** `p' = sum of weight/255 x (x q0 + y q1 + z q2 + q3)` over the matrices' rows q0-q3, row
@@ -222,6 +224,14 @@ glTF's, and the body's draws cull back faces. A mesh imported from glTF as it is
 the game shows the inner side of its far surfaces (in a frame capture, a head seen from behind had its depth deepest in
 the middle, where a convex surface is nearest), which reads as flat, oddly lit and see-through. With each triangle
 turned, (a, b, c) to (a, c, b), it draws right.
+
+Found the same day: **the bodies' vertex frame.** This note first had a normal and a tangent in the bodies' two
+type-9 attributes. Neither lines up with Kratos's own faces (|cos| about 0.1 against the face normals, where the eyes'
+id 2 gives 0.97): id 3 is the tangent and id 4 the bitangent. cross(T, B) points out on all 707 vertices of his torso
+(w +1), and on his mirrored halves (hands, feet, legs, w -1) it points in, so the normal is cross(T, B) * w. A normal
+written into id 3 leaves the game a normal lying in the surface: lighting that reads flat and wrong, one eye's white
+dark. An importer writes id 3 = the tangent with its handedness and id 4 = cross(N, T) * w; read back from Kratos's
+mesh and written again this way, his frames come out as they were (to 0.0025).
 
 Still open:
 1. **Meshes past the limit:** found since: two memory budgets in the game's DCB files, the body stream set's heap and
