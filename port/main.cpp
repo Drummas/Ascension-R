@@ -124,6 +124,7 @@ void     cellGcm_fifo_kick_wait(unsigned ms); /* idle wait, woken by a kick */
  * toolkit's boot harness make. All three expose the same three entry points,
  * so the frame clock below is backend-agnostic. */
 #if defined(_WIN32)
+extern "C" void gowa_skel_prop_start(void);   /* skel_prop.c: a mod's proportions where the animation takes them */
 extern "C" int  rsx_d3d12_backend_init(uint32_t w, uint32_t h, const char* title);
 extern "C" void rsx_d3d12_backend_present(void);
 extern "C" int  rsx_d3d12_backend_pump_messages(void);
@@ -1588,6 +1589,7 @@ static void title_environment(int pack_mods)
     /* And the older mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...), after them.
      * Empty (the default): none. */
     env_default("PS3_MODS_ROOT", ps3_settings_str("paths", "mods", "PS3_MODS_ROOT", NULL));
+    gowa_skel_prop_start();
     /* FFmpeg's DLLs are loaded when the first movie plays, from PATH. */
     const char* ff = ps3_settings_str("paths", "ffmpeg", NULL, NULL);
     if (ff && *ff) {

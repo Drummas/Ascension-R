@@ -2,8 +2,9 @@
 """scripts/proportions.py: a mod's proportions files, from a made-up archive.
 
 The archive is in the WAD form the game's .AS files have: a skeleton entry (type 0x2D) of three joints, with their
-names, parents and inverse binds where the game keeps them, and two meshes of it (MG_<skeleton>_*, their data
-starting with 0x0001000D and their size). No game file is used.
+names, parents, local matrices and inverse binds where the game keeps them, two meshes of it (MG_<skeleton>_*, their
+data starting with 0x0001000D and their size), and an unnamed template skeleton of four joints that keeps no inverse
+binds, as R_HERO00.WAD's heroA. No game file is used.
 
 Usage:
     python tests/test_proportions.py
@@ -36,22 +37,33 @@ def entry(name, kind, data):
     return head + data + b"\0" * pad
 
 
-def skeleton_entry():
-    n = len(NAMES)
+def local(k):
+    """Joint k's local matrix: the root at the origin, each other 0.5, 1, 2 from its parent (so ib(k)'s bind)."""
+    t = (0.0, 0.0, 0.0) if k == 0 else (0.5, 1.0, 2.0)
+    return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, t[0], t[1], t[2], 1]
+
+
+def skeleton_entry(names=NAMES, parents=PARENTS, binds=True):
+    n = len(names)
     b = bytearray(0x24 + 8 * n + 56 * n)
     struct.pack_into(">H", b, 8, n)
-    for i, p in enumerate(PARENTS):
-        struct.pack_into(">HHHH", b, 0x24 + 8 * i, 0, 0, 0, p)
-        b[0x24 + 8 * n + 56 * i:0x24 + 8 * n + 56 * i + len(NAMES[i])] = NAMES[i].encode()
+    for i, p in enumerate(parents):
+        struct.pack_into(">HHHH", b, 0x24 + 8 * i, 0x8000 | i, 0, 0, p)
+        b[0x24 + 8 * n + 56 * i:0x24 + 8 * n + 56 * i + len(names[i])] = names[i].encode()
     t = (len(b) + 15) & ~15
     b += b"\0" * (t - len(b))
     struct.pack_into(">I", b, 0x14, t)
-    table = bytearray(0x50 + 64 * n)          # the local matrices, which the tool does not read
-    off = len(table)
-    struct.pack_into(">I", table, 8, off)
+    table = bytearray(0x50)
     for k in range(n):
-        table += struct.pack(">16f", *ib(k))
+        table += struct.pack(">16f", *local(k))
+    struct.pack_into(">I", table, 8, len(table))   # the inverse binds' offset: past the end when there are none
+    if binds:
+        for k in range(n):
+            table += struct.pack(">16f", *ib(k))
     return bytes(b + table)
+
+
+TEMPLATE = ["tmplA", "JOArm1", "JOHand1", "handWeapon1"]
 
 
 def mesh(size):
@@ -64,15 +76,17 @@ class Proportions(unittest.TestCase):
         self.d = Path(self.tmp.name)
         self.archive = self.d / "R_TEST.AS"
         self.archive.write_bytes(entry("SK01", 0x2D, skeleton_entry()) + entry("MG_SK01_30000_0", 0x75, mesh(96)) +
-                                 entry("MG_SK01_30000_1", 0x75, mesh(160)) + entry("MG_OTHER_30000_0", 0x75, mesh(64)))
+                                 entry("MG_SK01_30000_1", 0x75, mesh(160)) + entry("MG_OTHER_30000_0", 0x75, mesh(64)) +
+                                 entry("", 0x2D, skeleton_entry(TEMPLATE, [0xFFFF, 0, 1, 2], binds=False)))
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_tool(self, spec):
+    def run_tool(self, spec, *first):
         (self.d / "spec.json").write_text(json.dumps(spec))
-        return subprocess.run([sys.executable, str(ROOT / "scripts" / "proportions.py"), str(self.archive),
-                               str(self.d / "spec.json"), str(self.d / "out")], capture_output=True, text=True)
+        out = self.d / ("new.AS" if first else "out")
+        return subprocess.run([sys.executable, str(ROOT / "scripts" / "proportions.py"), *first, str(self.archive),
+                               str(self.d / "spec.json"), str(out)], capture_output=True, text=True)
 
     def read(self, name):
         b = (self.d / "out" / name).read_bytes()
@@ -116,11 +130,44 @@ class Proportions(unittest.TestCase):
     def test_what_it_turns_away(self):
         for spec, why in (({"SK02": {}}, "no skeleton"), ({"SK01": {"ratio": {"JOFoot1": 0.5}}}, "no joint JOFoot1"),
                           ({"SK01": {"ratio": {"JOArm1": 0}}}, "a ratio of 0"),
-                          ({"SK01": {"meshes": list(range(1, 18))}}, "17 mesh sizes")):
+                          ({"SK01": {"meshes": list(range(1, 18))}}, "17 mesh sizes"),
+                          ({"tmplA": {"ratio": {"JOArm1": 0.5}}}, "keeps no inverse binds"),
+                          ({"SK01": {"where": "elsewhere"}}, "not 'elsewhere'")):
             r = self.run_tool(spec)
             self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
             self.assertIn(why, r.stdout)
         self.assertFalse((self.d / "out" / "SK02.bin").exists())
+
+    def test_animation_file_for_an_unnamed_template_by_its_first_joint(self):
+        r = self.run_tool({"tmplA": {"where": "animation", "ratio": {"JOHand1": 0.5, "handWeapon1": 2.0}}})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        b = (self.d / "out" / "tmplA.bin").read_bytes()
+        self.assertEqual(b[:8], b"GWSKEL01")
+        n, table, h = struct.unpack_from("<IIQ", b, 8)
+        self.assertEqual((n, table), (4, 32))                  # the table's GET: 8 bytes a joint, to 16
+        a = self.archive.read_bytes()
+        at = [o for name, t, o, size in proportions.entries(a) if t == 0x2D and not name][0]
+        self.assertEqual(h, proportions.fnv64(a[at + 0x24:at + 0x24 + 8 * 4]))
+        joints = [struct.unpack_from("<ff", b, 24 + 8 * k) for k in range(4)]
+        self.assertEqual(len(b), 24 + 8 * 4)
+        self.assertEqual([round(j[0], 6) for j in joints], [1.0, 1.0, 0.5, 2.0])
+        self.assertEqual([round(j[1], 4) for j in joints], [0.0, 2.2913, 2.2913, 2.2913])   # |(0.5, 1, 2)|
+
+    def test_binds_the_rest_pose_of_the_new_lengths(self):
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": 0.5}}, "tmplA": {"where": "animation"}}, "--binds")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        a = (self.d / "new.AS").read_bytes()
+        at, size = proportions.find_skeleton(a, proportions.entries(a), "SK01")
+        names, par, ibs = proportions.skeleton(a, at, size)
+        loc = proportions.local_table(a, at, size, 3)
+        self.assertEqual(loc[1][12:15], [0.25, 0.5, 1.0])     # the arm half as long, the hand's own length kept
+        self.assertEqual(loc[2][12:15], [0.5, 1.0, 2.0])
+        self.assertEqual([round(x, 6) for x in ibs[1][12:15]], [-0.25, -0.5, -1.0])
+        self.assertEqual([round(x, 6) for x in ibs[2][12:15]], [-0.75, -1.5, -3.0])
+        self.assertEqual(len(a), self.archive.stat().st_size)
+        old = self.archive.read_bytes()
+        tat = [o for name, t, o, s in proportions.entries(old) if t == 0x2D and not name][0]
+        self.assertEqual(a[tat:tat + 400], old[tat:tat + 400])   # the "animation" one is not the archive's to change
 
 
 if __name__ == "__main__":

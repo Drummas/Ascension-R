@@ -109,10 +109,14 @@ static int load_one(const char* path)
 {
     FILE* f = fopen(path, "rb");
     if (!f) return 0;
-    prop_file* p = (prop_file*)calloc(1, sizeof *p);
     char magic[8];
+    if (fread(magic, 1, 8, f) == 8 && !memcmp(magic, "GWSKEL01", 8)) {   /* a whole skeleton's: port/skel_prop.c */
+        fclose(f);
+        return 0;
+    }
+    prop_file* p = (prop_file*)calloc(1, sizeof *p);
     uint32_t ns = 0, n = 0;
-    int ok = p && fread(magic, 1, 8, f) == 8 && !memcmp(magic, "GWPROP01", 8) && fread(&ns, 4, 1, f) == 1 && ns &&
+    int ok = p && !memcmp(magic, "GWPROP01", 8) && fread(&ns, 4, 1, f) == 1 && ns &&
              ns <= 16 && fread(p->sizes, 4, ns, f) == ns && fread(&n, 4, 1, f) == 1 && n && n <= PROP_MAX_JOINTS;
     for (uint32_t k = 0; ok && k < n; k++) {
         int32_t par;
