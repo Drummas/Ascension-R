@@ -102,7 +102,7 @@ says which one the game runs on, by the names Windows gives them. The row is not
 
 Internal resolution in the launcher's Graphics tab (`graphics.render_scale`) draws the scene above 720p: a number from 1
 to 4, or `native` for the window's size. Targets the size of the display are drawn larger. Bloom, blur and shadow maps
-stay at the game's size, and what the game reads back is brought down to it. FSR 3.1 and frame generation go no higher
+stay at the game's size, and what the game reads back is brought down to it. AMD FSR and frame generation go no higher
 than the window, and the log says so. Otherwise a render larger than the window is scaled down to it. The first session
 at a new scale compiles part of the shaders again. Disable Mesh Trimming in Game patches is meant for this, though on the
 route it made no visible difference at 2x. The [note](notes/2026-11-08-internal-resolution.md) has what was measured
@@ -140,20 +140,28 @@ overlay, so the game's HUD and menus are graded with it and the frame rate panel
 - **Contrast** (`graphics.contrast`) puts the luminance on an S-curve (smoothstep, by 0.15, 0.3, 0.45 and 0.65) and
   scales the colour with it: darks a little darker, lights a little lighter, black and white kept.
 
-Bilinear, sharp bilinear and FSR 1 do it in their last shader; FSR 3.1 does it on the upscaler's output, before the HUD
+Bilinear, sharp bilinear and FSR 1 do it in their last shader; AMD FSR does it on the upscaler's output, before the HUD
 goes on, which keeps frame generation's picture without the HUD like the frame. It costs next to nothing. On the
 loading screen's logo, High vibrance with Medium contrast took the mean saturation from 0.74 to 0.86 and left the black
 at 0. Screenshots with `display.screenshot = game` keep the game's own frame, ungraded.
 
-## FSR 3.1
+## AMD FSR
 
-Two rows in the launcher's Graphics tab, both off by default, measured on a GTX 1650 Ti. `build` copies their DLLs from
-an [FSR SDK 2.4.0](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) unpacked under `../fsr-sdk`, or from
-local.json's `fsr_dir`. Without the DLLs the log says so and the game goes on without FSR 3.
+Two rows in the launcher's Graphics tab, both off by default, measured on a GTX 1650 Ti, and the version of the first.
+`build` copies their DLLs from an [FSR SDK 2.4.0](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK) unpacked
+under `../fsr-sdk`, or from local.json's `fsr_dir`. Without the DLLs the log says so and the game goes on without FSR.
 
-- **Scaling: AMD FSR 3.1** (`graphics.scaling = fsr3`) rebuilds scene frames from 720p with jitter, depth and motion, in
+- **Scaling: AMD FSR** (`graphics.scaling = fsr3`) rebuilds scene frames from 720p with jitter, depth and motion, in
   place of SMAA. Logos, menus and loading screens keep FSR 1. On a GTX 1650 Ti it takes 2.0 ms at 1600x900, where FSR 1 and
   SMAA take 1.1. The HUD stays at 720p sharpness.
+- **FSR version** (`graphics.fsr_version`): `auto`, the default, lets the FSR API take the newest upscaler the GPU and
+  its driver have. With SDK 2.4.0's DLLs that is FSR 4.1.2, a machine-learned model, on AMD Radeon RX 6000 and newer
+  (the RX 6000 needs driver 26.10.1 or later), and FSR 3.1.6 on other GPUs. `3.1` pins 3.1.6. The log lists what the GPU
+  has and says which one runs (`[fsr3] upscaler versions on this GPU: 4.1.2, 3.1.6, 2.3.4`, `[fsr3] upscaler: 4.1.2`);
+  the launcher's ready check, the stats panel and problem reports show it too. On an RX 6700 XT at 1080p from 1080p,
+  4.1.2 costs about 1.2 ms of GPU time a frame more than 3.1.6 and gives cleaner edges and thin lines, where 3.1.6 keeps
+  textures a little sharper; in a spot where the CPU sets the pace the frame rate was the same
+  ([note](notes/2026-11-22-fsr-versions.md)).
 - **Frame generation** (`graphics.frame_generation = on`) shows two frames for each of the game's, so keep VSync on. It
   holds the game at half the monitor's refresh rate: 30 frames a second at 60 Hz, 60 at 120 Hz. Past 120 Hz it halves that
   again, as 60 is the most a PS3 flips and a frame should stay on screen for a whole number of refreshes: 36 at 144 Hz, 60
@@ -171,7 +179,7 @@ local.json's `fsr_dir`. Without the DLLs the log says so and the game goes on wi
 Both take what moves from the title's motion blur draws, so Disable Motion Blur is left off with them: EDGE goes from 46
 to 67 ms a flip, and a fight at the 30 cap loses about 0.3 frames a second on a cool machine, more on a hot one.
 `graphics.frame_generation_objects = off` goes back to the camera's motion alone, and the patch applies. Both need Disable
-MLAA on: with MLAA the depth at the final composite is the next frame's, so FSR 3 stays off and the log says why. The
+MLAA on: with MLAA the depth at the final composite is the next frame's, so FSR stays off and the log says why. The
 [plan](notes/2026-11-07-fsr31-plan.md) has the measurements.
 
 ## Controllers

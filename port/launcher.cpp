@@ -130,8 +130,12 @@ static const char* const k_cap[] = { "off", "20", "30" };
 static const char* const k_cap_n[] = { "Off", "20 fps, even pace", "30 fps, even pace" };
 static const char* const k_cap_s[] = { "Off", "20 fps", "30 fps" };
 static const char* const k_scale[] = { "bilinear", "sharp", "fsr1", "fsr3" };
-static const char* const k_scale_n[] = { "Bilinear", "Sharp bilinear", "AMD FSR 1", "AMD FSR 3.1" };
-static const char* const k_scale_s[] = { "Bilinear", "Sharp", "FSR 1", "FSR 3.1" };
+static const char* const k_scale_n[] = { "Bilinear", "Sharp bilinear", "AMD FSR 1", "AMD FSR" };
+static const char* const k_scale_s[] = { "Bilinear", "Sharp", "FSR 1", "FSR" };
+/* graphics.fsr_version: auto lets the FSR API take the newest the card has; a version pins it (rsx_fsr3.cpp). */
+static const char* const k_fsrv[] = { "auto", "3.1" };
+static const char* const k_fsrv_n[] = { "Auto: the newest the graphics card takes", "FSR 3.1" };
+static const char* const k_fsrv_s[] = { "Auto", "3.1" };
 static const char* const k_gpu[] = { "discrete", "integrated" };
 static const char* const k_gpu_n[] = { "Discrete", "Integrated" };
 static const char* const k_rscale[] = { "1", "1.5", "2", "3", "native" };
@@ -201,10 +205,14 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "gpu", "discrete", "Graphics card", 0, LIST(k_gpu, k_gpu_n), k_gpu_n, NULL },   /* gpu_detect */
     { T_GRAPHICS, "graphics", "render_scale", "1", "Internal resolution", 0, LIST(k_rscale, k_rscale_n), k_rscale_s,
       "What the scene is drawn at. Bloom, blur and shadow maps stay at the game's size. "
-      "FSR 3.1 and frame generation go no higher than the window." },
+      "AMD FSR and frame generation go no higher than the window." },
     { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
-      "How the picture is scaled to the window. FSR 3.1 builds the detail from past frames, "
+      "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
       "in place of SMAA, and FSR 1 takes over where there is no scene." },
+    { T_GRAPHICS, "graphics", "fsr_version", "auto", "FSR version", 0, LIST(k_fsrv, k_fsrv_n), k_fsrv_s,
+      "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: "
+      "driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little "
+      "sharper and is lighter on the GPU." },
     { T_GRAPHICS, "graphics", "sharpening", "high", "FSR sharpening", 0, LIST(k_sharp, k_sharp_n), k_sharp_s,
       "The sharpening pass of FSR (RCAS). Only with FSR scaling." },
     { T_GRAPHICS, "graphics", "vibrance", "off", "Colour vibrance", 0, LIST(k_grade, k_grade_n), k_grade_n,
@@ -213,11 +221,11 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "contrast", "off", "Contrast", 0, LIST(k_grade, k_grade_n), k_grade_n,
       "A gentle curve: darks a little darker, lights a little lighter, black and white kept." },
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 1, SW,
-      "FSR 3.1: twice the frames on screen, with VSync on. The game is held at half the monitor's refresh rate, "
+      "AMD FSR: twice the frames on screen, with VSync on. The game is held at half the monitor's refresh rate, "
       "30 at 60 Hz and 60 at 120 Hz. A frame is made between each two, which holds the picture back by about a "
       "frame, and below 25 it stands aside." },
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
-      "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. FSR 3.1 scaling "
+      "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
     { T_GRAPHICS, "graphics", "anisotropy", "game", "Anisotropic filtering", 0, LIST(k_aniso, k_aniso_n), k_aniso_s,
       "Sharper textures seen at an angle. The game itself asks for none." },
@@ -312,10 +320,10 @@ static const char* patch_desc(const char* id)
 {
     static const char* const d[][2] = {
         { "disable_mlaa", "The PS3's SPU anti-aliasing, whose picture this port never shows: about 5% "
-                          "faster. The bloom goes with it. FSR 3.1 and frame generation need this on." },
+                          "faster. The bloom goes with it. AMD FSR and frame generation need this on." },
         { "disable_depth_of_field", "The blur of what lies outside the camera's focus." },
         { "disable_motion_blur", "Saves the blur's work. With Disable MLAA on it never reaches the screen "
-                                 "anyway. FSR 3.1 and frame generation keep its draws, for what moves." },
+                                 "anyway. AMD FSR and frame generation keep its draws, for what moves." },
         { "disable_mesh_trimming", "Keeps the triangles the game drops as too thin for its 720p grid. For "
                                    "Internal resolution above 720p: at 720p it only adds geometry (3% slower "
                                    "at the first level, 11% at the gate)." },
@@ -962,8 +970,28 @@ static const char* gpu_chosen(void)
     return s_gpus.n == 2 && ps3_settings_ieq(opt_find("graphics", "gpu")->cur, "integrated") ? s_gpus.name[1] : s_gpus.name[0];
 }
 
+/* The AMD FSR upscalers the last sessions used (report.cpp reads their logs), for the ready check's line: the newest
+ * one asked for what graphics.fsr_version asks now ("" for auto). Read with the rest of the ready check. */
+static GowaFsrSeen s_fsr_seen[4];
+static int s_fsr_seen_n;
+static const char* fsr_seen_for(const char* asked)
+{
+    for (int i = 0; i < s_fsr_seen_n; i++)
+        if (!strcmp(s_fsr_seen[i].asked, asked)) return s_fsr_seen[i].version;
+    return NULL;
+}
+
+/* A game patch's option by its id, or NULL. */
+static const Opt* popt_find(const char* key)
+{
+    for (int i = 0; i < s_npopt; i++)
+        if (!strcmp(s_popt[i].key, key)) return &s_popt[i];
+    return NULL;
+}
+
 static void ready_check(void)
 {
+    s_fsr_seen_n = gowa_fsr_seen(s_fsr_seen, 4);
     game_refresh();
     s_rc.profiles = 0;
     if (saves_dir(s_rc.saves, sizeof s_rc.saves)) {
@@ -2214,6 +2242,27 @@ static void draw_play(void)
         }
     }
     const float cb = cy + chh;
+    y += 32;
+    if (y + 26.0f <= cb - 102.0f) {   /* where the lines above left room: not under the Kit's bar */
+        /* The scaling; with AMD FSR the version a last session asked as this one asks had, else what it asks for. */
+        const Opt* sc = opt_find("graphics", "scaling");
+        const Opt* ml = popt_find("disable_mlaa");
+        wchar_t b[160];
+        if (!sc || !ps3_settings_ieq(sc->cur, "fsr3")) {
+            swprintf(b, 160, L"Scaling: %ls", W(sc ? opt_name(*sc) : "Bilinear"));
+            check_line(lx, y, lw, 2, b);
+        } else if (ml && !opt_on(*ml)) {
+            check_line(lx, y, lw, 0, L"AMD FSR needs Disable MLAA (Game patches)");
+        } else {
+            const Opt* fv = opt_find("graphics", "fsr_version");
+            const char* want = fv && !ps3_settings_ieq(fv->cur, "auto") ? fv->cur : "";
+            const char* seen = fsr_seen_for(want);
+            if (seen) swprintf(b, 160, L"Upscaling: AMD FSR %ls", W(seen));
+            else if (*want) swprintf(b, 160, L"Upscaling: AMD FSR %ls", W(want));
+            else swprintf(b, 160, L"Upscaling: AMD FSR, the newest the card has");
+            check_line(lx, y, lw, 1, b);
+        }
+    }
     w_rule(lx, cb - 98, lw);
     text(L"GAME FOLDER", s_tf_cap, R(lx, cb - 86, lw, 12), C_MUTED);
     text(game_path_shown(), s_tf_path, R(lx, cb - 72, lw, 20), C_TEXT2);
@@ -3748,17 +3797,17 @@ static void report_make(const wchar_t* heading)
     }
 }
 
-/* The last session froze with the GPU stopped behind frame generation's swap chain, and it is still on: AMD FSR 3.1's
+/* The last session froze with the GPU stopped behind frame generation's swap chain, and it is still on: AMD FSR's
  * frame generation swap chain has stopped the GPU at the start of a session on this kind of PC (a laptop whose display
  * hangs off the other GPU, 2026-11-10; what set it off: docs/notes/2026-11-11-fg-freeze-exit.md). One click turns it
- * off; FSR 3.1's scaling stays. 1 = asked. */
+ * off; FSR's scaling stays. 1 = asked. */
 static int fg_offer(void)
 {
     Opt* fg = opt_find("graphics", "frame_generation");
     if (!fg || !ps3_settings_ieq(fg->cur, "on")) return 0;
     static const wchar_t what[] =
-        L"The GPU stopped behind frame generation's swap chain (AMD FSR 3.1), which has happened at the start of the "
-        L"game on some PCs. Turning it off keeps everything else, FSR 3.1's scaling too. You can turn it on again in "
+        L"The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the "
+        L"game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in "
         L"the Graphics tab.";
     int pressed = 0;
     const task_dialog_fn td = task_dialog();

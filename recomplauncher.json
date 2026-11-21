@@ -110,7 +110,7 @@
     },
     {
       "id": "render_scale", "label": "Internal resolution", "group": "Picture",
-      "help": "What the scene is drawn at. 720p is the PS3's own. FSR 3.1 and frame generation go no higher than the window.",
+      "help": "What the scene is drawn at. 720p is the PS3's own. AMD FSR and frame generation go no higher than the window.",
       "choices": [
         { "label": "720p", "set": { "graphics/render_scale": "1" } },
         { "label": "1080p", "set": { "graphics/render_scale": "1.5" } },
@@ -122,18 +122,28 @@
     },
     {
       "id": "scaling", "label": "Scaling", "group": "Picture",
-      "help": "How the picture is fitted to the window. FSR 3.1 builds detail from past frames and needs MLAA off.",
+      "help": "How the picture is fitted to the window. AMD FSR builds detail from past frames and needs MLAA off.",
       "choices": [
         { "label": "Bilinear", "set": { "graphics/scaling": "bilinear" } },
         { "label": "Sharp bilinear", "set": { "graphics/scaling": "sharp" } },
         { "label": "FSR 1", "set": { "graphics/scaling": "fsr1" } },
-        { "label": "FSR 3.1", "set": { "graphics/scaling": "fsr3" } }
+        { "label": "AMD FSR", "set": { "graphics/scaling": "fsr3" } }
       ],
       "defaults": { "graphics/scaling": "bilinear" }
     },
     {
+      "id": "fsr_version", "label": "FSR version", "group": "Picture",
+      "help": "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little sharper and is lighter on the GPU.",
+      "choices": [
+        { "label": "Auto", "set": { "graphics/fsr_version": "auto" } },
+        { "label": "FSR 3.1", "set": { "graphics/fsr_version": "3.1" } }
+      ],
+      "defaults": { "graphics/fsr_version": "auto" },
+      "when": { "graphics/scaling": "fsr3" }
+    },
+    {
       "id": "sharpening", "label": "FSR sharpening", "group": "Picture",
-      "help": "FSR's sharpening pass. Only with FSR 1 or FSR 3.1 scaling.",
+      "help": "FSR's sharpening pass. Only with FSR 1 or AMD FSR scaling.",
       "choices": [
         { "label": "Off", "set": { "graphics/sharpening": "off" } },
         { "label": "Low", "set": { "graphics/sharpening": "low" } },
@@ -145,7 +155,7 @@
     },
     {
       "id": "frame_generation", "label": "Frame generation", "group": "Picture",
-      "help": "FSR 3.1: twice the frames on screen, with VSync on. The game runs at half the monitor's refresh, and it adds about a frame of delay.",
+      "help": "AMD FSR: twice the frames on screen, with VSync on. The game runs at half the monitor's refresh, and it adds about a frame of delay.",
       "choices": [
         { "label": "Off", "set": { "graphics/frame_generation": "off" } },
         { "label": "On", "set": { "graphics/frame_generation": "on" } }
@@ -155,7 +165,7 @@
     },
     {
       "id": "antialiasing", "label": "Anti-aliasing", "group": "Picture",
-      "help": "SMAA smooths jagged edges for next to nothing. FSR 3.1 scaling does this itself in play.",
+      "help": "SMAA smooths jagged edges for next to nothing. AMD FSR scaling does this itself in play.",
       "choices": [
         { "label": "Off", "set": { "graphics/antialiasing": "off" } },
         { "label": "SMAA", "set": { "graphics/antialiasing": "smaa" } }
@@ -205,7 +215,7 @@
     },
     {
       "id": "mlaa", "label": "MLAA", "group": "Game patches",
-      "help": "The PS3's own anti-aliasing, whose picture this port never shows. Off is about 5% faster; FSR 3.1 and frame generation need it off.",
+      "help": "The PS3's own anti-aliasing, whose picture this port never shows. Off is about 5% faster; AMD FSR and frame generation need it off.",
       "choices": [
         { "label": "Off", "set": { "patches/disable_mlaa": "on" } },
         { "label": "On", "set": { "patches/disable_mlaa": "off" } }

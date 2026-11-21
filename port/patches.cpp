@@ -78,7 +78,7 @@ extern "C" void gowa_title_patches_apply(void)
         if (!patch_wanted(p))
             continue;
         /* Frame generation and the upscaler take what moves from the blur's draws. With Disable
-         * MLAA on the blur itself never reaches the picture; without it FSR 3 stays off (main.cpp). */
+         * MLAA on the blur itself never reaches the picture; without it FSR stays off (main.cpp). */
         if (!strcmp(p->id, "disable_motion_blur") && gowa_title_patch_wanted("disable_mlaa") &&
             (ps3_settings_ieq(ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off"), "on") ||
              ps3_settings_ieq(ps3_settings_str("graphics", "scaling", NULL, "bilinear"), "fsr3")) &&

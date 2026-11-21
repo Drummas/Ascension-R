@@ -54,8 +54,8 @@ problems further in.
 
 - **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below. It finds the game's folder by
   itself, and says when a newer release is out, with a link to it.
-- **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and FSR 3.1 scaling, FSR 3.1 frame generation, SMAA 1x and
-  anisotropic filtering.
+- **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and AMD FSR scaling (FSR 4.1 on AMD Radeon RX 6000 and
+  newer, FSR 3.1 on other cards), FSR frame generation, SMAA 1x and anisotropic filtering.
 - **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and the frame rate on screen.
 - **Shaders:** a compressed cache, pipelines built before the title, every vertex shader built before the first start
   of each version, on an 8-bit screen with music of its own, and the pixel shaders of the game's files built ahead from
@@ -111,7 +111,7 @@ To build it from source:
 - Python 3.10 or later, Git, CMake, Ninja, Visual Studio with "C++ Clang Compiler for Windows", a Windows SDK, and about 20 GB free.
 - For the game's movies: an LGPL shared build of FFmpeg with its headers, unpacked under `..\ffmpeg`, for example
   `win64-lgpl-shared` from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases).
-- Optional, for AMD FSR 3.1: [FSR SDK 2.4.0](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK), unpacked under
+- Optional, for AMD FSR 4.1 and 3.1: [FSR SDK 2.4.0](https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK), unpacked under
   `..\fsr-sdk`.
 
 ## Building from source

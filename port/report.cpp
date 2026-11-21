@@ -363,7 +363,7 @@ static void freeze_report(ULONGLONG idle, unsigned frames)
      * was blamed on it too. */
     if (rsx_d3d12_backend_gpu_stuck())
         fprintf(stderr, rsx_d3d12_backend_generating()
-                            ? "[freeze] the GPU has stopped, behind frame generation's swap chain (AMD FSR 3.1). If this repeats, "
+                            ? "[freeze] the GPU has stopped, behind frame generation's swap chain (AMD FSR). If this repeats, "
                               "turn frame generation off in the launcher's Graphics tab\n"
                             : "[freeze] the GPU has stopped: a wait for its frames ran out, and none has finished since\n");
     for (unsigned t = 0; t < 64; t++)
@@ -511,6 +511,51 @@ static std::vector<std::string> session_logs(void)
     FindClose(h);
     std::sort(v.rbegin(), v.rend());
     return v;
+}
+
+/* What a session's log says of AMD FSR, from the lines rsx_fsr3.cpp writes: the upscaler's version ("[fsr3] upscaler:
+ * 4.1.2", a pinned one with ", as asked (3.1)" after it), what it was asked for, and frame generation's version
+ * (fg may be NULL). 0 when the session made no upscaler. */
+static int fsr_of(const std::string& log, std::string* up, std::string* asked, std::string* fg)
+{
+    auto after = [&](const char* key, std::string* out) {
+        const size_t at = log.find(key);
+        if (at == std::string::npos) return false;
+        const size_t from = at + strlen(key);
+        size_t end = log.find('\n', from);
+        if (end == std::string::npos) end = log.size();
+        *out = log.substr(from, end - from);
+        while (!out->empty() && (out->back() == '\r' || out->back() == ' ')) out->pop_back();
+        return true;
+    };
+    if (fg && !after("[fsr3] frame generation: ", fg)) fg->clear();
+    std::string u;
+    asked->clear();
+    if (!after("[fsr3] upscaler: ", &u)) return 0;
+    static const char k_asked[] = ", as asked (";
+    const size_t as = u.find(k_asked);
+    if (as != std::string::npos) {
+        const size_t from = as + sizeof k_asked - 1, close = u.find(')', from);
+        *asked = u.substr(from, close == std::string::npos ? std::string::npos : close - from);
+        u.resize(as);
+    }
+    *up = u;
+    return 1;
+}
+
+int gowa_fsr_seen(GowaFsrSeen* out, int n)
+{
+    int k = 0, looked = 0;
+    for (const std::string& name : session_logs()) {
+        if (k >= n || ++looked > 5) break;
+        /* The line comes with the first scene, well inside a log's first 2 MB. */
+        std::string log, up, asked;
+        if (!read_capped(logs_dir() + "\\" + name, log, 2u << 20, 0) || !fsr_of(log, &up, &asked, NULL)) continue;
+        snprintf(out[k].version, sizeof out[k].version, "%s", up.c_str());
+        snprintf(out[k].asked, sizeof out[k].asked, "%s", asked.c_str());
+        k++;
+    }
+    return k;
 }
 
 SessionEnd gowa_last_session(int* fg_stuck)
@@ -1135,6 +1180,10 @@ int gowa_report_create(int with_saves, char* out, size_t n)
             if (!pass && end == SESSION_NONE) continue;
             hide_in(why);
             note += name + ": " + session_end_name(end) + (why.empty() ? "" : ": " + why) + "\n";
+            std::string up, asked, fg;
+            if (fsr_of(log, &up, &asked, &fg))
+                note += "  AMD FSR: upscaler " + up + (asked.empty() ? " (the newest the GPU takes)" : " (asked for " + asked + ")") +
+                        (fg.empty() ? "" : ", frame generation " + fg) + "\n";
             hide_in(log);
             name_frames(log);
             zip_add(z, "logs/" + name, log);
