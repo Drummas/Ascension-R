@@ -139,7 +139,7 @@ class Proportions(unittest.TestCase):
         self.assertFalse((self.d / "out" / "SK02.bin").exists())
 
     def test_animation_file_for_an_unnamed_template_by_its_first_joint(self):
-        r = self.run_tool({"tmplA": {"where": "animation", "ratio": {"JOHand1": 0.5, "handWeapon1": 2.0}}})
+        r = self.run_tool({"tmplA": {"where": "animation", "ratio": {"JOHand1": 0.5, "handWeapon1": [0.5, 1, 2]}}})
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         b = (self.d / "out" / "tmplA.bin").read_bytes()
         self.assertEqual(b[:8], b"GWSKEL01")
@@ -148,23 +148,62 @@ class Proportions(unittest.TestCase):
         a = self.archive.read_bytes()
         at = [o for name, t, o, size in proportions.entries(a) if t == 0x2D and not name][0]
         self.assertEqual(h, proportions.fnv64(a[at + 0x24:at + 0x24 + 8 * 4]))
-        joints = [struct.unpack_from("<ff", b, 24 + 8 * k) for k in range(4)]
-        self.assertEqual(len(b), 24 + 8 * 4)
-        self.assertEqual([round(j[0], 6) for j in joints], [1.0, 1.0, 0.5, 2.0])
-        self.assertEqual([round(j[1], 4) for j in joints], [0.0, 2.2913, 2.2913, 2.2913])   # |(0.5, 1, 2)|
+        joints = [struct.unpack_from("<3ff", b, 24 + 16 * k) for k in range(4)]
+        self.assertEqual(len(b), 24 + 16 * 4)
+        self.assertEqual([tuple(round(x, 6) for x in j[:3]) for j in joints],
+                         [(1, 1, 1), (1, 1, 1), (0.5, 0.5, 0.5), (0.5, 1, 2)])   # one ratio, or one for each axis
+        self.assertEqual([round(j[3], 4) for j in joints], [0.0, 2.2913, 2.2913, 2.2913])   # |(0.5, 1, 2)|
+
+    def test_three_ratios_are_not_for_the_skinning_files(self):
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": [0.5, 1, 1]}}})
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertIn("three ratios are for", r.stdout)
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": [0.5, 0.5, 0.5]}}})       # the same three: one ratio
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+    def test_binds_keep_a_joint_without_an_inverse_bind(self):
+        b = bytearray(self.archive.read_bytes())
+        at, size = proportions.find_skeleton(bytes(b), proportions.entries(bytes(b)), "SK01")
+        t = struct.unpack_from(">I", b, at + 0x14)[0]
+        off = struct.unpack_from(">I", b, at + t + 8)[0]
+        struct.pack_into(">16f", b, at + t + off + 64 * 2, *[1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+        self.archive.write_bytes(bytes(b))                    # the hand: no inverse bind, as the skin does not ride it
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": 0.5}}}, "--binds")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("1 without an inverse bind kept so", r.stdout)
+        a = (self.d / "new.AS").read_bytes()
+        ibs = proportions.skeleton(a, at, size)[2]
+        self.assertEqual(ibs[2], [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+        self.assertEqual([round(x, 6) for x in ibs[1][12:15]], [-0.25, -0.5, -1.0])
+        self.assertEqual(proportions.local_table(a, at, size, 3)[2][12:15], [0.5, 1.0, 2.0])
+
+    def test_binds_every_copy_of_the_skeleton(self):
+        a = self.archive.read_bytes()
+        self.archive.write_bytes(a + entry("SK01", 0x2D, skeleton_entry()))   # a stream set's copy at the end
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": 0.5}}}, "--binds")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertIn("2 skeletons", r.stdout)
+        b = (self.d / "new.AS").read_bytes()
+        found = [(at, size) for n, t, at, size in proportions.entries(b) if t == 0x2D and n == "SK01"]
+        self.assertEqual(len(found), 2)
+        for at, size in found:
+            self.assertEqual(proportions.local_table(b, at, size, 3)[1][12:15], [0.25, 0.5, 1.0])
+            self.assertEqual([round(x, 6) for x in proportions.skeleton(b, at, size)[2][1][12:15]], [-0.25, -0.5, -1.0])
 
     def test_binds_the_rest_pose_of_the_new_lengths(self):
-        r = self.run_tool({"SK01": {"ratio": {"JOArm1": 0.5}}, "tmplA": {"where": "animation"}}, "--binds")
+        r = self.run_tool({"SK01": {"ratio": {"JOArm1": 0.5, "JOHand1": [1, 1, 0.5]}}, "tmplA": {"where": "animation"}},
+                          "--binds")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         a = (self.d / "new.AS").read_bytes()
         at, size = proportions.find_skeleton(a, proportions.entries(a), "SK01")
         names, par, ibs = proportions.skeleton(a, at, size)
         loc = proportions.local_table(a, at, size, 3)
-        self.assertEqual(loc[1][12:15], [0.25, 0.5, 1.0])     # the arm half as long, the hand's own length kept
-        self.assertEqual(loc[2][12:15], [0.5, 1.0, 2.0])
+        self.assertEqual(loc[1][12:15], [0.25, 0.5, 1.0])     # the arm half as long
+        self.assertEqual(loc[2][12:15], [0.5, 1.0, 1.0])      # the hand: its z alone halved
         self.assertEqual([round(x, 6) for x in ibs[1][12:15]], [-0.25, -0.5, -1.0])
-        self.assertEqual([round(x, 6) for x in ibs[2][12:15]], [-0.75, -1.5, -3.0])
+        self.assertEqual([round(x, 6) for x in ibs[2][12:15]], [-0.75, -1.5, -2.0])
         self.assertEqual(len(a), self.archive.stat().st_size)
+        self.assertIn("0 without an inverse bind kept so", r.stdout)
         old = self.archive.read_bytes()
         tat = [o for name, t, o, s in proportions.entries(old) if t == 0x2D and not name][0]
         self.assertEqual(a[tat:tat + 400], old[tat:tat + 400])   # the "animation" one is not the archive's to change

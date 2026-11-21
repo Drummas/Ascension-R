@@ -38,7 +38,7 @@ The lengths have to change where the joints are put together, before anything re
 - `runtime/spu/spu_dma.h` (the fork): `g_spu_get_hook`, called after each GET that went through, when a program sets
   it. Unset, the transfer path costs one load more.
 - `port/skel_prop.c`: a mod's `"where": "animation"` file names the table by its size and an FNV-1a hash of its
-  records, and gives each joint a ratio. When the animation job (its first 32 bytes of code at LS 0x4030) GETs that
+  records, and gives each joint a ratio, or three (one for each axis of its offset in its parent's). When the animation job (its first 32 bytes of code at LS 0x4030) GETs that
   table, its next GETs of 16384 and 320 bytes are the locals, and their translations are multiplied by the ratios in
   the local store. The game's buffer keeps the animation's own, so nothing builds up from frame to frame, and last
   frame's array is left as it came. The first piece is checked first: at least 70% of the joints with a bone of 0.05
@@ -53,6 +53,7 @@ The lengths have to change where the joints are put together, before anything re
   lengths) and `--binds` (the local table and the inverse binds of the new rest pose, the template left alone).
 - The game, the parasites' fight replay with Kratos's own meshes: elbows and wrists at 0.6, the arms short and the
   blades in his hands, the chain coming out of the hand when he swings. A mod's whole set of ratios (92 joints): the
-  shoulders narrow, the feet on the ground, the blades on the back on the new back. The bench route: no table left
+  shoulders narrow, the feet on the ground, the blades on the back on the new back. On a slimmer body's mesh the
+  blades on the back, hung for Kratos's back, stood out across it: their nodes under `JOBack3` take three ratios. The bench route: no table left
   without its locals (`[props] heroA.bin: 261 joints take the new lengths ...`).
 - Pad replays drift apart from run to run with or without the hook, so they say nothing about the reach.

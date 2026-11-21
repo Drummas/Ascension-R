@@ -9,7 +9,9 @@
  * chains, the blades on the back), effects. See docs/notes/2026-11-21-hero-skeleton-job.md.
  *
  * A file (scripts/proportions.py, "where": "animation") names a table by its size and a hash of its bytes, and gives
- * each joint a ratio: its new length over its own. When that job (its code in the local store) GETs that table, its
+ * each joint a ratio: its new length over its own, or three, one for each of its translation's x, y and z in its
+ * parent's axes (a weapon on the back brought in to a slimmer back). When that job (its code in the local store) GETs
+ * that table, its
  * next GETs of the locals' sizes are the locals: their translations are scaled in the local store. The game's own
  * copy stays as it was, so nothing builds up from frame to frame, and last frame's world matrices (the next GETs) are
  * left alone. Before the first piece is scaled, its translations are checked against the file's bind lengths (most
@@ -19,7 +21,8 @@
  * A mesh made for the new lengths needs the inverse binds of its rest pose in its skeleton (proportions.py --binds).
  *
  * File: "GWSKEL01", u32 joints (1 to 1024), u32 the table GET's size, u64 FNV-1a of the table's 8 x joints bytes,
- * then per joint f32 ratio, f32 bind length (the translation's length in the skeleton's local table); little-endian.
+ * then per joint f32 ratios x, y, z, f32 bind length (the translation's length in the skeleton's local table);
+ * little-endian.
  * Files come in GOWA_MOD_PROPORTIONS with port/edge_prop.c's ("|" between them); each reads its own kind.
  */
 #include <math.h>
@@ -40,7 +43,7 @@ extern skel_get_hook_fn g_spu_get_hook;   /* runtime/spu/spu_dma.h */
 typedef struct {
     uint32_t n, table_bytes;
     uint64_t hash;
-    float* ratio;
+    float* ratio;       /* 3 a joint */
     float* len;
     const char* name;
     volatile long applied, refused;
@@ -115,10 +118,10 @@ static int looks_local(const skel_file* f, const uint8_t* m, uint32_t first, uin
 static void scale(const skel_file* f, uint8_t* m, uint32_t first, uint32_t count)
 {
     for (uint32_t k = first; k < first + count; k++) {
-        const float r = f->ratio[k];
-        if (r == 1.0f) continue;
+        const float* r = f->ratio + 3 * k;
+        if (r[0] == 1.0f && r[1] == 1.0f && r[2] == 1.0f) continue;
         uint8_t* t = m + 64 * (k - first) + 48;
-        for (int i = 0; i < 3; i++) put_bef(t + 4 * i, get_bef(t + 4 * i) * r);
+        for (int i = 0; i < 3; i++) put_bef(t + 4 * i, get_bef(t + 4 * i) * r[i]);
     }
 }
 
@@ -184,11 +187,14 @@ static void load_one(const char* path)
     ok = fread(&n, 4, 1, fp) == 1 && fread(&tb, 4, 1, fp) == 1 && fread(&hash, 8, 1, fp) == 1 && n &&
          n <= SKEL_MAX_JOINTS && tb >= 8 * n && tb <= 8 * n + 15 && s_nsk < SKEL_FILES;
     skel_file* f = ok ? (skel_file*)calloc(1, sizeof *f) : NULL;
-    float* ratio = ok ? (float*)malloc(4 * (size_t)n) : NULL;
+    float* ratio = ok ? (float*)malloc(12 * (size_t)n) : NULL;
     float* len = ok ? (float*)malloc(4 * (size_t)n) : NULL;
     ok = f && ratio && len;
-    for (uint32_t k = 0; ok && k < n; k++)
-        ok = fread(&ratio[k], 4, 1, fp) == 1 && fread(&len[k], 4, 1, fp) == 1 && ratio[k] > 0.0f && ratio[k] < 8.0f;
+    for (uint32_t k = 0; ok && k < n; k++) {
+        float* r = ratio + 3 * k;
+        ok = fread(r, 4, 3, fp) == 3 && fread(&len[k], 4, 1, fp) == 1;
+        for (int i = 0; ok && i < 3; i++) ok = r[i] > 0.0f && r[i] < 8.0f;
+    }
     fclose(fp);
     if (!ok) {
         fprintf(stderr, "[props] %s: not a skeleton proportions file this build reads\n", path);
@@ -205,7 +211,8 @@ static void load_one(const char* path)
     f->ratio = ratio;
     f->len = len;
     uint32_t other = 0;
-    for (uint32_t k = 0; k < n; k++) other += ratio[k] != 1.0f;
+    for (uint32_t k = 0; k < n; k++)
+        other += ratio[3 * k] != 1.0f || ratio[3 * k + 1] != 1.0f || ratio[3 * k + 2] != 1.0f;
     s_sk[s_nsk++] = f;
     fprintf(stderr, "[props] %s: a skeleton of %u joints, %u of them another length (at the animation)\n", path, n,
             other);

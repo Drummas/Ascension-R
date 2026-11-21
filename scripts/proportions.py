@@ -12,7 +12,9 @@ without a name by the name of its first joint (the hero's template skeleton in R
       "81BC3F6F": {"ratio": {"JOLeftLowerArm1": 0.8}, "meshes": [669568], "inverse_binds": "my_binds.json"}
     }
 
-- ratio: a joint's new length over its own (its translation from its parent), by its name; every other joint 1.
+- ratio: a joint's new length over its own (its translation from its parent), by its name; every other joint 1. For
+  "animation" and --binds also three, [x, y, z]: one for each of the translation's components in the parent's axes
+  (a weapon on the back brought in to a slimmer back: less behind than across).
 - where: "animation" for a skeleton the animation job puts together (heroA): the joints take the new lengths there,
   so the skin, what hangs on a joint (weapons, chains, the blades on the back) and effects all follow. "skinning"
   (the default) for a mesh's own skeleton (R_HERO00.AS: 81BC3F6F and the other bodies): the skinning job rebuilds
@@ -111,15 +113,16 @@ def mesh_sizes(d, ents, name):
 
 
 def ratios(names, ratio):
-    """The spec's ratios by name, as a list in the skeleton's order (1 where it names none)."""
+    """The spec's ratios by name, three a joint (x, y, z), in the skeleton's order (1 where it names none)."""
     by_name = {nm: k for k, nm in enumerate(names)}
-    r = [1.0] * len(names)
+    r = [(1.0, 1.0, 1.0)] * len(names)
     for nm, v in ratio.items():
         if nm not in by_name:
             raise ValueError("no joint %s" % nm)
-        if not 0 < v < 8:
+        v3 = list(v) if isinstance(v, (list, tuple)) else [v, v, v]
+        if len(v3) != 3 or not all(isinstance(x, (int, float)) and 0 < x < 8 for x in v3):
             raise ValueError("%s: a ratio of %r" % (nm, v))
-        r[by_name[nm]] = float(v)
+        r[by_name[nm]] = tuple(float(x) for x in v3)
     return r
 
 
@@ -133,6 +136,10 @@ def build(names, par, ib, ratio, sizes, ib_new):
     if ib_new is not None and len(ib_new) != n:
         raise ValueError("%d inverse binds for %d joints" % (len(ib_new), n))
     r = ratios(names, ratio)
+    for nm, v in zip(names, r):
+        if not v[0] == v[1] == v[2]:
+            raise ValueError("%s: three ratios are for \"where\": \"animation\" and --binds" % nm)
+    r = [v[0] for v in r]
     out = bytearray(MAGIC)
     out += struct.pack("<I", len(sizes)) + struct.pack("<%dI" % len(sizes), *sizes) + struct.pack("<I", n)
     for k in range(n):
@@ -159,7 +166,7 @@ def build_anim(d, at, size, names, ratio):
     out = bytearray(MAGIC_ANIM)
     out += struct.pack("<IIQ", n, (8 * n + 15) & ~15, fnv64(d[at + 0x24:at + 0x24 + 8 * n]))
     for k in range(n):
-        out += struct.pack("<ff", r[k], math.sqrt(sum(x * x for x in loc[k][12:15])))
+        out += struct.pack("<3ff", *r[k], math.sqrt(sum(x * x for x in loc[k][12:15])))
     return bytes(out)
 
 
@@ -189,8 +196,8 @@ def new_rest(loc, par, r):
     loc2, world = [], []
     for k, m in enumerate(loc):
         m2 = list(m)
-        for i in (12, 13, 14):
-            m2[i] *= r[k]
+        for i in range(3):
+            m2[12 + i] *= r[k][i]
         loc2.append(m2)
         world.append(m2 if par[k] is None else mul(m2, world[par[k]]))
     return loc2, [inverse(w) for w in world]
@@ -204,28 +211,37 @@ def cmd_binds(archive, spec_path, out_path):
     for name, s in spec.items():
         if s.get("where", "skinning") == "animation":
             continue
-        sk = find_skeleton(bytes(d), ents, name)
-        if not sk:
+        # every entry of that name: a mod's archive may hold a copy of a body's stream set (its skeleton with it) that
+        # the game object points to in place of the first
+        found = [(at, size) for n, t, at, size in ents if t == 0x2D and n.upper() == name.upper()]
+        if not found:
             print("%s: no skeleton of that name in %s" % (name, archive))
             return 1
-        at, size = sk
-        try:
-            names, par, ib = skeleton(bytes(d), at, size)
-            if ib is None:
-                raise ValueError("the skeleton keeps no inverse binds")
-            loc = local_table(bytes(d), at, size, len(names))
-            loc2, ib2 = new_rest(loc, par, ratios(names, s.get("ratio", {})))
-        except ValueError as e:
-            print("%s: %s" % (name, e))
-            return 1
-        t = struct.unpack_from(">I", d, at + 0x14)[0]
-        off = struct.unpack_from(">I", d, at + t + 8)[0]
-        for k in range(len(names)):
-            struct.pack_into(">16f", d, at + t + 0x50 + 64 * k, *loc2[k])
-            struct.pack_into(">16f", d, at + t + off + 64 * k, *ib2[k])
-        moved = max(math.dist(inverse(a)[12:15], inverse(b)[12:15]) for a, b in zip(ib, ib2))
-        print("%s: %d joints, the rest pose of the new lengths (joints moved up to %.4f)" % (name, len(names), moved))
-        done += 1
+        for at, size in found:
+            try:
+                names, par, ib = skeleton(bytes(d), at, size)
+                if ib is None:
+                    raise ValueError("the skeleton keeps no inverse binds")
+                loc = local_table(bytes(d), at, size, len(names))
+                loc2, ib2 = new_rest(loc, par, ratios(names, s.get("ratio", {})))
+            except ValueError as e:
+                print("%s: %s" % (name, e))
+                return 1
+            t = struct.unpack_from(">I", d, at + 0x14)[0]
+            off = struct.unpack_from(">I", d, at + t + 8)[0]
+            moved, kept = 0.0, 0
+            for k in range(len(names)):
+                struct.pack_into(">16f", d, at + t + 0x50 + 64 * k, *loc2[k])
+                # a joint away from the origin whose inverse bind is none (no translation: one the skin does not ride,
+                # as the main upper arm joints and the face's driven joints) keeps it
+                if max(abs(x) for x in ib[k][12:15]) < 1e-6 and max(abs(x) for x in inverse(ib2[k])[12:15]) > 1e-4:
+                    kept += 1
+                    continue
+                struct.pack_into(">16f", d, at + t + off + 64 * k, *ib2[k])
+                moved = max(moved, math.dist(inverse(ib[k])[12:15], inverse(ib2[k])[12:15]))
+            print("%s at 0x%X: %d joints, the rest pose of the new lengths (joints moved up to %.4f; %d without an "
+                  "inverse bind kept so)" % (name, at, len(names), moved, kept))
+            done += 1
     with open(out_path, "wb") as f:
         f.write(d)
     print("%d skeletons -> %s" % (done, out_path))
@@ -253,7 +269,7 @@ def main(argv):
         if where not in ("skinning", "animation"):
             print("%s: where is \"skinning\" or \"animation\", not %r" % (name, where))
             return 1
-        changed = sum(1 for v in s.get("ratio", {}).values() if v != 1)
+        changed = sum(1 for v in s.get("ratio", {}).values() if v != 1 and v != [1, 1, 1])
         path = os.path.join(out, "%s.bin" % name)
         try:
             if where == "animation":

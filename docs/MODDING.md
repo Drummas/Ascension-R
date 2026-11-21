@@ -232,6 +232,9 @@ MyMod\
   the rest.
 - **A ratio belongs to the joint at the bone's end**: it scales the joint's distance from its parent. A shorter
   forearm is the wrist's ratio, a shorter upper arm the elbow's (`JOLeftLowerArm1`). The joints below it move with it.
+  A joint may have three, `[x, y, z]`, one for each of its offset's axes in its parent's (with `"where": "animation"`
+  and `--binds`): the blades on the back (`rightBladeBack`, `leftBladeBack` and the holsters, under `JOBack3`)
+  brought in to a slimmer back, less behind than across.
 - **The whole skeleton**, `"where": "animation"`, from `R_HERO00.WAD`, whose template skeleton `heroA` the animation
   uses for every form of Kratos: `{"heroA": {"where": "animation", "ratio": {"JOLeftWrist1": 0.8, "JORightWrist1":
   0.8}}}`. The lengths change where the hero's animation job puts the joints together, so whatever follows a joint
