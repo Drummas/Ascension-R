@@ -122,6 +122,12 @@ that the patch gives the mod's file back before it writes it.
 - A patch is put over the game's file, never over another mod's: two mods with a patch of the same file are not
   added together, the first one wins.
 
+**Skip intro**, a mod that comes with the port (`optional mods\Skip intro` in the download, `optional-mods/` in the
+tree), is one of these: `INTRO\BOOT_<id>.TXT`, the list of screens the game shows before its opening movie (the
+copyright notice, the Sony and Santa Monica logos, the online terms), empty for each release the port takes. The disc's
+lists are in `GAME.PSARC`, the digital release's in the update's `TPPS.PSARC`. It is off until it is copied into the
+mods folder.
+
 A mod that brings an update of its own in `files\` (a `TPPS6.PSARC` and `PATCHES`, as `gowa.py text build` made them
 before) still works: the launcher's update comes after it (`TPPS7.PSARC`), and wins where both change the same file.
 

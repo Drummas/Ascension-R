@@ -58,6 +58,7 @@ jobs:
           python tests/test_game_module_hooks.py
           python tests/test_update_check.py
           python tests/test_kit_files.py
+          python tests/test_optional_mods.py
           python tests/test_build_jobs.py
           python tests/test_kit_pgo.py
           python tests/test_mods.py
