@@ -36,6 +36,7 @@ ENTRY = 0x6A          # ...and in a game world, 8 bytes more from us: u8 host (1
 QUICK = 0x40          # search head flag: the game mode is left to us (Quick Play)
 # Quick Play modes seen with the players they take (min, max): the disc's playlist suggests one at random per search,
 # and two players meet in a two-player mode when nothing they suggested fits them.
+# 10 FVS2 (one on one), 6 THUN2 (two against the gods' minions), 2 TFR4, 4 FFR4, 1 TFR8, 3 FFR8, 5 TCTF8.
 KNOWN_MODES = {10: (2, 2), 6: (2, 2), 2: (4, 4), 4: (4, 4), 1: (6, 8), 3: (6, 8), 5: (6, 8)}
 
 
@@ -225,10 +226,12 @@ class Client:
             self.mm.log("   session %d for service %d" % (sid, service))
             self.send(SESSION, struct.pack(">IBH", sid, service, 1))
         elif kind == SESSION_END:
+            # Not answered: the game has dropped the session by then, and an answer is "session id mismatch".
             sid, service, reason = struct.unpack(">IBB", p[0:6])
             self.sessions.pop(service, None)
-            self.mm.gone(self)
-            self.send(SESSION_END, struct.pack(">IBB", sid, service, reason))
+            if service == MATCH:
+                self.mm.gone(self)
+            self.mm.log("   session %d for service %d ended (reason %d)" % (sid, service, reason))
         elif kind == SEARCH:
             s = Search(self, p)
             self.mm.log("   search: %s players %d..%d, mode %d%s" % (s.names(), s.minp, s.maxp, s.mode,

@@ -115,6 +115,9 @@ Two runtime changes were needed on the way (ps3recomp, branch gowa):
 
 ## Phase 3
 
+Done the same day (2026-11-22-multiplayer-phase3.md): a signaling server and sceNpSignaling in the runtime, a Playlist
+block, and two games on this PC play a match peer to peer. What was planned:
+
 NP signaling between two games on this PC: ActivateConnection to a peer's NpId through psnr (np_psnr.c already gives
 each instance a P2P port and relays), the handler's events (established, dead), GetConnectionStatus/Info and the peer's
 address and port, AddExtendedHandler and SetCtxOpt; then the game's own traffic over the P2P sockets. The signaling

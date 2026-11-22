@@ -1,0 +1,85 @@
+{
+ "GameModes": [
+  {
+   "GameMode": "TFR8",
+   "Levels": [
+    "Bog8TFR",
+    "Des8TFR",
+    "Lab8TFR",
+    "Try8TFR",
+    "Eng8TFR"
+   ]
+  },
+  {
+   "GameMode": "TFR4",
+   "Levels": [
+    "Oly4TFR",
+    "Hrc4TFR",
+    "Pht4TFR",
+    "Per4TFR",
+    "Fry4TFR"
+   ]
+  },
+  {
+   "GameMode": "FFR8",
+   "Levels": [
+    "Bog8FR",
+    "Lab8FR",
+    "Try8FR",
+    "Des8FR",
+    "Eng8FR"
+   ]
+  },
+  {
+   "GameMode": "FFR4",
+   "Levels": [
+    "HRC4FR",
+    "PHT4FR",
+    "Per4FR",
+    "Oly4FR",
+    "Fry4FR"
+   ]
+  },
+  {
+   "GameMode": "TCTF8",
+   "Levels": [
+    "Bog8CTF",
+    "Lab8CTF",
+    "Try8CTF",
+    "Des8CTF",
+    "Eng8CTF"
+   ]
+  },
+  {
+   "GameMode": "THUN2",
+   "Levels": [
+    "Des2GNT",
+    "Hrc2GNT",
+    "Phi2GNT",
+    "Per2GNT",
+    "Lab2GNT",
+    "Oly2GNT"
+   ]
+  },
+  {
+   "GameMode": "THUN1",
+   "Levels": [
+    "Oly1GNT",
+    "Phi1GNT",
+    "Des1GNT",
+    "Hrc1GNT",
+    "Lab1GNT",
+    "Per1GNT"
+   ]
+  },
+  {
+   "GameMode": "FVS2",
+   "Levels": [
+    "Del2VS",
+    "Flam2VS",
+    "Spa2VS",
+    "Cyn2VS"
+   ]
+  }
+ ]
+}

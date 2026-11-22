@@ -1,17 +1,19 @@
-"""Multiplayer on this PC alone, as far as it goes (docs/notes/2026-11-22-multiplayer-phase2.md): builds our TSS,
-starts the game signed in with a ticket of our own, every name it looks up pointed at 127.0.0.1 and nothing let
-past this PC, and runs our matchmaker (scripts/mp_sam.py) where our MatchConfig sends the game (SAM 10070, geo 10012).
+"""Multiplayer on this PC alone (docs/notes/2026-11-22-multiplayer-phase3.md): builds our TSS, starts the game
+signed in with a ticket of our own, every name it looks up pointed at 127.0.0.1 and nothing let past this PC, and runs
+our matchmaker (scripts/mp_sam.py) where our MatchConfig sends the game (SAM 10070, geo 10012) and the runtime's
+signaling server (ps3recomp/tools/np_signaling_server.py, 36101) for the players' peer-to-peer connections.
 
     mp_local.py [--exe build/Ascension-R.exe] [--out build/online] [--name <online id>] [--mode N] [--solo]
                 [--two --hdd0 <the game's dev_hdd0> [--name-b PlayerB]] [-- <game arguments>]
 
 On the title screen, right picks Multi-Player. A first profile starts the multiplayer tutorial; finished (or with a
 profile that says so in TUS slot 1), the lobby's Quick Play searches, and our matchmaker puts the players into a game
-world. The game then starts the match's peer-to-peer connections, which NP signaling does not make yet (phase 3).
+world. The games connect to each other through the signaling server and play the match peer to peer.
 
 --two starts a second game beside the first, as another player: online id --name-b, its own dev_hdd0 in <out>/hdd0-b
-(its own home folder, a copy of the first's; the game folders joined to the first's), P2P port 3659. Both search, and
-the matchmaker puts the two into one world. A second player who has no TUS profile yet gets a copy of the first's.
+(its own home folder, a copy of the first's; the game folders joined to the first's), P2P port 3659, and no mods.
+Both search, and the matchmaker puts the two into one world. A second player who has no TUS profile yet gets a copy of
+the first's.
 
 --solo reserves a world for one player; --mode N puts every Quick Play match in game mode N (10 is FVS2, two players).
 The game's own log is on (GOWA_GAME_LOG=1); the matchmaker writes <out>/sam.log.
@@ -27,6 +29,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mp_sam  # noqa: E402
 import mp_tss  # noqa: E402
+
+sys.path.insert(0, os.path.join(ROOT, "ps3recomp", "tools"))
+import np_signaling_server  # noqa: E402
 
 
 def clean_online_id(name):
@@ -102,7 +107,10 @@ def main(argv):
             print("[mp_sam] " + text, flush=True)
 
     srv = mp_sam.start(mode=a.mode, solo=a.solo, log=log)
-    print("[mp_local] TSS %s, TUS %s, matchmaker on SAM %d, geo %d" % (tss, tus, srv.ports[0], srv.ports[1]), flush=True)
+    sig = np_signaling_server.start(port=np_signaling_server.DEFAULT_PORT, log=lambda t: print("[signaling] " + t, flush=True))
+    env["PS3_NP_SIGNALING_SERVER"] = "127.0.0.1:%d" % sig.port
+    print("[mp_local] TSS %s, TUS %s, matchmaker on SAM %d, geo %d, signaling %d" % (tss, tus, srv.ports[0], srv.ports[1],
+                                                                                     sig.port), flush=True)
     games = []
     try:
         first = list(rest)
@@ -115,9 +123,12 @@ def main(argv):
             if name_a:
                 share_tus_profile(tus, name_a, name_b)
             env_b = dict(env, PS3_NP_ONLINE_ID=name_b, PS3_NET_P2P_PORT="3659")
-            print("[mp_local] second player %s, dev_hdd0 %s, P2P port 3659" % (name_b, hdd0_b), flush=True)
+            print("[mp_local] second player %s, dev_hdd0 %s, P2P port 3659, no mods" % (name_b, hdd0_b), flush=True)
             time.sleep(3)
-            games.append(subprocess.Popen([a.exe] + rest + ["--set", "paths.hdd0=" + hdd0_b.replace("\\", "/")],
+            # No mods for the second game: both would pack them into the one build/mods/.built while the first has
+            # its archive open, and two games starting that way have hung on their first load.
+            games.append(subprocess.Popen([a.exe] + rest + ["--set", "paths.hdd0=" + hdd0_b.replace("\\", "/"),
+                                                            "--set", "mods.use=off"],
                                           cwd=os.path.dirname(a.exe), env=env_b))
         rc = 0
         for g in games:
@@ -127,6 +138,7 @@ def main(argv):
             if g.poll() is None:
                 g.kill()
         srv.stop()
+        sig.stop()
         log_file.close()
     return rc
 
