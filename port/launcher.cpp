@@ -4033,7 +4033,7 @@ extern "C" int gowa_anr_zip(const char* zip, char* why, size_t n)
 static void anr_zip_pick(void)
 {
     wchar_t zip[MAX_PATH];
-    if (!pick_file(L"ANR FG's zip (anr-fg-...-full.zip)", L"Zip files", L"*.zip", zip, MAX_PATH)) return;
+    if (!pick_file(L"ANR FG's zip (anr-fg-...-addon.zip, or -full.zip)", L"Zip files", L"*.zip", zip, MAX_PATH)) return;
     const std::string why = anr_install(zip);
     if (why.empty()) toast("ANR FG is in place: the game uses it from the next start");
     else toast_bad(("ANR FG: " + why).c_str());

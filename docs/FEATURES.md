@@ -177,8 +177,9 @@ under `../fsr-sdk`, or from local.json's `fsr_dir`. Without the DLLs the log say
   session still freezes with it on, the launcher's next start asks whether to turn it off.
 - **ANR FG (beta)** (`graphics.frame_generation = anr`): [Apex Neural Rendering](https://github.com/apex-compute/ANR)'s
   frame generation makes the frames in between, while FSR's swap chain presents and paces them as above. ANR is closed
-  and has no licence: nothing of it ships, the player's own zip of one of its releases goes into `anr\` beside the exe
-  (the ready check's **Add zip**, or `--anr-zip <zip>`), and its DLL is loaded only when Apex Compute, Inc. signed it.
+  and has no licence: nothing of it ships, the player's own zip of one of its releases (the addon zip is enough) goes
+  into `anr\` beside the exe (the ready check's **Add zip**, or `--anr-zip <zip>`; not ANR's own installer, which would
+  put OptiScaler there), and its DLL is loaded only when Apex Compute, Inc. signed it.
   The port talks to it through the DLSS-G interface, declared in `rsx_ngx.h` without NVIDIA's SDK. With it, frame
   generation and its swap chain stay at 3.1; when it cannot start, FSR's own frame generation takes over. On an RX 6700
   XT at 1080p (FG V.B20, its portable path) it took about 2.6 ms of GPU time a real frame and generated 1800 frames a run

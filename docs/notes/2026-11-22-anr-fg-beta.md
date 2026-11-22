@@ -8,11 +8,13 @@ game's, while FSR's frame generation swap chain still presents and paces them.
 ## What ANR is to the port
 
 - **Not part of it.** ANR FG is closed, in beta, and comes with no licence. Nothing of it is in the repository or the
-  download, and the program never fetches it: the player downloads a release's zip (`anr-fg-V.B20-full.zip` or the
-  addon zip) and the launcher's ready check takes it (**Add zip**), or `Ascension-R.exe --anr-zip <zip>`. That unpacks
-  the folder that holds `nvngx_dlssg.dll` (`OptiScaler\custom\Apex Neural Rendering FG\dlssg` in the zip) into `anr\`
-  beside the exe, `graphics.anr_dll`'s folder; the zip is unpacked as a mod's is (no name outside the folder, none
-  Windows refuses).
+  download, and the program never fetches it: the player downloads a release's zip and the launcher's ready check
+  takes it (**Add zip**), or `Ascension-R.exe --anr-zip <zip>`. That unpacks the folder that holds `nvngx_dlssg.dll`
+  into `anr\` beside the exe, `graphics.anr_dll`'s folder; the zip is unpacked as a mod's is (no name outside the
+  folder, none Windows refuses). Both of V.B20's zips were tried: the addon (3.9 MB, `Apex Neural Rendering FG\dlssg`
+  in it) and the full one (11.1 MB, the same under `game\OptiScaler\custom\`, with OptiScaler's `dxgi.dll` and its
+  installer, which Ascension-R does not use: ANR's installer run on its folder would put OptiScaler there). Their DLLs
+  are the same size, each signed by Apex Compute on its own (another SHA-256).
 - **Signed or not loaded.** Since FG V.B16 the DLL is signed by Apex Compute, Inc. (an EV certificate from GlobalSign).
   `rsx_anr_open` checks the signature with WinVerifyTrust, offline (no revocation lookup: a start must not wait on the
   network), and loads the DLL only when the signer is Apex Compute, Inc.; `D3D12_ANR_UNSIGNED=1` loads another for a

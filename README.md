@@ -243,10 +243,12 @@ tab's **Open folder** makes it), and the Mods tab lists it, switched on. Mods ma
 
 Yes, in beta. [Apex Neural Rendering](https://github.com/apex-compute/ANR)'s frame generation (ANR FG) keeps what moves
 whole where FSR's can tear it, for about 2.6 ms of GPU time a frame on an RX 6700 XT. ANR is not part of this project and
-comes with no licence, so it is not in the download: get the zip of one of its releases (`anr-fg-V.B20-full.zip` or
-newer), choose **ANR FG (beta)** under the Graphics tab's **Frame generation**, and press **Add zip** on the Play tab
-(or run `Ascension-R.exe --anr-zip <zip>`). The game loads ANR's DLL only when Apex Compute signed it, and uses AMD FSR's
-frame generation when ANR cannot start. ANR supports NVIDIA RTX 20 and GTX 16 and newer, AMD Radeon RX 5000 and newer,
+comes with no licence, so it is not in the download: get the addon zip of one of its
+[releases](https://github.com/apex-compute/ANR/releases) (`anr-fg-V.B20-addon.zip`, 3.9 MB, or newer; the full zip works
+too), choose **ANR FG (beta)** under the Graphics tab's **Frame generation**, and press **Add zip** on the Play tab (or
+run `Ascension-R.exe --anr-zip <zip>`). Nothing else is needed. Do not run ANR's own installer on Ascension-R's folder:
+it is for games without their own support and would put OptiScaler there. The game loads ANR's DLL only when Apex
+Compute signed it, and uses AMD FSR's frame generation when ANR cannot start. ANR supports NVIDIA RTX 20 and GTX 16 and newer, AMD Radeon RX 5000 and newer,
 and Intel Arc ([notes](docs/notes/2026-11-22-anr-fg-beta.md)).
 
 ### Is it safe to run?
