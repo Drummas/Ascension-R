@@ -179,9 +179,6 @@ static const char* const k_dz[] = { "0.10", "0.15", "0.20", "0.24", "0.30", "0.3
 static const char* const k_dz_n[] = { "10%", "15%", "20%", "24% (XInput's)", "30%", "35%", "40%" };
 static const char* const k_enter[] = { "cross", "circle" };
 static const char* const k_enter_n[] = { "Cross", "Circle" };
-static const char* const k_icons[] = { "auto", "playstation", "xbox" };
-static const char* const k_icons_n[] = { "Auto: by the controller", "PlayStation", "Xbox" };
-static const char* const k_icons_s[] = { "Auto", "PlayStation", "Xbox" };
 static const char* const k_bak[] = { "0", "3", "5", "10" };
 static const char* const k_bak_n[] = { "Off", "Keep 3", "Keep 5", "Keep 10" };
 static const char* const k_bak_s[] = { "Off", "3", "5", "10" };
@@ -276,9 +273,6 @@ static Opt s_opt[] = {
       "How far a stick moves before it counts." },
     { T_CONTROLS, "input", "enter_button", "cross", "Confirm button", 0, LIST(k_enter, k_enter_n), k_enter_n,
       "The button that confirms in the menus." },
-    { T_CONTROLS, "input", "button_icons", "auto", "Button icons", 0, LIST(k_icons, k_icons_n), k_icons_s,
-      "The buttons the game shows. Auto: Xbox's when an Xbox (XInput) controller is plugged in as the game starts, "
-      "else PlayStation's. Xbox's are A, B, X and Y where Cross, Circle, Square and Triangle are, and View for Select." },
     { T_CONTROLS, "input", "vibration", "on", "Vibration", 1, SW, "Controller rumble." },
     { T_CHEATS, "cheats", "damage_taken", "1", "Damage to Kratos", 0, LIST(k_taken, k_taken_n), k_taken_n,
       "How much of a hit he takes. None: hits take no health from him." },

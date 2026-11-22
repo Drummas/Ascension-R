@@ -33,7 +33,6 @@ namespace {
 struct Pic {
     std::wstring path;
     int kind;     /* 1 in the texture's place, 2 over the game's own */
-    int res = 0;  /* a picture in the exe (app.rc's RCDATA) in place of a file */
     /* A copy's: the size of the copy the picture is for (another id of the same texture of the game's), which a
      * smaller copy has the picture scaled down by. 0 for a picture of its own. */
     uint32_t ref_w = 0, ref_h = 0;
@@ -45,17 +44,6 @@ struct Pic {
  * with its own id, so a picture for one copy goes to the others too. */
 struct TexCopy { uint64_t id; uint32_t w, h, group; };
 #include "texture_copies.inc"
-
-/* Button icons: Xbox. The game's button textures, the same in every release, by the button each is of, and the
- * port's own picture for it (app.rc, scripts/button_icons.ps1): the face buttons by where each sits on the pad. */
-struct Builtin { uint64_t id; int res; };
-const Builtin k_xbox_icons[] = {
-    { 0xd8c17e20cbbe71acULL, 201 },   /* Cross, A */
-    { 0x1f52688dc50e2bfbULL, 202 },   /* Circle, B */
-    { 0x2133aab0625680afULL, 203 },   /* Square, X */
-    { 0x660940394f9aee54ULL, 204 },   /* Triangle, Y */
-    { 0xa4f295497b5454b7ULL, 205 },   /* Select's bar, View */
-};
 
 /* A texture for the dump's thread to write. */
 struct DumpJob {
@@ -125,8 +113,8 @@ template <class T> void release(T*& p)
     p = NULL;
 }
 
-/* A PNG from its file, from the exe's resource res, or from its file's bytes already read (bytes). */
-bool load_png(const std::wstring& path, int res, uint32_t* w, uint32_t* h, std::vector<uint8_t>* rgba,
+/* A PNG from its file, or from its file's bytes already read (bytes). */
+bool load_png(const std::wstring& path, uint32_t* w, uint32_t* h, std::vector<uint8_t>* rgba,
               const std::vector<uint8_t>* bytes = NULL)
 {
     IWICImagingFactory* f = wic();
@@ -140,14 +128,6 @@ bool load_png(const std::wstring& path, int res, uint32_t* w, uint32_t* h, std::
     if (bytes && !bytes->empty()) {
         opened = SUCCEEDED(f->CreateStream(&mem)) &&
                  SUCCEEDED(mem->InitializeFromMemory((BYTE*)bytes->data(), (DWORD)bytes->size())) &&
-                 SUCCEEDED(f->CreateDecoderFromStream(mem, NULL, WICDecodeMetadataCacheOnDemand, &dec));
-    } else if (res) {
-        HRSRC r = FindResourceW(NULL, MAKEINTRESOURCEW(res), MAKEINTRESOURCEW(10) /* RT_RCDATA */);
-        HGLOBAL g = r ? LoadResource(NULL, r) : NULL;
-        void* data = g ? LockResource(g) : NULL;
-        const DWORD n = r ? SizeofResource(NULL, r) : 0;
-        opened = data && n && SUCCEEDED(f->CreateStream(&mem)) &&
-                 SUCCEEDED(mem->InitializeFromMemory((BYTE*)data, n)) &&
                  SUCCEEDED(f->CreateDecoderFromStream(mem, NULL, WICDecodeMetadataCacheOnDemand, &dec));
     } else {
         opened = SUCCEEDED(f->CreateDecoderFromFilename(path.c_str(), NULL, GENERIC_READ, WICDecodeMetadataCacheOnDemand,
@@ -398,10 +378,9 @@ int has_hook(u64 id)
 }
 
 /* The content of a picture: its file's bytes' XXH64, read again only when the file's size or time is not as last
- * seen (left in bytes when read now), or a constant for a picture in the exe. 0 when the file cannot be read. */
+ * seen (left in bytes when read now). 0 when the file cannot be read. */
 uint64_t content_of(State& s, const Pic& p, std::vector<uint8_t>* bytes)
 {
-    if (p.res) return (0x9E3779B97F4A7C15ull * (uint64_t)(p.res + 1)) | 1u;
     WIN32_FILE_ATTRIBUTE_DATA fa;
     if (!GetFileAttributesExW(p.path.c_str(), GetFileExInfoStandard, &fa)) return 0;
     const uint64_t size = (uint64_t)fa.nFileSizeHigh << 32 | fa.nFileSizeLow;
@@ -488,7 +467,7 @@ int picture_hook(u64 id, u32 w, u32 h, const u8* base, rsx_tex_picture* out)
         ph = d->h;
     } else {
         std::vector<uint8_t> png;
-        if (!load_png(pic.path, pic.res, &pw, &ph, &png, &bytes)) {
+        if (!load_png(pic.path, &pw, &ph, &png, &bytes)) {
             if (s.bad.insert(id).second) {
                 char u8[1200];
                 WideCharToMultiByte(CP_UTF8, 0, pic.path.c_str(), -1, u8, sizeof u8, NULL, NULL);
@@ -616,37 +595,16 @@ std::wstring settings_dir(void)
 
 }  // namespace
 
-int gowa_textures_xbox_icons(void)
-{
-    const char* v = ps3_settings_str("input", "button_icons", "GOWA_BUTTON_ICONS", "auto");
-    if (v && ps3_settings_ieq(v, "xbox")) return 1;
-    if (v && ps3_settings_ieq(v, "playstation")) return 0;
-    /* auto: an XInput controller plugged in now. XInput is loaded as the runtime loads it, from System32. */
-    typedef DWORD(WINAPI * GetState)(DWORD, void*);
-    static const wchar_t* const dlls[] = { L"XInput1_4.dll", L"XInput1_3.dll", L"XInput9_1_0.dll" };
-    for (const wchar_t* d : dlls) {
-        HMODULE m = LoadLibraryExW(d, NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        if (!m) continue;
-        GetState get = (GetState)(void*)GetProcAddress(m, "XInputGetState");
-        int any = 0;
-        unsigned char state[16];
-        for (DWORD i = 0; get && i < 4 && !any; i++) any = get(i, state) == ERROR_SUCCESS;
-        FreeLibrary(m);
-        return any;
-    }
-    return 0;
-}
-
 std::wstring gowa_textures_dump_folder(void)
 {
     if (const wchar_t* e = _wgetenv(L"GOWA_TEXTURE_DUMP")) if (*e) return e;
     return settings_dir() + L"\\textures-dump";
 }
 
-int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox_icons)
+int gowa_textures_start(const ModList& l, const std::wstring& dump_dir)
 {
     State& s = st();
-    int found = 0, builtin = 0, copies = 0, aliased = 0;
+    int found = 0, copies = 0, aliased = 0;
     {
         std::lock_guard<std::mutex> lk(s.mu);
         s.pics.clear();
@@ -667,16 +625,6 @@ int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox
                 }
                 for (auto& kv : mine) s.pics.emplace(kv.first, kv.second);   /* a mod above has it: that one */
             }
-        if (xbox_icons)   /* after the mods: a mod's picture of a button wins over the port's */
-            for (const Builtin& b : k_xbox_icons)
-                if (!s.pics.count(b.id)) {
-                    Pic p;
-                    p.path = L"Button icons: Xbox";
-                    p.kind = 1;
-                    p.res = b.res;
-                    s.pics.emplace(b.id, p);
-                    builtin++;
-                }
         copies = add_copies(&s.pics);
         s.dump = dump_dir;
         if (!s.dump.empty() && !CreateDirectoryW(s.dump.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS)
@@ -695,7 +643,7 @@ int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox
     if (!s.dump.empty()) WideCharToMultiByte(CP_UTF8, 0, s.dump.c_str(), -1, u8, sizeof u8, NULL, NULL);
     char more[64] = "";
     if (aliased) snprintf(more, sizeof more, " (%d more textures by aliases.txt)", aliased);
-    printf("[tex] %d pictures of mods%s, %d of the Xbox button icons, for %d textures (%d of them other copies of the "
-           "game's)%s%s\n", found, more, builtin, (int)s.pics.size(), copies, u8[0] ? "; the dump: " : "", u8);
+    printf("[tex] %d pictures of mods%s, for %d textures (%d of them other copies of the game's)%s%s\n", found, more,
+           (int)s.pics.size(), copies, u8[0] ? "; the dump: " : "", u8);
     return (int)s.pics.size();
 }

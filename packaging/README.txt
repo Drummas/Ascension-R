@@ -41,6 +41,9 @@ Xbox controllers and other XInput pads, and through SDL3 the DualShock 4, the Du
 others. A DualShock 3 needs a driver such as DsHidMini. "Controller API" in the Controls tab chooses what reads them;
 with DS4Windows running, set it to XInput, or the same controller counts twice.
 
+The game shows its own PlayStation buttons. For Xbox ones (A, B, X, Y and View), copy the folder Xbox button icons
+from optional mods, in this folder, into the mods folder: the launcher's Mods tab, Open folder.
+
 
 @KIT@
 WHERE YOUR FILES GO

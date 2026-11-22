@@ -26,12 +26,12 @@ BAD_NAMES = {"eboot.bin", "param.sfo", "local.json"}
 OWN_PICTURES = {
     "docs/images/banner.png": "90f7745d759e8ec44c58387e2504d25b0f2eb1a13194b2d1a17a3902a4e1ee42",
     "docs/images/icon.png": "0fc50d06490490a9819497f4c2c040e6f4d5d26e7cc3516af1c0155038b001d8",
-    # The Xbox button icons, which scripts/button_icons.ps1 draws (Button icons: Xbox, port/textures.cpp).
-    "port/icons/xbox_a.png": "b2403b812fcb2882158dc972ecb9ec45d3d33fbfd1e3360eca24fa462ddf43b9",
-    "port/icons/xbox_b.png": "ea6755f5e8a4e94608c45d55d766145ca5f4631cc41318c5353040efe68338c2",
-    "port/icons/xbox_x.png": "12b49adc988e7642c00272fe4d8d3900280226863090c4dcc876ab592360e436",
-    "port/icons/xbox_y.png": "80c1932970d373ebc6de894c0f0d11a5cac51055c5857b3dcda78ba01988c523",
-    "port/icons/xbox_view.png": "0c01bc823a12c8fc1afe451e4d9816ca1b9d68df64150eab711698532f01e8a1",
+    # The Xbox button icons, which scripts/button_icons.ps1 draws: an optional mod that comes with the port.
+    "optional-mods/Xbox button icons/textures/d8c17e20cbbe71ac_A.png": "b2403b812fcb2882158dc972ecb9ec45d3d33fbfd1e3360eca24fa462ddf43b9",
+    "optional-mods/Xbox button icons/textures/1f52688dc50e2bfb_B.png": "ea6755f5e8a4e94608c45d55d766145ca5f4631cc41318c5353040efe68338c2",
+    "optional-mods/Xbox button icons/textures/2133aab0625680af_X.png": "12b49adc988e7642c00272fe4d8d3900280226863090c4dcc876ab592360e436",
+    "optional-mods/Xbox button icons/textures/660940394f9aee54_Y.png": "80c1932970d373ebc6de894c0f0d11a5cac51055c5857b3dcda78ba01988c523",
+    "optional-mods/Xbox button icons/textures/a4f295497b5454b7_View.png": "0c01bc823a12c8fc1afe451e4d9816ca1b9d68df64150eab711698532f01e8a1",
 }
 # The launcher's pixel font, unchanged from google/fonts, under the SIL Open Font License (THIRD_PARTY_NOTICES.md).
 FONTS = {

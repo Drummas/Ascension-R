@@ -84,3 +84,10 @@ them is still to be found.
 - The game, the replay with **Button icons: Xbox**: "Press X for a Quick Attack.", "Press Y for a Heavy Attack.",
   "Press B for a Physical Attack." in the tutorial, and the pause menu's "A Select" and "View Back"; the log names the
   five textures given a picture.
+
+## Later: an optional mod (2026-11-23)
+
+The Controls tab's Button icons is gone: the game shows its own buttons whatever the controller, and the icons are a
+mod that comes in the download, `optional mods\Xbox button icons` (`optional-mods/` in the tree, each picture named
+by its texture's id and the button), off until a player copies it into the mods folder. The exe holds them no more
+(app.rc's RCDATA 201 to 205), and `input.button_icons` is not read.

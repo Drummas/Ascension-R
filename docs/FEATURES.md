@@ -204,10 +204,10 @@ out; SDL3 reads every controller, Xbox ones too. The Play tab's ready check name
 DualShock 3 needs a driver such as DsHidMini, and with DS4Windows XInput is the setting, or the pad counts twice
 ([note](notes/2026-11-10-controllers.md)).
 
-**Button icons** (`input.button_icons`, Controls) chooses the buttons the game shows: PlayStation, the game's own;
-Xbox, Ascension-R's own icons in place of them, A, B, X and Y where Cross, Circle, Square and Triangle are, and View
-for Select; or Auto, the default, Xbox's when an XInput controller is plugged in as the game starts. They are
-pictures in place of the game's button textures, as a texture mod's are (below), drawn by `scripts/button_icons.ps1`
+**Xbox button icons** are an optional mod that comes in the download (`optional mods\Xbox button icons`; in the tree
+`optional-mods/`): the game shows its own PlayStation buttons until a player copies the mod into the mods folder.
+Then A, B, X and Y stand where Cross, Circle, Square and Triangle are, and View for Select: Ascension-R's own
+pictures, drawn by `scripts/button_icons.ps1`, in place of the game's button textures as a texture mod's are (below)
 ([note](notes/2026-11-18-mods-textures.md)).
 
 ## Sound

@@ -210,9 +210,10 @@ MyMod\
 - The id is XXH64 of the texture's level 0 as the game has it, with the format, width and height in the seed
   (ps3recomp's `libs/video/rsx_tex_replace.h`).
 
-**Button icons** (Controls tab) puts Ascension-R's own Xbox icons in place of the game's PlayStation ones: A, B, X
-and Y where Cross, Circle, Square and Triangle are, and View for Select, as a set of pictures like a mod's. A mod's
-picture of the same texture wins over them.
+**Xbox button icons** is a mod of this kind that comes with the port (`optional mods\Xbox button icons` in the
+download, `optional-mods/` in the tree): A, B, X and Y in place of Cross, Circle, Square and Triangle, and View for
+Select, each picture named by its texture's id and the button's name. It is off until it is copied into the mods
+folder; a mod above it with a picture of the same texture wins.
 
 ## Other bone lengths: proportions\
 

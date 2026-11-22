@@ -7,6 +7,9 @@
  * place, at any size; <id>.overlay.png (or <id>_<anything>.overlay.png) is drawn over the game's own texture,
  * scaled to the overlay's size first, where its alpha is above 1, and a texel of alpha 1 is made clear: a mod need
  * have nothing of the game's in it. The first mod in the list wins where two have the same id.
+ *
+ * Ascension-R's own Xbox button icons are such a mod: optional-mods\Xbox button icons, which comes in the download
+ * ("optional mods" beside the exe) and is off until a player copies it into the mods folder.
  */
 #ifndef GOWA_TEXTURES_H
 #define GOWA_TEXTURES_H
@@ -15,16 +18,11 @@
 
 struct ModList;
 
-/* The hooks, when a mod that is on has pictures, xbox_icons is set or dump_dir is not empty: the dump writes each
- * texture the game loads, once, as <id>_<w>x<h>_<format>.png there. xbox_icons: the port's own Xbox button icons
- * (app.rc) in place of the game's PlayStation ones, after any mod's. The number of textures given a picture. */
-int gowa_textures_start(const ModList& l, const std::wstring& dump_dir, int xbox_icons);
+/* The hooks, when a mod that is on has pictures or dump_dir is not empty: the dump writes each texture the game
+ * loads, once, as <id>_<w>x<h>_<format>.png there. The number of textures given a picture. */
+int gowa_textures_start(const ModList& l, const std::wstring& dump_dir);
 
 /* The dump's folder: textures-dump beside the settings file (GOWA_TEXTURE_DUMP names another). */
 std::wstring gowa_textures_dump_folder(void);
-
-/* Button icons (input.button_icons): 1 for Xbox's, 0 for the game's own. "auto" is Xbox's when an XInput controller
- * is plugged in as the game starts. */
-int gowa_textures_xbox_icons(void);
 
 #endif

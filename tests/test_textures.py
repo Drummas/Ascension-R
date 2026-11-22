@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Texture mods: ps3recomp's libs/video/rsx_tex_replace.c (the ids, the decode, the chain) and port/textures.cpp
-(the pictures of the mods that are on, an overlay over the game's own, the dump, the Xbox button icons' ids).
+(the pictures of the mods that are on, an overlay over the game's own, the dump, the optional Xbox button icons mod
+that comes with the port).
 
 Builds ps3recomp's tests/test_rsx_tex_replace.c, and a driver of port/textures.cpp with port/mods.cpp, both with
 clang-cl; the pictures are PNGs this test writes. No game file is used.
@@ -32,7 +33,7 @@ DRIVER = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-/* t.exe <ini> <dump dir or -> <xbox 0|1> <command>...: has <id>; picture <id> <w> <h> <r,g,b,a of the base>;
+/* t.exe <ini> <dump dir or -> <command>...: has <id>; picture <id> <w> <h> <r,g,b,a of the base>;
  * dump <id> <w> <h> <r,g,b,a> */
 static void parse4(const char* s, unsigned char* px)
 {
@@ -47,10 +48,10 @@ int main(int argc, char** argv)
     mods_scan(&l, 1);
     wchar_t dump[1024] = L"";
     if (strcmp(argv[2], "-")) MultiByteToWideChar(CP_UTF8, 0, argv[2], -1, dump, 1024);
-    printf("textures %d\n", gowa_textures_start(l, dump, atoi(argv[3])));
+    printf("textures %d\n", gowa_textures_start(l, dump));
     const rsx_tex_hooks* hk = rsx_tex_get_hooks();
     if (!hk) { printf("hooks none\n"); return 0; }
-    for (int a = 4; a < argc; a++) {
+    for (int a = 3; a < argc; a++) {
         if (!strcmp(argv[a], "has")) {
             const u64 id = _strtoui64(argv[++a], NULL, 16);
             printf("has %016llx %d\n", (unsigned long long)id, hk->has ? hk->has(id) : -1);
@@ -158,8 +159,8 @@ class Textures(unittest.TestCase):
         self.ini = os.path.join(self.d, "ascension-r.ini")
         Path(self.ini).write_text("[mods]\nfolder = %s\n" % self.mods)
 
-    def run_t(self, dump="-", xbox=0, *a):
-        r = subprocess.run([self.exe, self.ini, dump, str(xbox), *a], capture_output=True, text=True)
+    def run_t(self, dump="-", *a):
+        r = subprocess.run([self.exe, self.ini, dump, *a], capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return [ln for ln in r.stdout.splitlines() if not ln.startswith("[")]   # not the log's lines
 
@@ -172,7 +173,7 @@ class Textures(unittest.TestCase):
         png(os.path.join(self.mods, "B", "textures", "00000000000000bb.png"), 2, 2, lambda x, y: (1, 2, 3, 255))
         png(os.path.join(self.mods, "B", "textures", "not-an-id.png"), 2, 2, lambda x, y: (1, 2, 3, 255))
         Path(self.mods, "B", "textures", "00000000000000cc.png").write_bytes(b"not a png")
-        out = self.run_t("-", 0, "has", "aa", "has", "bb", "has", "cc", "has", "dd",
+        out = self.run_t("-", "has", "aa", "has", "bb", "has", "cc", "has", "dd",
                          "picture", "aa", "2", "2", "0,0,0,0",
                          "picture", "bb", "2", "2", "100,100,100,200",
                          "picture", "cc", "2", "2", "0,0,0,0", "has", "cc")
@@ -199,7 +200,7 @@ class Textures(unittest.TestCase):
         # A picture of 16 x 16 for the whole copy, its left half red, its right half blue.
         png(os.path.join(self.mods, "A", "textures", big + ".png"), 16, 16,
             lambda x, y: (255, 0, 0, 255) if x < 8 else (0, 0, 255, 255))
-        out = self.run_t("-", 0, "has", big, "has", small, "picture", small, str(sw), str(sh), "0,0,0,0",
+        out = self.run_t("-", "has", big, "has", small, "picture", small, str(sw), str(sh), "0,0,0,0",
                          "picture", big, str(bw), str(bh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1:3], ["has %s 1" % big, "has %s 1" % small])
@@ -209,11 +210,11 @@ class Textures(unittest.TestCase):
         # A copy with a picture of its own keeps it; the picture of the small one goes to the big one as it is.
         os.remove(os.path.join(self.mods, "A", "textures", big + ".png"))
         png(os.path.join(self.mods, "A", "textures", small + "_mine.png"), 2, 2, lambda x, y: (7, 7, 7, 255))
-        out = self.run_t("-", 0, "picture", big, str(bw), str(bh), "0,0,0,0")
+        out = self.run_t("-", "picture", big, str(bw), str(bh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
         png(os.path.join(self.mods, "A", "textures", big + ".png"), 4, 4, lambda x, y: (9, 9, 9, 255))
-        out = self.run_t("-", 0, "picture", small, str(sw), str(sh), "0,0,0,0")
+        out = self.run_t("-", "picture", small, str(sw), str(sh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
 
@@ -234,7 +235,7 @@ class Textures(unittest.TestCase):
         png(os.path.join(self.mods, "B", "textures", "00000000000000bb.png"), 2, 2, lambda x, y: (2, 2, 2, 255))
         Path(self.mods, "B", "textures", "aliases.txt").write_text("00000000000000b1 00000000000000bb\n")
         Path(self.ini).write_text("[mods]\nfolder = %s\norder = A|B\n" % self.mods)
-        r = subprocess.run([self.exe, self.ini, "-", "0", "has", "a1", "has", "a2", "has", "a3", "has", "a4", "has",
+        r = subprocess.run([self.exe, self.ini, "-", "has", "a1", "has", "a2", "has", "a3", "has", "a4", "has",
                             "b1", "picture", "a1", "2", "2", "0,0,0,0", "picture", "a2", "2", "2", "0,0,0,0",
                             "picture", "aa", "2", "2", "0,0,0,0", "picture", "b1", "2", "2", "0,0,0,0"],
                            capture_output=True, text=True)
@@ -242,7 +243,7 @@ class Textures(unittest.TestCase):
         log = [ln for ln in r.stdout.splitlines() if ln.startswith("[tex]")]
         out = [ln for ln in r.stdout.splitlines() if not ln.startswith("[")]
         self.assertIn("[tex] A: aliases.txt: 3 lines not taken; line 5: no picture of 00000000000000ff in the folder", log)
-        self.assertTrue(any(ln.startswith("[tex] 3 pictures of mods (3 more textures by aliases.txt), 0 of the Xbox")
+        self.assertTrue(any(ln.startswith("[tex] 3 pictures of mods (3 more textures by aliases.txt), for 5 textures")
                             for ln in log), log)
         self.assertEqual(out[0], "textures 5")   # aa, a1, a2; bb, b1
         self.assertEqual(out[1:6], ["has 00000000000000a1 1", "has 00000000000000a2 1", "has 00000000000000a3 0",
@@ -252,23 +253,37 @@ class Textures(unittest.TestCase):
         self.assertEqual(out[8], "picture 1 2x2 " + " ".join(["10,20,30,255"] * 5))
         self.assertEqual(out[9], "picture 1 2x2 " + " ".join(["2,2,2,255"] * 5))
 
-    def test_the_dump_and_the_xbox_icons_ids(self):
+    def test_the_dump(self):
         dump = os.path.join(self.d, "dump")
-        out = self.run_t(dump, 1, "has", "d8c17e20cbbe71ac", "has", "2133aab0625680af", "has", "a4f295497b5454b7",
-                         "dump", "0123456789abcdef", "3", "2", "10,20,30,40")
-        self.assertEqual(out[0], "textures 5")   # Cross, Circle, Square, Triangle and Select's bar
-        self.assertEqual(out[1:4], ["has d8c17e20cbbe71ac 1", "has 2133aab0625680af 1", "has a4f295497b5454b7 1"])
+        out = self.run_t(dump, "dump", "0123456789abcdef", "3", "2", "10,20,30,40")
+        self.assertEqual(out[0], "textures 0")
         self.assertEqual(os.listdir(dump), ["0123456789abcdef_3x2_88.png"])
         data = Path(dump, "0123456789abcdef_3x2_88.png").read_bytes()
         self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n")
         self.assertEqual(struct.unpack(">II", data[16:24]), (3, 2))
-        # A mod's picture of a button wins over the port's.
-        png(os.path.join(self.mods, "Mine", "textures", "d8c17e20cbbe71ac.png"), 2, 2, lambda x, y: (5, 5, 5, 255))
-        out = self.run_t("-", 1, "picture", "d8c17e20cbbe71ac", "64", "64", "0,0,0,0")
-        self.assertEqual(out[1], "picture 1 2x2 5,5,5,255 5,5,5,255 5,5,5,255 5,5,5,255 5,5,5,255")
         # Nothing at all: no hooks.
-        os.remove(os.path.join(self.mods, "Mine", "textures", "d8c17e20cbbe71ac.png"))
-        self.assertEqual(self.run_t("-", 0), ["textures 0", "hooks none"])
+        self.assertEqual(self.run_t("-"), ["textures 0", "hooks none"])
+
+    def test_the_optional_xbox_button_icons(self):
+        # The game's buttons: Cross, Circle, Square, Triangle and Select's bar. None has a picture until the mod that
+        # comes with the port is in the folder.
+        ids = ("d8c17e20cbbe71ac", "1f52688dc50e2bfb", "2133aab0625680af", "660940394f9aee54", "a4f295497b5454b7")
+        has = [w for i in ids for w in ("has", i)]
+        self.assertEqual(self.run_t("-", *has), ["textures 0", "hooks none"])
+        shutil.copytree(ROOT / "optional-mods" / "Xbox button icons", os.path.join(self.mods, "Xbox button icons"))
+        out = self.run_t("-", *has, "picture", ids[0], "64", "64", "0,0,0,0", "picture", ids[4], "64", "32", "0,0,0,0")
+        self.assertEqual(out[0], "textures 5")
+        self.assertEqual(out[1:6], ["has %s 1" % i for i in ids])
+        self.assertTrue(out[6].startswith("picture 1 128x128 "), out[6])
+        self.assertTrue(out[7].startswith("picture 1 128x64 "), out[7])
+        # A mod above it with a picture of a button: that one.
+        png(os.path.join(self.mods, "Mine", "textures", "d8c17e20cbbe71ac.png"), 2, 2, lambda x, y: (5, 5, 5, 255))
+        Path(self.ini).write_text("[mods]\nfolder = %s\norder = Mine|Xbox button icons\n" % self.mods)
+        out = self.run_t("-", "picture", ids[0], "64", "64", "0,0,0,0")
+        self.assertEqual(out[1], "picture 1 2x2 5,5,5,255 5,5,5,255 5,5,5,255 5,5,5,255 5,5,5,255")
+        # Switched off in the Mods tab: the game's own again.
+        Path(self.ini).write_text("[mods]\nfolder = %s\noff = Xbox button icons|Mine\n" % self.mods)
+        self.assertEqual(self.run_t("-", *has), ["textures 0", "hooks none"])
 
 
 if __name__ == "__main__":

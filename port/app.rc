@@ -11,14 +11,6 @@ CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "gowa.manifest"
 101 RCDATA "..\\third_party\\silkscreen\\Silkscreen-Regular.ttf"
 102 RCDATA "..\\third_party\\silkscreen\\Silkscreen-Bold.ttf"
 
-/* Button icons: Xbox (textures.cpp, which says which texture of the game's each stands for): the port's own, drawn
- * by scripts/button_icons.ps1. */
-201 RCDATA "icons\\xbox_a.png"
-202 RCDATA "icons\\xbox_b.png"
-203 RCDATA "icons\\xbox_x.png"
-204 RCDATA "icons\\xbox_y.png"
-205 RCDATA "icons\\xbox_view.png"
-
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION AR_VERSION_RC
 PRODUCTVERSION AR_VERSION_RC

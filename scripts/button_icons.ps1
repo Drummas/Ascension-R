@@ -1,10 +1,11 @@
-# Ascension-R's own Xbox button icons, for the game's button textures (port/textures.cpp, Button icons: Xbox):
+# Ascension-R's own Xbox button icons, for the game's button textures (an optional texture mod, port/textures.h):
 # a dark disc with a coloured letter for each face button, as the game's PlayStation ones are a dark disc with a
 # coloured symbol, and the View button on a dark pill for the Select bar. Drawn here with Windows' GDI+, no picture
-# of anyone else's; the PNGs it writes are in the tree (port/icons/), and app.rc puts them in the exe.
+# of anyone else's. The PNGs it writes are in the tree, in the mod (optional-mods/Xbox button icons/textures/), each
+# named by the id of the game's texture it stands for.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\button_icons.ps1
-param([string]$Out = (Join-Path $PSScriptRoot "..\port\icons"))
+param([string]$Out = (Join-Path $PSScriptRoot "..\optional-mods\Xbox button icons\textures"))
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
 New-Item -ItemType Directory -Force $Out | Out-Null
@@ -47,10 +48,10 @@ function Draw-Letter($g, [string]$s, [float]$cx, [float]$cy, [float]$size, [Syst
 
 # The face buttons, by where each is on the pad: Cross is A, Circle B, Square X, Triangle Y.
 $face = @(
-    @{ Name = "xbox_a"; Letter = "A"; Color = [System.Drawing.Color]::FromArgb(255, 96, 186, 56) },
-    @{ Name = "xbox_b"; Letter = "B"; Color = [System.Drawing.Color]::FromArgb(255, 228, 52, 46) },
-    @{ Name = "xbox_x"; Letter = "X"; Color = [System.Drawing.Color]::FromArgb(255, 44, 128, 222) },
-    @{ Name = "xbox_y"; Letter = "Y"; Color = [System.Drawing.Color]::FromArgb(255, 246, 192, 28) }
+    @{ Name = "d8c17e20cbbe71ac_A"; Letter = "A"; Color = [System.Drawing.Color]::FromArgb(255, 96, 186, 56) },
+    @{ Name = "1f52688dc50e2bfb_B"; Letter = "B"; Color = [System.Drawing.Color]::FromArgb(255, 228, 52, 46) },
+    @{ Name = "2133aab0625680af_X"; Letter = "X"; Color = [System.Drawing.Color]::FromArgb(255, 44, 128, 222) },
+    @{ Name = "660940394f9aee54_Y"; Letter = "Y"; Color = [System.Drawing.Color]::FromArgb(255, 246, 192, 28) }
 )
 foreach ($f in $face) {
     $bmp, $g = New-Canvas 128 128
@@ -73,6 +74,6 @@ $white.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
 $g.DrawRectangle($white, 44, 16, 30, 22)
 $g.FillRectangle((New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 236, 236, 236))), 56, 27, 30, 22)
 $g.Dispose()
-$bmp.Save((Join-Path $Out "xbox_view.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+$bmp.Save((Join-Path $Out "a4f295497b5454b7_View.png"), [System.Drawing.Imaging.ImageFormat]::Png)
 $bmp.Dispose()
-Get-ChildItem $Out -Filter "xbox_*.png" | ForEach-Object { "{0} {1} bytes" -f $_.Name, $_.Length }
+Get-ChildItem $Out -Filter "*.png" | ForEach-Object { "{0} {1} bytes" -f $_.Name, $_.Length }

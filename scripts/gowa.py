@@ -1804,6 +1804,8 @@ def cmd_package(args):
         shutil.copy2(os.path.join(folder, f), stage)
     # RecompLauncher sets the game up and shows its settings from this file, beside the program (recomplauncher.com/sdk)
     shutil.copy2(os.path.join(ROOT, "recomplauncher.json"), stage)
+    # Mods that come with the port, each off until a player copies it into the mods folder (optional-mods/README.txt).
+    shutil.copytree(os.path.join(ROOT, "optional-mods"), os.path.join(stage, "optional mods"))
     sdk = os.path.dirname(os.path.dirname(os.path.dirname(fsr)))
     third = os.path.join(PS3RECOMP, "third_party")
     for src, to in ((os.path.join(ROOT, "LICENSE"), "Ascension-R.txt"),

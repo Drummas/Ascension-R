@@ -1581,12 +1581,10 @@ static void title_environment(int pack_mods)
                 printf("[mods] pack: %s (%.1f s)\n", mods.pack_error.empty() ? "one more update" : mods.pack_error.c_str(),
                        (double)(GetTickCount64() - t0) / 1000.0);
         }
-        /* Their textures\, the Xbox button icons (Controls, Button icons) and the dump for those who make mods
-         * (textures.h). */
+        /* Their textures\ and the dump for those who make mods (textures.h). */
         if (pack_mods)
             gowa_textures_start(mods, ps3_settings_bool("mods", "dump_textures", "GOWA_DUMP_TEXTURES", 0)
-                                          ? gowa_textures_dump_folder() : std::wstring(),
-                                gowa_textures_xbox_icons());
+                                          ? gowa_textures_dump_folder() : std::wstring());
         env_default("PS3_MODS_DIRS", mods_dirs(mods).c_str());
         env_default("GOWA_MOD_PROPORTIONS", mods_proportions(mods).c_str());
         if (!mods.mods.empty()) printf("[mods] %s\n", mods_summary(mods).c_str());
