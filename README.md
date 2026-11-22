@@ -55,7 +55,8 @@ problems further in.
 - **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below. It finds the game's folder by
   itself, and says when a newer release is out, with a link to it.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and AMD FSR scaling (FSR 4.1 on AMD Radeon RX 6000 and
-  newer, FSR 3.1 on other cards), FSR frame generation, SMAA 1x and anisotropic filtering.
+  newer, FSR 3.1 on other cards), frame generation by AMD FSR or, in beta, by ANR FG (see the FAQ), SMAA 1x and
+  anisotropic filtering.
 - **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and the frame rate on screen.
 - **Shaders:** a compressed cache, pipelines built before the title, every vertex shader built before the first start
   of each version, on an 8-bit screen with music of its own, and the pixel shaders of the game's files built ahead from
@@ -237,6 +238,16 @@ Yes: put a mod's folder or its `.zip` into the `mods` folder beside `Ascension-R
 tab's **Open folder** makes it), and the Mods tab lists it, switched on. Mods made for RPCS3 as files over the game's
 (`dev_hdd0\game\<id>\USRDIR\...`) are taken as they are. A mod is files alone: nothing of it runs as a program.
 [docs/MODDING.md](docs/MODDING.md) is for those who make them.
+
+### Can I use ANR frame generation?
+
+Yes, in beta. [Apex Neural Rendering](https://github.com/apex-compute/ANR)'s frame generation (ANR FG) keeps what moves
+whole where FSR's can tear it, for about 2.6 ms of GPU time a frame on an RX 6700 XT. ANR is not part of this project and
+comes with no licence, so it is not in the download: get the zip of one of its releases (`anr-fg-V.B20-full.zip` or
+newer), choose **ANR FG (beta)** under the Graphics tab's **Frame generation**, and press **Add zip** on the Play tab
+(or run `Ascension-R.exe --anr-zip <zip>`). The game loads ANR's DLL only when Apex Compute signed it, and uses AMD FSR's
+frame generation when ANR cannot start. ANR supports NVIDIA RTX 20 and GTX 16 and newer, AMD Radeon RX 5000 and newer,
+and Intel Arc ([notes](docs/notes/2026-11-22-anr-fg-beta.md)).
 
 ### Is it safe to run?
 

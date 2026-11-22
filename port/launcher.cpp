@@ -141,6 +141,10 @@ static const char* const k_gpu_n[] = { "Discrete", "Integrated" };
 static const char* const k_rscale[] = { "1", "1.5", "2", "3", "native" };
 static const char* const k_rscale_n[] = { "720p, as the game draws it", "1080p", "1440p", "2160p", "The window's size" };
 static const char* const k_rscale_s[] = { "720p", "1080p", "1440p", "4K", "Window" };
+/* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR). */
+static const char* const k_fg[] = { "off", "on", "anr" };
+static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)" };
+static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)" };
 static const char* const k_aa[] = { "off", "smaa" };
 static const char* const k_aa_n[] = { "Off", "SMAA 1x" };
 static const char* const k_aa_s[] = { "Off", "SMAA" };
@@ -220,10 +224,10 @@ static Opt s_opt[] = {
       "On the whole picture, the game's HUD and menus too." },
     { T_GRAPHICS, "graphics", "contrast", "off", "Contrast", 0, LIST(k_grade, k_grade_n), k_grade_n,
       "A gentle curve: darks a little darker, lights a little lighter, black and white kept." },
-    { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 1, SW,
-      "AMD FSR: twice the frames on screen, with VSync on. The game is held at half the monitor's refresh rate, "
-      "30 at 60 Hz and 60 at 120 Hz. A frame is made between each two, which holds the picture back by about a "
-      "frame, and below 25 it stands aside." },
+    { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 0, LIST(k_fg, k_fg_n), k_fg_s,
+      "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
+      "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
+      "moves whole where AMD FSR's can tear it; its files are your own download (Play tab, Add zip)." },
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
@@ -970,6 +974,92 @@ static const char* gpu_chosen(void)
     return s_gpus.n == 2 && ps3_settings_ieq(opt_find("graphics", "gpu")->cur, "integrated") ? s_gpus.name[1] : s_gpus.name[0];
 }
 
+/* graphics.anr_dll as a full path: as given, or from the exe's folder ("anr\\nvngx_dlssg.dll" by default). */
+static bool anr_dll_path(std::wstring* out)
+{
+    const char* v = ps3_settings_str("graphics", "anr_dll", NULL, "anr\\nvngx_dlssg.dll");
+    std::wstring w = v && *v ? std::wstring(W(v)) : std::wstring();
+    if (w.empty()) return false;
+    for (wchar_t& c : w) if (c == L'/') c = L'\\';
+    if ((w.size() >= 2 && w[1] == L':') || (w.size() >= 2 && w[0] == L'\\' && w[1] == L'\\')) {
+        *out = w;
+        return true;
+    }
+    wchar_t exe[MAX_PATH];
+    DWORD n = GetModuleFileNameW(NULL, exe, MAX_PATH);
+    while (n && exe[n - 1] != L'\\') n--;
+    if (!n) return false;
+    *out = std::wstring(exe, n) + w;
+    return true;
+}
+
+static bool anr_present(void)
+{
+    std::wstring dll;
+    return anr_dll_path(&dll) && GetFileAttributesW(dll.c_str()) != INVALID_FILE_ATTRIBUTES;
+}
+
+/* The folder under dir (down to depth more levels) that holds a file named name, or "". */
+static std::wstring anr_find(const std::wstring& dir, const wchar_t* name, int depth)
+{
+    if (GetFileAttributesW((dir + L"\\" + name).c_str()) != INVALID_FILE_ATTRIBUTES) return dir;
+    if (depth <= 0) return std::wstring();
+    WIN32_FIND_DATAW fd;
+    HANDLE h = FindFirstFileExW((dir + L"\\*").c_str(), FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, 0);
+    if (h == INVALID_HANDLE_VALUE) return std::wstring();
+    std::wstring hit;
+    do {
+        if (!(fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) ||
+            !wcscmp(fd.cFileName, L".") || !wcscmp(fd.cFileName, L".."))
+            continue;
+        hit = anr_find(dir + L"\\" + fd.cFileName, name, depth - 1);
+    } while (hit.empty() && FindNextFileW(h, &fd));
+    FindClose(h);
+    return hit;
+}
+
+/* ANR FG's files from the zip of one of its releases (anr-fg-*-full.zip or -addon.zip): the folder in it that holds
+ * the DLL (OptiScaler\custom\Apex Neural Rendering FG\dlssg) put where graphics.anr_dll points, in place of what is
+ * there. Unpacked as a mod's zip is (mods_unzip). ANR has no licence: nothing of it is fetched or shipped, the player
+ * picks the zip. The game checks the DLL's signature when it loads it. "" when done, else why not. */
+static std::string anr_install(const wchar_t* zip)
+{
+    std::wstring dll;
+    if (!anr_dll_path(&dll)) return "graphics.anr_dll is not a path";
+    const size_t sl = dll.find_last_of(L'\\');
+    if (sl == std::wstring::npos || sl < 3) return "graphics.anr_dll names no folder";
+    const std::wstring name = dll.substr(sl + 1), dir = dll.substr(0, sl);
+    const size_t up = dir.find_last_of(L'\\');
+    if (up == std::wstring::npos) return "graphics.anr_dll names no folder";
+    const std::wstring parent = dir.substr(0, up), tmp = dir + L".unpacking", old = dir + L".old";
+    mods_remove_tree(tmp, parent);
+    mods_remove_tree(old, parent);
+    const std::string why = mods_unzip(zip, tmp);
+    if (!why.empty()) {
+        mods_remove_tree(tmp, parent);
+        return "the zip was not unpacked: " + why;
+    }
+    std::wstring found = anr_find(tmp, name.c_str(), 8);
+    if (found.empty()) found = anr_find(tmp, L"nvngx_dlssg.dll", 8);
+    if (found.empty()) {
+        mods_remove_tree(tmp, parent);
+        return "it holds no nvngx_dlssg.dll: pick ANR FG's full or addon zip";
+    }
+    const bool had = GetFileAttributesW(dir.c_str()) != INVALID_FILE_ATTRIBUTES;
+    if (had && !MoveFileExW(dir.c_str(), old.c_str(), 0)) {
+        mods_remove_tree(tmp, parent);
+        return "the folder there could not be moved aside: is the game running?";
+    }
+    if (!MoveFileExW(found.c_str(), dir.c_str(), 0)) {
+        if (had) MoveFileExW(old.c_str(), dir.c_str(), 0);
+        mods_remove_tree(tmp, parent);
+        return "its folder could not be put in place";
+    }
+    mods_remove_tree(old, parent);
+    mods_remove_tree(tmp, parent);
+    return std::string();
+}
+
 /* The AMD FSR upscalers the last sessions used (report.cpp reads their logs), for the ready check's line: the newest
  * one asked for what graphics.fsr_version asks now ("" for auto). Read with the rest of the ready check. */
 static GowaFsrSeen s_fsr_seen[4];
@@ -1621,7 +1711,7 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
@@ -2244,22 +2334,31 @@ static void draw_play(void)
     const float cb = cy + chh;
     y += 32;
     if (y + 26.0f <= cb - 102.0f) {   /* where the lines above left room: not under the Kit's bar */
-        /* The scaling; with AMD FSR the version a last session asked as this one asks had, else what it asks for. */
+        /* The scaling; with AMD FSR the version a last session asked as this one asks had, else what it asks for; and
+         * frame generation's maker. ANR FG without its files: Add zip (anr_install). */
         const Opt* sc = opt_find("graphics", "scaling");
+        const Opt* fg = opt_find("graphics", "frame_generation");
         const Opt* ml = popt_find("disable_mlaa");
-        wchar_t b[160];
-        if (!sc || !ps3_settings_ieq(sc->cur, "fsr3")) {
-            swprintf(b, 160, L"Scaling: %ls", W(sc ? opt_name(*sc) : "Bilinear"));
-            check_line(lx, y, lw, 2, b);
-        } else if (ml && !opt_on(*ml)) {
+        const bool fsr = sc && ps3_settings_ieq(sc->cur, "fsr3");
+        const bool anr = fg && ps3_settings_ieq(fg->cur, "anr");
+        const bool fgon = anr || (fg && ps3_settings_ieq(fg->cur, "on"));
+        const wchar_t* tail = anr ? L" + ANR FG" : fgon ? L" + FSR frames" : L"";
+        wchar_t b[200];
+        if (anr && !anr_present()) {
+            check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
+            w_button(L"Add zip", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
+        } else if ((fsr || fgon) && ml && !opt_on(*ml)) {
             check_line(lx, y, lw, 0, L"AMD FSR needs Disable MLAA (Game patches)");
+        } else if (!fsr) {
+            swprintf(b, 200, L"Scaling: %ls%ls", W(sc ? opt_name(*sc) : "Bilinear"), tail);
+            check_line(lx, y, lw, 2, b);
         } else {
             const Opt* fv = opt_find("graphics", "fsr_version");
             const char* want = fv && !ps3_settings_ieq(fv->cur, "auto") ? fv->cur : "";
             const char* seen = fsr_seen_for(want);
-            if (seen) swprintf(b, 160, L"Upscaling: AMD FSR %ls", W(seen));
-            else if (*want) swprintf(b, 160, L"Upscaling: AMD FSR %ls", W(want));
-            else swprintf(b, 160, L"Upscaling: AMD FSR, the newest the card has");
+            if (seen) swprintf(b, 200, L"Upscaling: AMD FSR %ls%ls", W(seen), tail);
+            else if (*want) swprintf(b, 200, L"Upscaling: AMD FSR %ls%ls", W(want), tail);
+            else swprintf(b, 200, L"Upscaling: AMD FSR%ls", *tail ? tail : L", the newest the card has");
             check_line(lx, y, lw, 1, b);
         }
     }
@@ -2860,7 +2959,7 @@ static void summary(wchar_t* out, size_t n)
     swprintf(out, n, L"%ls  \x00B7  %ls  \x00B7  %ls  \x00B7  %ls",
              W(opt_short(opt_find("display", "mode"))), W(opt_short(opt_find("graphics", "scaling"))),
              a && ps3_settings_ieq(a->cur, "smaa") ? L"SMAA" : L"no AA",
-             g && ps3_settings_ieq(g->cur, "on") ? L"frame generation" :
+             g && ps3_settings_ieq(g->cur, "on") ? L"frame generation" : g && ps3_settings_ieq(g->cur, "anr") ? L"ANR FG" :
              c && !ps3_settings_ieq(c->cur, "off") ? W(opt_short(c)) : L"no cap");
 }
 
@@ -3804,7 +3903,7 @@ static void report_make(const wchar_t* heading)
 static int fg_offer(void)
 {
     Opt* fg = opt_find("graphics", "frame_generation");
-    if (!fg || !ps3_settings_ieq(fg->cur, "on")) return 0;
+    if (!fg || !(ps3_settings_ieq(fg->cur, "on") || ps3_settings_ieq(fg->cur, "anr"))) return 0;
     static const wchar_t what[] =
         L"The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the "
         L"game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in "
@@ -3914,6 +4013,32 @@ static int pick_file(const wchar_t* title, const wchar_t* kind, const wchar_t* s
     return ok;
 }
 
+/* --anr-zip <zip> (main.cpp): anr_install without the window, for a script or a player who would rather. zip in UTF-8
+ * (the exe's code page). 0 = done, else why not in why. */
+extern "C" int gowa_anr_zip(const char* zip, char* why, size_t n)
+{
+    wchar_t w[MAX_PATH];
+    if (!zip || !MultiByteToWideChar(CP_UTF8, 0, zip, -1, w, MAX_PATH)) {
+        snprintf(why, n, "no zip named");
+        return 1;
+    }
+    wchar_t full[MAX_PATH];
+    if (!GetFullPathNameW(w, MAX_PATH, full, NULL)) wcscpy(full, w);
+    const std::string r = anr_install(full);
+    snprintf(why, n, "%s", r.c_str());
+    return r.empty() ? 0 : 1;
+}
+
+/* Add zip on the ready check: ANR FG's files from the zip the player picks (anr_install). */
+static void anr_zip_pick(void)
+{
+    wchar_t zip[MAX_PATH];
+    if (!pick_file(L"ANR FG's zip (anr-fg-...-full.zip)", L"Zip files", L"*.zip", zip, MAX_PATH)) return;
+    const std::string why = anr_install(zip);
+    if (why.empty()) toast("ANR FG is in place: the game uses it from the next start");
+    else toast_bad(("ANR FG: " + why).c_str());
+}
+
 static void act(int id)
 {
     if (id >= H_MOD) { mods_act(id - H_MOD); return; }
@@ -3960,6 +4085,7 @@ static void act(int id)
         case H_REPORT: report_make(NULL); break;
         case H_SHADERS: clear_shaders(); break;
         case H_PREBUILD: pb_start(); break;
+        case H_ANR_ZIP: anr_zip_pick(); break;
         case H_MODS_OPEN: mods_open(); break;
         case H_GAME_BROWSE: game_browse(); break;
         case H_PICK_RPCS3:
@@ -4533,4 +4659,5 @@ extern "C" int gowa_launcher(void)
 }
 #else
 extern "C" int gowa_launcher(void) { return 1; }   /* no window here: just play */
+extern "C" int gowa_anr_zip(const char*, char* why, size_t n) { snprintf(why, n, "ANR FG is Windows only"); return 1; }
 #endif

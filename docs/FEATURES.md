@@ -175,6 +175,15 @@ under `../fsr-sdk`, or from local.json's `fsr_dir`. Without the DLLs the log say
   present, whenever the session before had ended itself. The game is now ended by a second copy of the exe when its
   window closes, and the freeze did not come back in 14 starts ([note](notes/2026-11-11-fg-freeze-exit.md)). When a
   session still freezes with it on, the launcher's next start asks whether to turn it off.
+- **ANR FG (beta)** (`graphics.frame_generation = anr`): [Apex Neural Rendering](https://github.com/apex-compute/ANR)'s
+  frame generation makes the frames in between, while FSR's swap chain presents and paces them as above. ANR is closed
+  and has no licence: nothing of it ships, the player's own zip of one of its releases goes into `anr\` beside the exe
+  (the ready check's **Add zip**, or `--anr-zip <zip>`), and its DLL is loaded only when Apex Compute, Inc. signed it.
+  The port talks to it through the DLSS-G interface, declared in `rsx_ngx.h` without NVIDIA's SDK. With it, frame
+  generation and its swap chain stay at 3.1; when it cannot start, FSR's own frame generation takes over. On an RX 6700
+  XT at 1080p (FG V.B20, its portable path) it took about 2.6 ms of GPU time a real frame and generated 1800 frames a run
+  without an error, and where FSR's generated frames tore and doubled a walking character's arms and legs, its kept them
+  whole ([note](notes/2026-11-22-anr-fg-beta.md)).
 
 Both take what moves from the title's motion blur draws, so Disable Motion Blur is left off with them: EDGE goes from 46
 to 67 ms a flip, and a fight at the 30 cap loses about 0.3 frames a second on a cool machine, more on a hot one.

@@ -689,6 +689,10 @@ void read_result(ModList* l, const std::wstring& out)
 
 }  // namespace
 
+std::string mods_unzip(const std::wstring& zip, const std::wstring& to) { return unzip(zip, to); }
+
+void mods_remove_tree(const std::wstring& dir, const std::wstring& within) { remove_tree(dir, within); }
+
 std::wstring mods_folder(void)
 {
     const char* v = ps3_settings_str("mods", "folder", "GOWA_MODS_DIR", NULL);

@@ -91,6 +91,13 @@ option(PORT_GAME_MODULE "The game's code in ascension_game.dll, the program with
 if(PORT_GAME_MODULE)
     add_compile_definitions(PS3_GAME_MODULE_HOST)
 endif()
+# PORT_ANR (beta): graphics.frame_generation = anr has the player's own ANR FG DLL (Apex Neural Rendering) make the
+# generated frames in FSR's swap chain (docs/notes/2026-11-22-anr-fg-beta.md); ps3recomp's PS3RECOMP_ANR. Nothing of
+# ANR is built in or shipped: it has no licence, and the player adds its zip in the launcher.
+option(PORT_ANR "ANR frame generation, beta: graphics.frame_generation = anr" ON)
+if(PORT_ANR)
+    set(PS3RECOMP_ANR ON CACHE BOOL "ANR frame generation, beta: graphics.frame_generation = anr" FORCE)
+endif()
 # The game has no SDATA and its one EDAT needs a key we do not have, so the build
 # leaves the decryption out: no keys in the exe and nothing written beside the
 # game's files.

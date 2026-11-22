@@ -85,4 +85,11 @@ std::string mods_proportions(const ModList& l);
 /* One line for the log and the report: "Xbox icons 1.0 (12 files), Big text (3 files); off: Other". */
 std::string mods_summary(const ModList& l);
 
+/* A zip's files into the folder `to`, which is made, as a mod's zip is unpacked: no name outside the folder, none
+ * Windows would refuse, stored or deflated only. "" when done, else why not. The launcher's ANR FG zip uses it. */
+std::string mods_unzip(const std::wstring& zip, const std::wstring& to);
+
+/* dir and everything in it, when dir is inside within; no link is followed. */
+void mods_remove_tree(const std::wstring& dir, const std::wstring& within);
+
 #endif

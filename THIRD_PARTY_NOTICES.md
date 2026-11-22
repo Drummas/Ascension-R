@@ -38,6 +38,12 @@ The runtime carries the FSR API's headers, unchanged, from
 `gowa.py build` copies the SDK's signed DLLs beside the exe. They are not in this repository. MIT License,
 Copyright (C) Advanced Micro Devices, Inc.; the full text is at the top of each header.
 
+## ANR FG (not included)
+
+Frame generation's ANR FG choice loads Apex Neural Rendering's `nvngx_dlssg.dll` from a release the player downloads
+([apex-compute/ANR](https://github.com/apex-compute/ANR)). It comes with no licence, so nothing of it is in this
+repository or the download. The port declares the DLSS-G interface it calls in `ps3recomp/libs/video/rsx_ngx.h` itself.
+
 ## AMD FidelityFX Super Resolution 1
 
 The runtime carries `ffx_a.h` and `ffx_fsr1.h`, unchanged, from

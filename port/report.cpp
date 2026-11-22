@@ -529,6 +529,14 @@ static int fsr_of(const std::string& log, std::string* up, std::string* asked, s
         return true;
     };
     if (fg && !after("[fsr3] frame generation: ", fg)) fg->clear();
+    if (fg) {   /* "3.1.6, as asked (3.1)": the version, and what was asked in words of the report's own */
+        const size_t as = fg->find(", as asked (");
+        if (as != std::string::npos) {
+            const std::string want = fg->substr(as + 12, fg->find(')', as) == std::string::npos ? std::string::npos
+                                                                                                 : fg->find(')', as) - as - 12);
+            *fg = fg->substr(0, as) + " (asked for " + want + ")";
+        }
+    }
     std::string u;
     asked->clear();
     if (!after("[fsr3] upscaler: ", &u)) return 0;
@@ -541,6 +549,40 @@ static int fsr_of(const std::string& log, std::string* up, std::string* asked, s
     }
     *up = u;
     return 1;
+}
+
+/* What a session's log says of ANR FG (rsx_anr.cpp's and rsx_fsr3.cpp's lines), in one line without the DLL's path:
+ * its signer, size and SHA-256 or why it was not loaded, then whether it made frames, failed or stood aside. "" when the
+ * session did not ask for it. */
+static std::string anr_of(const std::string& log)
+{
+    auto line_of = [&](size_t at) {
+        size_t end = log.find('\n', at);
+        if (end == std::string::npos) end = log.size();
+        std::string l = log.substr(at, end - at);
+        while (!l.empty() && (l.back() == '\r' || l.back() == ' ')) l.pop_back();
+        return l;
+    };
+    auto first = [&](const char* key) { const size_t at = log.find(key); return at == std::string::npos ? std::string() : line_of(at); };
+    auto last = [&](const char* key) { const size_t at = log.rfind(key); return at == std::string::npos ? std::string() : line_of(at); };
+    std::string who;
+    /* "[anr] C:\...\nvngx_dlssg.dll: signed by Apex Compute, Inc., 3684136 bytes, SHA-256 ...": the part after the path. */
+    for (size_t at = log.find("[anr] "); at != std::string::npos && who.empty(); at = log.find("[anr] ", at + 6)) {
+        const std::string l = line_of(at);
+        const size_t d = l.find(".dll: ");
+        if (d != std::string::npos) who = l.substr(d + 6);
+    }
+    std::string what;
+    const std::string made = first("[anr] frame generation: "), create = first("[anr] CreateFeature failed"),
+                      eval = first("[anr] EvaluateFeature failed"), released = last("[anr] released: ");
+    if (!made.empty()) what = "made frames at " + made.substr(24);
+    if (!create.empty()) what += (what.empty() ? "" : "; ") + create.substr(6);
+    if (!eval.empty()) what += (what.empty() ? "" : "; ") + eval.substr(6);
+    if (!released.empty()) what += (what.empty() ? "" : "; ") + released.substr(6);
+    if (log.find("[fsr3] ANR stopped") != std::string::npos) what += (what.empty() ? "" : "; ") + std::string("stopped, FSR's own took over");
+    if (log.find("frame generation: no ANR") != std::string::npos) what += (what.empty() ? "" : "; ") + std::string("not used, FSR's own");
+    if (who.empty() && what.empty()) return std::string();
+    return who.empty() ? what : what.empty() ? who : who + "; " + what;
 }
 
 int gowa_fsr_seen(GowaFsrSeen* out, int n)
@@ -1184,6 +1226,8 @@ int gowa_report_create(int with_saves, char* out, size_t n)
             if (fsr_of(log, &up, &asked, &fg))
                 note += "  AMD FSR: upscaler " + up + (asked.empty() ? " (the newest the GPU takes)" : " (asked for " + asked + ")") +
                         (fg.empty() ? "" : ", frame generation " + fg) + "\n";
+            const std::string anr = anr_of(log);
+            if (!anr.empty()) note += "  ANR FG: " + anr + "\n";
             hide_in(log);
             name_frames(log);
             zip_add(z, "logs/" + name, log);
