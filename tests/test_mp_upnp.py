@@ -4,7 +4,8 @@
 A made-up gateway on 127.0.0.1: an SSDP answer naming its description, the description with a WANIPConnection
 service, and SOAP for AddPortMapping, GetExternalIPAddress and DeletePortMapping. discover finds it, a mapping goes
 in with this PC's address and comes out again, the external address is read, a router's fault is an Error, and a
-private external address says another NAT is in front.
+private external address says another NAT is in front. What a node makes of it (mp_p2p.Node.classify): open, and
+its forwarded address and port given out, only when the router's address outside is the one the DHT sees.
 
 Usage:
     python tests/test_mp_upnp.py
@@ -14,11 +15,13 @@ import re
 import socket
 import sys
 import threading
+import types
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import mp_p2p  # noqa: E402
 import mp_upnp  # noqa: E402
 
 DESC = """<?xml version="1.0"?><root xmlns="urn:schemas-upnp-org:device-1-0"><device>
@@ -126,6 +129,44 @@ class Upnp(unittest.TestCase):
             self.assertTrue(mp_upnp.is_private(ip), ip)
         for ip in ("11.22.33.44", "172.32.0.1", "100.128.0.1", None, ""):
             self.assertFalse(mp_upnp.is_private(ip), ip)
+
+
+class Classify(unittest.TestCase):
+    """mp_p2p.Node.classify on what the router and the DHT said."""
+
+    def node(self, gateway_ip, seen, symmetric=False):
+        dht = types.SimpleNamespace(public=seen, symmetric=symmetric)
+        n = types.SimpleNamespace(dht=dht, community=False, gateway_ip=gateway_ip, port=36102, nat="?",
+                                  forwarded=None, said=[])
+        n.log = lambda text: None
+        n.hello = lambda re: {"t": "hello", "nat": n.nat, "fwd": n.forwarded}
+        n.to_all = lambda **m: n.said.append(m)
+        mp_p2p.Node.classify(n)
+        return n
+
+    def test_a_forwarded_port_the_dht_agrees_with(self):
+        n = self.node("11.22.33.44", ("11.22.33.44", 50123), symmetric=True)
+        self.assertEqual((n.nat, n.forwarded), ("open", ("11.22.33.44", 36102)))
+        self.assertEqual(n.said, [{"t": "hello", "nat": "open", "fwd": ("11.22.33.44", 36102)}])
+
+    def test_before_the_dht_has_said(self):
+        n = self.node("11.22.33.44", None)
+        self.assertEqual((n.nat, n.forwarded), ("open", ("11.22.33.44", 36102)))
+
+    def test_another_address_outside(self):
+        n = self.node("11.22.33.44", ("55.66.77.88", 50123), symmetric=True)
+        self.assertEqual((n.nat, n.forwarded), ("hard", None))
+
+    def test_another_nat_in_front(self):
+        n = self.node("100.64.1.1", ("55.66.77.88", 50123))
+        self.assertEqual((n.nat, n.forwarded), ("easy", None))
+
+    def test_the_router_gone(self):
+        n = self.node("11.22.33.44", ("11.22.33.44", 50123), symmetric=True)
+        n.gateway_ip = None
+        mp_p2p.Node.classify(n)
+        self.assertEqual((n.nat, n.forwarded), ("hard", None))
+        self.assertEqual(len(n.said), 2)
 
 
 if __name__ == "__main__":

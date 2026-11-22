@@ -125,6 +125,19 @@ class Lookup(unittest.TestCase):
             self.assertFalse(a.dht.pending or b.dht.pending)
         asyncio.run(run())
 
+    def test_a_port_given_outright(self):
+        """A node whose router forwards it a port announces that one, not the one its questions come from."""
+        async def run():
+            net = await network(10)
+            ih = mp_dht.key("test key")
+            a = await client(boot=(net[0].addr,))
+            b = await client(boot=(net[0].addr,))
+            await a.dht.lookup(ih, announce_port=4321, implied=False)
+            found = await b.dht.lookup(ih)
+            self.assertIn((a.addr[0], 4321), found)
+            self.assertNotIn(a.addr, found)
+        asyncio.run(run())
+
     def test_the_nodes_that_answered_are_kept(self):
         async def run():
             net = await network(10)

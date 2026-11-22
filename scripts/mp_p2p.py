@@ -7,8 +7,10 @@ the BitTorrent DHT (mp_dht.py: every node announces itself under one key and loo
 network by multicast, and at the nodes the settings name; then every node says hello to the ones it found and pings
 them now and then.
 
-Getting through routers (phase 7). A node asks its router to forward its port (UPnP, mp_upnp.py) and says how it
-can be reached: open (a forwarded port, a community node), easy (the DHT saw it at one port: a router that maps by
+Getting through routers (phase 7). A node asks its router to forward its port (UPnP, mp_upnp.py), and once the router
+has (with the address outside the DHT sees), it gives the others that address and port itself (in hello, in what
+nodes tell of it, on the DHT): a router may still send the node's own packets out from another port, which is no way
+in. It says how it can be reached: open (a forwarded port, a community node), easy (the DHT saw it at one port: a router that maps by
 source) or hard (one that maps by destination). Nodes tell each other which nodes they know; a node that hears of
 one it does not know asks the node that knows it for an introduction, and both then say hello to each other's
 addresses (the one the introducer sees and their own network's) for a few seconds: two easy routers let that
@@ -117,6 +119,7 @@ class Peer:
         self.id, self.addr = nid, addr
         self.via = None
         self.public = None          # its address as the node that told us of it sees it
+        self.forwarded = None       # the address and port its router forwards to it (UPnP), as it said
         self.name = ""
         self.nat = "?"
         self.lan = []
@@ -268,6 +271,7 @@ class Node:
         self.t = self.lan_t = self.sig_udp = None
         self.dht = None
         self.gateway = self.gateway_ip = None
+        self.forwarded = None           # (ip, port) our router forwards to this node (UPnP), once it is public
         self.mm = Matchmaker(self, quick_wait, log)
         self.srv = nss.Server(lambda text: log("[signaling] " + text))
         self.servers = []
@@ -391,7 +395,7 @@ class Node:
 
     def hello(self, re):
         return {"t": "hello", "name": self.name, "v": PROTOCOL, "re": re, "nat": self.nat, "lan": self.lan_addrs,
-                "relays": self.relays, "state": self.state()}
+                "relays": self.relays, "state": self.state(), "fwd": list(self.forwarded) if self.forwarded else None}
 
     def state(self):
         if self.community:
@@ -533,6 +537,7 @@ class Node:
         p.name, p.last = str(m.get("name", ""))[:16], time.monotonic()
         p.nat = m.get("nat") if m.get("nat") in ("open", "easy", "hard", "?") else "?"
         p.lan = [a for a in (addr_of(x) for x in (m.get("lan") or [])[:4]) if a]
+        p.forwarded = addr_of(m.get("fwd")) if m.get("fwd") else None
         p.relays = bool(m.get("relays"))
         if m.get("state") in STATES:
             p.state = m["state"]
@@ -569,7 +574,8 @@ class Node:
     # -- what nodes know of each other: introductions, punching, carrying ----------------------------------------
 
     def gossip(self, p):
-        known = [{"id": q.id, "name": q.name, "nat": q.nat, "addr": list(q.addr), "lan": q.lan, "state": q.state}
+        known = [{"id": q.id, "name": q.name, "nat": q.nat, "addr": list(q.addr), "lan": q.lan, "state": q.state,
+                  "fwd": list(q.forwarded) if q.forwarded else None}
                  for q in self.peers.values() if q is not p and q.via is None and q.addr is not None]
         random.shuffle(known)
         self.send_to(p, t="peers", list=known[:GOSSIP_MAX])
@@ -589,9 +595,9 @@ class Node:
             if q is None or q.via is not None:
                 if q is not None and q.public is None:
                     q.public = a
-                self.meet(e, a, p)
+                self.meet(e, a, p, addr_of(e.get("fwd")) if e.get("fwd") else None)
 
-    def meet(self, e, a, through):
+    def meet(self, e, a, through, forwarded=None):
         """A node we know of but do not reach ourselves: hello to where it is (it may be open), and an introduction
         by the node that told us, once a minute at most (once in ten minutes for one we reach through another)."""
         now = time.monotonic()
@@ -600,6 +606,8 @@ class Node:
         if nid in self.punching or now - self.intro_asked.get(nid, -1e9) < again:
             return
         self.intro_asked[nid] = now
+        if forwarded:
+            self.contact(forwarded)                  # its router's open door first
         self.contact(a)
         if through.via is None:
             self.send_to(through, t="intro", to=nid)
@@ -609,8 +617,10 @@ class Node:
         q = self.peers.get(m["to"])
         if q is None or q is p or q.via is not None or p.via is not None:
             return
-        self.send_to(q, t="punch", peer=p.id, name=p.name, addrs=[list(p.addr)] + [list(a) for a in p.lan])
-        self.send_to(p, t="punch", peer=q.id, name=q.name, addrs=[list(q.addr)] + [list(a) for a in q.lan])
+        def where(n):
+            return [list(a) for a in ([n.forwarded] if n.forwarded else []) + [n.addr] + n.lan]
+        self.send_to(q, t="punch", peer=p.id, name=p.name, addrs=where(p))
+        self.send_to(p, t="punch", peer=q.id, name=q.name, addrs=where(q))
 
     def on_punch(self, p, m):
         nid = m["peer"]
@@ -751,28 +761,37 @@ class Node:
 
     def classify(self):
         """How others can reach this node: open (a forwarded port, a community node), easy (one port for every
-        node: punching gets through), hard (another port for each), ? (not known yet)."""
+        node: punching gets through), hard (another port for each), ? (not known yet). The port the router forwards
+        counts when the router's address outside is public and the one the DHT sees (or the DHT has not said yet):
+        that address and port are then given out as they are (forwarded)."""
         nat = "?"
         public = self.dht.public[0] if self.dht and self.dht.public else None
-        if self.community:
-            nat = "open"
-        elif self.gateway_ip and not mp_upnp.is_private(self.gateway_ip) and public in (None, self.gateway_ip):
+        forwarded = None
+        if self.gateway_ip and not mp_upnp.is_private(self.gateway_ip) and public in (None, self.gateway_ip):
+            forwarded = (self.gateway_ip, self.port)
+        if self.community or forwarded:
             nat = "open"
         elif self.dht and self.dht.symmetric:
             nat = "hard"
         elif public:
             nat = "easy"
+        changed = nat != self.nat or forwarded != self.forwarded
         if nat != self.nat:
             self.log("reachable: %s" % nat)
-            self.nat = nat
+        self.nat, self.forwarded = nat, forwarded
+        if changed:
             self.to_all(**self.hello(1))
 
     async def dht_loop(self):
         while True:
             try:
-                found = await self.dht.lookup(KEY, announce_port=None if self.nat == "hard" else self.port)
+                if self.forwarded:      # the port the router forwards, said outright: not the one it sends from
+                    found = await self.dht.lookup(KEY, announce_port=self.forwarded[1], implied=False)
+                else:
+                    found = await self.dht.lookup(KEY, announce_port=None if self.nat == "hard" else self.port)
                 self.classify()
-                self.dht_found = [a for a in found if a != self.dht.public and self.peer_at(a) is None]
+                self.dht_found = [a for a in found if a not in (self.dht.public, self.forwarded) and
+                                  self.peer_at(a) is None]
                 for a in self.dht_found:
                     self.contact(a)
             except Exception as e:
@@ -801,6 +820,9 @@ class Node:
                 self.classify()
             except mp_upnp.Error as e:
                 self.log("UPnP: %s" % e)
+                if self.gateway is not None:    # renewed no more: the port is not given out on its word now
+                    self.gateway = self.gateway_ip = None
+                    self.classify()
                 return
             await asyncio.sleep(UPNP_RENEW)
 

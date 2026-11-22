@@ -205,10 +205,10 @@ class Dht:
                     out.append(addr)
         return out
 
-    async def lookup(self, info_hash, announce_port=None, max_queries=160, time_limit=25.0):
+    async def lookup(self, info_hash, announce_port=None, max_queries=160, time_limit=25.0, implied=True):
         """The peers announced under info_hash (a set of (ip, port)), by asking ever closer nodes (get_peers); with
-        announce_port, this node is then announced to the closest ones that answered (announce_peer, implied_port:
-        the port its questions come from)."""
+        announce_port, this node is then announced to the closest ones that answered (announce_peer): implied, at
+        the port its questions come from; else at announce_port itself (a port the router forwards)."""
         start = time.monotonic()
         nodes = {a: None for a in await self.bootstrap()}     # address -> its id, None until it says
         asked, answered, peers = set(), {}, set()
@@ -237,9 +237,8 @@ class Dht:
         if announce_port is not None:
             to = sorted((a for a in answered if isinstance(answered[a][1], bytes)),
                         key=lambda a: distance(answered[a][0], info_hash))[:K]
-            got = await asyncio.gather(*(self.query(a, "announce_peer", {"info_hash": info_hash, "port": announce_port,
-                                                                        "token": answered[a][1], "implied_port": 1})
-                                         for a in to))
+            args = {"info_hash": info_hash, "port": announce_port, "implied_port": 1 if implied else 0}
+            got = await asyncio.gather(*(self.query(a, "announce_peer", dict(args, token=answered[a][1])) for a in to))
             self.log("dht: announced to %d of %d nodes" % (sum(1 for r in got if r is not None), len(to)))
         self.log("dht: %d nodes asked, %d answered, %d peers under the key, %.1f s" % (
             len(asked), len(answered), len(peers), time.monotonic() - start))

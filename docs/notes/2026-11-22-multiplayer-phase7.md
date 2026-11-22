@@ -13,7 +13,10 @@ carry for the others.
   (or WANPPPConnection) control URL; AddPortMapping forwards the node's UDP port for an hour, renewed every half
   hour, and DeletePortMapping takes it away when the node closes (a node that is killed leaves it to run out).
   GetExternalIPAddress says whether that makes the node reachable: a private address means another router or the
-  ISP's NAT is in front.
+  ISP's NAT is in front. A public one that is also the address the DHT sees: the node gives out that address and
+  the forwarded port as they are (`fwd` in hello and in `peers`, first in a `punch`, and announced on the DHT with
+  implied_port 0), since a router may still send the node's own packets out from other ports (one that maps by
+  destination does), and those are no way in. A renewal the router refuses takes it back.
 - What the node says of itself (`nat` in hello): open (a forwarded port whose router has the address the DHT sees, or
   a community node), easy (every DHT node saw it at one port: a router that maps by source), hard (another port for
   each: a router that maps by destination), ? (not known yet). A hard node no longer announces itself on the DHT
@@ -62,7 +65,10 @@ reach it and carries for the ones that cannot reach each other.
 - tests/test_mp_nat.py: made-up routers in front of two nodes, a third node with none. Behind cone routers the two
   are introduced and punch through to each other; behind symmetric ones nothing gets through and after 4 s they talk
   through the third node, where Quick Play gives both the same world and a relayed game datagram goes through it;
-  a node carries for 8 pairs at most.
+  a node carries for 8 pairs at most. One of the two behind a symmetric router that also forwards it a port: when
+  the node gives that port out, the other reaches it there and the two talk directly; when it does not, they are
+  carried by the third. tests/test_mp_dht.py: a port announced as it is (implied_port 0). tests/test_mp_upnp.py:
+  open and the port given out only when the router's address outside is the one the DHT sees.
 - This PC: no UPnP gateway answers, and its router maps by destination (hard): other players cannot reach it, it
   reaches the open ones.
 - Two games on this PC on Auto, LAN and DHT off, a community node on this PC named in both settings,

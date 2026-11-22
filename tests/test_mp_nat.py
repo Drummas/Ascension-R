@@ -7,7 +7,10 @@ address). A third node, R, has no router. A and B say hello to R only; R tells e
 and they punch:
 - behind cone routers the hellos cross and A and B talk directly;
 - behind symmetric routers nothing gets through, and after a few seconds A and B talk through R: Quick Play gives
-  both the same world, and a game datagram the runtime relays goes A -> R -> B.
+  both the same world, and a game datagram the runtime relays goes A -> R -> B;
+- A behind a router that forwards it a port (UPnP) but sends its packets out from others, as a symmetric one does:
+  when A gives that port (what a node does once the router forwards it), B reaches A there and the two talk
+  directly; when A does not, they are carried by R.
 
 Usage:
     python tests/test_mp_nat.py
@@ -43,12 +46,27 @@ class Outside(asyncio.DatagramProtocol):
             self.nat.node.received(data, addr[:2])
 
 
+class Forwarded(Outside):
+    """A port the router forwards to the node (UPnP): anyone gets in, and the node's answers to them go out of it."""
+
+    def datagram_received(self, data, addr):
+        self.nat.flows.add(addr[:2])
+        self.nat.node.received(data, addr[:2])
+
+
 class Nat:
     """A router in front of a node, standing in for the node's socket (node.t)."""
 
     def __init__(self, node, symmetric):
         self.node, self.symmetric = node, symmetric
         self.ports = {}            # destination (symmetric) or None (cone) -> Outside
+        self.forward = None        # the port it forwards to the node, if any
+        self.flows = set()         # who came in through it: answers to them go out of it
+
+    async def forward_port(self):
+        loop = asyncio.get_running_loop()
+        _, self.forward = await loop.create_datagram_endpoint(lambda: Forwarded(self), local_addr=("127.0.0.1", 0))
+        return self.forward.t.get_extra_info("sockname")[:2]
 
     async def port(self, key):
         if key not in self.ports:
@@ -58,6 +76,9 @@ class Nat:
         return self.ports[key]
 
     def sendto(self, data, addr):
+        if self.forward is not None and addr in self.flows:
+            self.forward.t.sendto(data, addr)
+            return
         key = addr if self.symmetric else None
         out = self.ports.get(key)
         if out is None:           # a new mapping: made, then the packet (a router does both at once)
@@ -77,6 +98,8 @@ class Nat:
     def close(self):
         for out in self.ports.values():
             out.t.close()
+        if self.forward is not None:
+            self.forward.t.close()
 
 
 class Conn:
@@ -109,7 +132,7 @@ def search(account, name):
 
 
 class Routers(unittest.TestCase):
-    async def three(self, symmetric):
+    async def three(self, symmetric, forwarded=None):
         self.lines = []
         nodes = []
         for name in ("R", "PlayerA", "PlayerB"):
@@ -120,6 +143,10 @@ class Routers(unittest.TestCase):
         r, a, b = nodes
         self.real = [a.t, b.t]     # their own sockets, unused behind the routers
         a.t, b.t = Nat(a, symmetric), Nat(b, symmetric)
+        if forwarded is not None:   # A's router forwards it a port; given out or not
+            door = await a.t.forward_port()
+            if forwarded:
+                a.forwarded, a.nat = door, "open"
         a.contact(("127.0.0.1", r.port))
         b.contact(("127.0.0.1", r.port))
         return r, a, b
@@ -179,6 +206,29 @@ class Routers(unittest.TestCase):
                 data = await asyncio.wait_for(loop.sock_recv(u, 256), 5)
                 u.close()
                 self.assertEqual(data, nss.UDP_MAGIC + bytes([nss.U_RELAYED]) + nss.oid("PlayerA") + b"game data")
+            finally:
+                self.close(r, a, b)
+        asyncio.run(run())
+
+    def test_a_forwarded_port_given_out_lets_a_symmetric_router_in(self):
+        async def run():
+            r, a, b = await self.three(symmetric=True, forwarded=True)
+            try:
+                met = await self.until(lambda: b.id in a.peers and a.id in b.peers and
+                                       a.peers[b.id].via is None and b.peers[a.id].via is None, 15)
+                self.assertTrue(met, "\n".join(self.lines))
+                self.assertEqual(b.peers[a.id].addr, a.forwarded)       # B talks to A at the forwarded port
+            finally:
+                self.close(r, a, b)
+        asyncio.run(run())
+
+    def test_a_forwarded_port_nobody_knows_of_helps_no_one(self):
+        async def run():
+            r, a, b = await self.three(symmetric=True, forwarded=False)
+            try:
+                carried = await self.until(lambda: b.id in a.peers and a.id in b.peers and
+                                           a.peers[b.id].via is not None and b.peers[a.id].via is not None, 15)
+                self.assertTrue(carried, "\n".join(self.lines))
             finally:
                 self.close(r, a, b)
         asyncio.run(run())
