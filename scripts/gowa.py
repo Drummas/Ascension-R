@@ -2205,6 +2205,12 @@ KIT_SCRIPTS = ("gowa.py", "bench.py", "frames.py", "gametext.py", "modpack.py", 
                "jobmods_extra.json",
                "ppu_hooks.json", "spu_g6_routines.json", "spu_native_hooks.json", "spu_pic_pieces.json",
                "title_patches.json")
+# What the game itself runs with the Kit's Python while it plays, beside the build: the multiplayer's node
+# (port/multiplayer.cpp) with what it imports, and our TSS blocks. Not in the Kit's id (kit_digest): none of it goes
+# into the DLL, so a new node is no reason to build that again.
+KIT_PLAY = ("scripts/mp_node.py", "scripts/mp_play.py", "scripts/mp_tss.py", "scripts/mp_sam.py",
+            "ps3recomp/tools/np_signaling_server.py")
+KIT_PLAY_FOLDERS = ("online/tss",)
 # Never in the Kit, whatever names them: what decrypts.
 KIT_NEVER = {"sdata_decrypt.h", "edat.c", "edat.h", "pkg_extract.py", "extract_jobmods.py", "check_repo.py"}
 KIT_ID = "kit-id.txt"
@@ -2863,6 +2869,9 @@ def cmd_kit_tree(args):
     rel |= set(os.path.join("scripts", n) for n in KIT_SCRIPTS)
     rel |= set(os.path.relpath(p, ROOT) for p in py_closure([os.path.join(TOOLS, t) for t in KIT_TOOLS], TOOLS))
     rel.add(os.path.join("port", "game_module.c"))
+    rel |= set(os.path.normpath(r) for r in KIT_PLAY)
+    for d in KIT_PLAY_FOLDERS:
+        rel |= set(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, d, "*")) if os.path.isfile(p))
     rel |= set(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(KIT_DIR, "**", "*"), recursive=True) if os.path.isfile(p))
     rel |= set(os.path.relpath(p, ROOT) for p in glob.glob(os.path.join(ROOT, "native", "spu_*.c"))
                if os.path.basename(p) != "spu_g6_routines.c")   # written from the game at build time
@@ -2930,13 +2939,20 @@ def cmd_kit_tree(args):
     return 0
 
 
+def kit_play_file(rel):
+    """Whether a path under the Kit (with /) is one the game runs while it plays (KIT_PLAY), not one of the build."""
+    return rel in KIT_PLAY or any(rel.startswith(d + "/") for d in KIT_PLAY_FOLDERS)
+
+
 def kit_digest(kit):
     """The Kit's id: the SHA-256 of the path and SHA-256 of every file in its folder but kit-id.txt, and but the
-    __pycache__ the tools' own Pythons write there when they run (the Kit's runs with -B, the ones it starts do not)."""
+    __pycache__ the tools' own Pythons write there when they run (the Kit's runs with -B, the ones it starts do not),
+    and but what the game runs while it plays (KIT_PLAY): the id says which DLL the Kit builds."""
     h = hashlib.sha256()
     for r in sorted(os.path.relpath(os.path.join(d, f), kit) for d, _, fs in os.walk(kit) for f in fs):
-        if r != KIT_ID and "__pycache__" not in r.split(os.sep):
-            h.update(("%s %s\n" % (r.replace(os.sep, "/"), sha256(os.path.join(kit, r)))).encode())
+        u = r.replace(os.sep, "/")
+        if r != KIT_ID and "__pycache__" not in r.split(os.sep) and not kit_play_file(u):
+            h.update(("%s %s\n" % (u, sha256(os.path.join(kit, r)))).encode())
     return h.hexdigest()
 
 

@@ -59,6 +59,20 @@ class KitFiles(unittest.TestCase):
         Path(self.kit, gowa.KIT_FILES).write_bytes(b"native/spu_a.c\r\n\r\nscripts/gowa.py\n")
         self.assertEqual(gowa.kit_files(self.kit), {"native/spu_a.c", "scripts/gowa.py"})
 
+    def test_what_the_game_runs_while_it_plays_is_not_in_the_id(self):
+        """The multiplayer's node and TSS blocks (KIT_PLAY): a Kit with a new node builds the same DLL, so it keeps
+        its id and nobody builds again; a source of the DLL changes it."""
+        before = gowa.kit_digest(self.kit)
+        for r in gowa.KIT_PLAY + tuple(d + "/Playlist.json" for d in gowa.KIT_PLAY_FOLDERS):
+            p = Path(self.kit, r)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text("x")
+        self.assertEqual(gowa.kit_digest(self.kit), before)
+        Path(self.kit, "scripts", "mp_node.py").write_text("y")
+        self.assertEqual(gowa.kit_digest(self.kit), before)
+        Path(self.kit, "native", "spu_a.c").write_text("y")
+        self.assertNotEqual(gowa.kit_digest(self.kit), before)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -37,7 +37,8 @@ HEADER, ENTRY = 0x10, 0x2C
 
 class Elf:
     def __init__(self, path):
-        d = open(path, "rb").read()
+        with open(path, "rb") as f:
+            d = f.read()
         if d[:4] != b"\x7fELF":
             sys.exit("%s is not an ELF (GOWA.elf, the decrypted executable)" % path)
         phoff = struct.unpack(">Q", d[0x20:0x28])[0]
@@ -179,7 +180,8 @@ def read_folder(folder):
                 order.append((name, int(version)))
     out = []
     for name, version in order:
-        text = open(os.path.join(folder, name + ".json"), "rb").read().strip()
+        with open(os.path.join(folder, name + ".json"), "rb") as f:
+            text = f.read().strip()
         out.append((name, version, text))
     return out
 

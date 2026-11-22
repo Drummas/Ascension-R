@@ -9,7 +9,7 @@
  * back.
  *
  * The window is drawn with Direct2D and DirectWrite, 8-bit and neon: a sidebar
- * of tabs (Play, Graphics, Display, Controls, Game patches, Cheats, System), a
+ * of tabs (Play, Graphics, Display, Controls, Game patches, Cheats, Mods, Trophies, Multiplayer, System), a
  * header with the precompile screen's scene moving in it (loading_screen.cpp,
  * all of it this port's own), cards of settings as segmented buttons, switches
  * and lists, and a bar with Play. Its fonts are Silkscreen, from the exe
@@ -88,11 +88,17 @@ extern "C" int cellSysutil_language_of(const char* value);   /* the runtime's: a
 extern "C" const char* gowa_title_patch_id(int i);
 extern "C" const char* gowa_title_patch_name(int i);
 extern "C" int  gowa_title_patch_default(int i);
+/* multiplayer.cpp: the Multiplayer tab's checks, the addresses players reach this PC at, and Play's start of it. */
+extern "C" int  gowa_online_name_ok(const char* name);
+extern "C" int  gowa_online_address_ok(const char* s);
+extern "C" const char* gowa_online_problem(void);
+extern "C" int  gowa_online_start(char* why, size_t n);
+extern "C" void gowa_online_lan(char* out, size_t n);
 
 /* ---------------------------------------------------------------------------
  * What the window offers
  * -----------------------------------------------------------------------*/
-enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_MODS, T_TROPHIES, T_SYSTEM, T_N };
+enum { T_PLAY, T_GRAPHICS, T_DISPLAY, T_CONTROLS, T_PATCHES, T_CHEATS, T_MODS, T_TROPHIES, T_ONLINE, T_SYSTEM, T_N };
 
 struct Opt {
     int tab;                   /* the tab it is on (T_*) */
@@ -106,6 +112,7 @@ struct Opt {
     int n;
     const char* const* seg;    /* short names: shown as segmented buttons, else a list */
     const char* desc;          /* a line under the label */
+    int text;                  /* a box typed into, this many characters at most (the Multiplayer tab's); else 0 */
     char cur[64];              /* the value shown, kept as written */
 };
 
@@ -186,6 +193,11 @@ static const char* const k_lang_n[] = { "Windows language", "English (US)", "Eng
                                         "Russian", "Japanese", "Korean", "Chinese (traditional)",
                                         "Chinese (simplified)", "Finnish", "Swedish", "Danish", "Norwegian",
                                         "Polish", "Turkish" };
+
+/* online.mode (multiplayer.cpp). */
+static const char* const k_omode[] = { "off", "host", "join" };
+static const char* const k_omode_n[] = { "Off", "Host: this PC", "Join a host" };
+static const char* const k_omode_s[] = { "Off", "Host", "Join" };
 
 #define LIST(v, n) v, n, (int)(sizeof v / sizeof v[0])
 #define SW k_onoff, NULL, 2, NULL
@@ -281,6 +293,17 @@ static Opt s_opt[] = {
     { T_MODS, "mods", "dump_textures", "off", "Write out the game's textures", 1, SW,
       "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, "
       "named by the id a picture in its place takes. The game is slower while it is on." },
+    { T_ONLINE, "online", "mode", "off", "Multiplayer", 0, LIST(k_omode, k_omode_n), k_omode_s,
+      "Host: this PC runs the matchmaking, for its own game and the players who join it. Join: play through a host's "
+      "PC. Then Multi-Player on the game's title screen, and Quick Play." },
+    { T_ONLINE, "online", "name", "", "Online ID", 0, NULL, NULL, 0, NULL,
+      "Your name in the game: 3 to 16 letters, digits, - and _, starting with a letter. Every player needs their own.",
+      16 },
+    { T_ONLINE, "online", "server", "", "Host's address", 0, NULL, NULL, 0, NULL,
+      "To join: the address the host's Multiplayer tab shows, or the host's name.", 63 },
+    { T_ONLINE, "online", "relay", "off", "Always through the host", 1, SW,
+      "Your game's traffic goes by the host's PC instead of straight to the other players: for a network where joining "
+      "works and playing does not." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -1716,6 +1739,11 @@ static const char k_ic_chip[16][17] = {
     "####.######.####", "####.######.####", "..##.##..##.##..", "..##.##..##.##..", "####.######.####",
     "####.######.####", "..##........##..", "..############..", ".....##..##.....", ".....##..##.....",
     "................" };
+static const char k_ic_net[16][17] = {   /* a globe */
+    "................", ".....######.....", "...##..##..##...", "..##...##...##..", ".##....##....##.",
+    ".##############.", ".##....##....##.", ".##....##....##.", ".##############.", ".##....##....##.",
+    "..##...##...##..", "...##..##..##...", ".....######.....", "................", "................",
+    "................" };
 static const char k_ic_cup[16][17] = {
     "................", "...##########...", ".##############.", ".##.########.##.", ".##.########.##.",
     "..#.########.#..", "...##########...", ".....######.....", "......####......", ".......##.......",
@@ -1820,7 +1848,7 @@ static float text_h(const wchar_t* s, IDWriteTextFormat* f, float w)
  * The window's state and what can be clicked
  * -----------------------------------------------------------------------*/
 enum {
-    H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500,
+    H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500, H_TXT = 7700,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
     H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP,
@@ -2010,6 +2038,50 @@ static void w_dropdown(Opt& o, int oi, float x, float y, float w)
     hit(box, id);
 }
 
+/* A box typed into (Opt.text): the value, a caret while it is typed into, else an example in grey; a red edge when
+ * what it holds will not do. Clicked, it takes the keys (s_edit); Enter, Esc, Tab or a click elsewhere end that. */
+static int s_edit = -1;          /* the option typed into, or -1 */
+static int text_ok(const Opt& o)
+{
+    return !strcmp(o.key, "name") ? gowa_online_name_ok(o.cur) : gowa_online_address_ok(o.cur);
+}
+static void w_textbox(Opt& o, int oi, float x, float y, float w)
+{
+    const int id = H_TXT + oi, on = s_edit == oi, bad = o.cur[0] && !text_ok(o);
+    const D2D1_RECT_F box = R(x, y, w, SEG_H);
+    bevel(box, hovered(id) || on ? C_CARD_HI : C_BG, C_LO, C_EDGE, 2.0f, 1.0f, 1.0f, 0);
+    if (on || bad) frame(box, bad ? C_BAD : C_GOLD, 1.0f, 2.0f);
+    const wchar_t* shown = o.cur[0] ? W(o.cur) : on ? L"" : !strcmp(o.key, "name") ? L"Kratos" : L"192.168.1.20";
+    text(shown, s_tf_ui, R(x + 12, y, w - 24, SEG_H), o.cur[0] ? C_TEXT : C_DIM);
+    if (on) fill(R(x + 13 + text_w(o.cur[0] ? shown : L"", s_tf_ui), y + 8, 2, SEG_H - 16), C_GOLD);
+    hit(box, id);
+}
+/* What a box takes: a name's letters, digits, - and _; an address's letters, digits, - and dots. */
+static int text_char(const Opt& o, int c)
+{
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-') return 1;
+    return !strcmp(o.key, "name") ? c == '_' : c == '.';
+}
+static void text_put(Opt& o, int c)
+{
+    const size_t n = strlen(o.cur);
+    if (text_char(o, c) && n < (size_t)o.text && n + 1 < sizeof o.cur) {
+        o.cur[n] = (char)c;
+        o.cur[n + 1] = 0;
+    }
+}
+static void text_paste(Opt& o)
+{
+    if (!OpenClipboard(s_main)) return;
+    if (HANDLE hd = GetClipboardData(CF_UNICODETEXT)) {
+        if (const wchar_t* t = (const wchar_t*)GlobalLock(hd)) {
+            for (; *t; t++) if (*t < 128) text_put(o, (int)*t);   /* spaces and the like are not taken */
+            GlobalUnlock(hd);
+        }
+    }
+    CloseClipboard();
+}
+
 /* A button in a card; Play; Defaults, Save and Quit in the bar; a gold one in the bar's letters (OK). */
 enum { B_PLAIN, B_PLAY, B_BAR, B_GOLD };
 static void w_button(const wchar_t* label, D2D1_RECT_F r, int id, int kind)
@@ -2058,6 +2130,7 @@ static void w_card(D2D1_RECT_F r, const wchar_t* title)
 static float ctl_w(const Opt& o)
 {
     if (o.check) return SW_W;
+    if (o.text) return 300.0f;
     if (!o.seg) return 300.0f;
     const float w = o.n <= 2 ? 220.0f : (float)o.n * (o.n >= 5 ? 66.0f : 82.0f), need = seg_w(o);
     return need > w ? need : w;
@@ -2094,6 +2167,7 @@ static float w_row(Opt& o, int oi, float x, float y, float w, int sw_id)
     w_label(W(o.label), desc, x, y, tw, rh, lh, dh);
     const float cx = x + w - cw, cy = y + (rh - (o.check ? SW_H : SEG_H)) * 0.5f;
     if (o.check) w_switch(opt_on(o), cx, cy, sw_id);
+    else if (o.text) w_textbox(o, oi, cx, cy, cw);
     else if (o.seg) w_segmented(o, oi, cx, cy, cw);
     else w_dropdown(o, oi, cx, cy, cw);
     return rh;
@@ -2101,15 +2175,16 @@ static float w_row(Opt& o, int oi, float x, float y, float w, int sw_id)
 
 /* --- the parts of the window ---------------------------------------------- */
 static const wchar_t* const k_tab_name[T_N] = { L"Play", L"Graphics", L"Display", L"Controls", L"Game patches", L"Cheats",
-                                                L"Mods", L"Trophies", L"System" };
+                                                L"Mods", L"Trophies", L"Multiplayer", L"System" };
 static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad, k_ic_wrench, k_ic_bolt, k_ic_mods,
-                                      k_ic_cup, k_ic_chip };
+                                      k_ic_cup, k_ic_net, k_ic_chip };
 static const wchar_t* const k_tab_desc[T_N] = {
     L"", L"How the picture is scaled, smoothed and filtered.", L"The window, its pace and the frame rate display.",
     L"Controller and keyboard.", L"Switches that change what the game draws, for speed.",
     L"For an easier fight. The game reads these when it starts.",
     L"Files that change the game, from the mods folder. The game reads them when it starts.",
     L"What you have won, from the game's own trophy list.",
+    L"Play the game's multiplayer with other players: one hosts, the others join.",
     L"The game's folder, language, saves and this window." };
 
 /* A link down the sidebar: an icon and a name, lit under the mouse. */
@@ -2969,6 +3044,61 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
          s_tf_small, R(x + 26, y + 8, w - 26, 26), C_MUTED);
 }
 
+/* The Multiplayer tab's notes, under its rows: why Play could not start multiplayer (until it does), where the players
+ * who join find this PC (Host), and what they all see of it. */
+static char s_online_err[300];
+static int online_notes(const wchar_t* out[3], unsigned rgb[3])
+{
+    static wchar_t host[1400], err[400];
+    static char lan[400];
+    static int lan_read;
+    int n = 0;
+    if (s_online_err[0]) {
+        swprintf(err, 400, L"%ls", W(s_online_err));
+        out[n] = err;
+        rgb[n++] = C_BAD;
+    }
+    const Opt* m = opt_find("online", "mode");
+    if (m && ps3_settings_ieq(m->cur, "host")) {
+        if (!lan_read) {
+            gowa_online_lan(lan, sizeof lan);
+            lan_read = 1;
+        }
+        swprintf(host, 1400, L"Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 "
+                 L"and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone "
+                 L"join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to "
+                 L"let Python through: allow it.", lan[0] ? W(lan) : L"this PC's address");
+        out[n] = host;
+        rgb[n++] = C_TEXT2;
+    }
+    out[n] = L"The players you play with see your PC's address. Nothing goes to Sony's servers.";
+    rgb[n++] = C_MUTED;
+    return n;
+}
+static float online_h(float w)
+{
+    const wchar_t* t[3];
+    unsigned c[3];
+    const int n = online_notes(t, c);
+    float h = 10.0f;
+    for (int i = 0; i < n; i++) h += text_h(t[i], s_tf_desc, w - 26) + 10.0f;
+    return h;
+}
+static void online_draw(float x, float y, float w)
+{
+    const wchar_t* t[3];
+    unsigned c[3];
+    const int n = online_notes(t, c);
+    w_rule(x, y, w);
+    y += 12.0f;
+    for (int i = 0; i < n; i++) {
+        const float h = text_h(t[i], s_tf_desc, w - 26);
+        icon(c[i] == C_BAD ? k_ic_cross : k_ic_info, x, y + 1, c[i] == C_BAD ? C_BAD : C_MUTED);
+        text(t[i], s_tf_desc, R(x + 26, y, w - 26, h + 2), c[i]);
+        y += h + 10.0f;
+    }
+}
+
 static void draw_settings(int tab)
 {
     const float x0 = SIDE_W + 16, hh = HERO_TAB;
@@ -3001,6 +3131,7 @@ static void draw_settings(int tab)
         mods_refresh();
         ch += mods_h(rw);
     }
+    if (tab == T_ONLINE) ch += online_h(rw);
     ch += 16.0f;
     const float view = WIN_H - FOOT_H - 12.0f - cy;
     s_scroll_max[tab] = ch > view ? ch - view : 0.0f;
@@ -3037,6 +3168,7 @@ static void draw_settings(int tab)
     }
     if (tab == T_TROPHIES) tro_draw(rx, y, rw, cy, cy + view);
     if (tab == T_MODS) mods_draw(rx, y, rw, cy, cy + view);
+    if (tab == T_ONLINE) online_draw(rx, y, rw);
     if (tab == T_PATCHES) {
         w_rule(rx, y, rw);
         icon(k_ic_info, rx, y + 13, C_MUTED);
@@ -4252,7 +4384,23 @@ static void act(int id)
             /* The second link, if only the first was made. */
             if (s_game.g.state >= GAME_NO_ELF && GetFileAttributesW(s_game.link_hdd0) == INVALID_FILE_ATTRIBUTES)
                 game_link(s_game.link_hdd0, s_game.g.disc ? s_game.g.update : s_game.g.dir, NULL, 0);
-            if (save_all()) s_done = 1;
+            if (!save_all()) break;
+            s_online_err[0] = 0;
+            if (const char* p = gowa_online_problem()) {
+                s_tab = T_ONLINE;
+                toast_bad(p);
+                break;
+            }
+            {
+                char why[300];
+                if (!gowa_online_start(why, sizeof why)) {   /* its node, and the game's variables from it */
+                    snprintf(s_online_err, sizeof s_online_err, "%s", why);
+                    s_tab = T_ONLINE;
+                    toast_bad("Multiplayer could not start");
+                    break;
+                }
+            }
+            s_done = 1;
             break;
         case H_SAVE: if (save_all()) toast("Saved"); break;
         case H_QUIT: s_done = 2; break;
@@ -4296,13 +4444,14 @@ static void act(int id)
             else find_start(NULL);
             break;
         case H_DEFAULTS:
-            for (int i = 0; i < N_OPT; i++) opt_set(s_opt[i], s_opt[i].def);
+            for (int i = 0; i < N_OPT; i++) if (!s_opt[i].text) opt_set(s_opt[i], s_opt[i].def);   /* a name stays */
             for (int i = 0; i < s_npopt; i++) opt_set(s_popt[i], s_popt[i].def);
             toast("Defaults back: Save or Play keeps them");
             break;
         }
         return;
     }
+    if (id >= H_TXT) { s_edit = id - H_TXT; return; }
     if (id >= H_PRESET) { preset_apply(id - H_PRESET); return; }
     if (id >= H_PSW) { Opt& o = s_popt[id - H_PSW]; opt_set(o, opt_on(o) ? "off" : "on"); return; }
     if (id >= H_DD) {
@@ -4459,6 +4608,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         s_mx = (float)(short)LOWORD(l) * 96.0f / s_ui;
         s_my = (float)(short)HIWORD(l) * 96.0f / s_ui;
         s_press = hit_at(s_mx, s_my);
+        if (s_edit >= 0 && s_press != H_TXT + s_edit) s_edit = -1;   /* a click elsewhere ends the typing */
         if (s_capture >= 0 && s_press == H_KBIND + s_capture) {   /* on the binding that waits: the left button */
             kb_mouse(m, w);
             s_press = -1;
@@ -4506,6 +4656,14 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
             }
             return 0;
         }
+        if (s_edit >= 0) {   /* typing into a box: Enter, Esc and Tab end it; the characters come as WM_CHAR */
+            if (w == VK_RETURN || w == VK_ESCAPE || w == VK_TAB) {
+                s_edit = -1;
+                redraw();
+                return 0;
+            }
+            break;
+        }
         if (w == VK_ESCAPE && s_dd >= 0) { s_dd = -1; redraw(); return 0; }
         if (w == VK_RETURN && s_dd < 0) { act(H_PLAY); return 0; }
         if (w == 'S' && (GetKeyState(VK_CONTROL) & 0x8000)) { act(H_SAVE); redraw(); return 0; }
@@ -4514,6 +4672,18 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
             s_tab = (s_tab + (back ? T_N - 1 : 1)) % T_N;
             if (s_tab == T_MODS) s_mods_stale = 1;
             s_dd = -1;
+            redraw();
+            return 0;
+        }
+        break;
+    case WM_CHAR:
+        if (s_edit >= 0) {
+            Opt& o = s_opt[s_edit];
+            const size_t n = strlen(o.cur);
+            if (w == 8) { if (n) o.cur[n - 1] = 0; }   /* Backspace */
+            else if (w == 0x7F) o.cur[0] = 0;          /* Ctrl+Backspace: all of it */
+            else if (w == 0x16) text_paste(o);         /* Ctrl+V */
+            else if (w >= 32 && w < 127) text_put(o, (int)w);
             redraw();
             return 0;
         }
@@ -4591,7 +4761,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
  * or at GOWA_LAUNCHER_SHOT_DPI. The scene stands still in them, and nothing
  * runs: each state is only set while its shot is drawn, then put back. */
 enum { S_TAB, S_LIST, S_SEARCH, S_END, S_TOAST, S_DECRYPT, S_KEYS, S_KEYS_WAIT, S_KIT_RUN, S_KIT_NEED, S_KIT_ROW,
-       S_UPDATE, S_PREBUILD };
+       S_UPDATE, S_PREBUILD, S_ONLINE_JOIN };
 static const int k_shots[][2] = {
     { T_PLAY, S_TAB }, { T_GRAPHICS, S_TAB }, { T_DISPLAY, S_TAB }, { T_CONTROLS, S_TAB }, { T_PATCHES, S_TAB },
     { T_CHEATS, S_TAB }, { T_MODS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB },
@@ -4603,6 +4773,7 @@ static const int k_shots[][2] = {
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
     { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD }, { T_MODS, S_END },
+    { T_ONLINE, S_TAB }, { T_ONLINE, S_ONLINE_JOIN },
 };
 
 static void shot_state(int what, int on)
@@ -4643,6 +4814,24 @@ static void shot_state(int what, int on)
             snprintf(s_upd.rel.url, sizeof s_upd.rel.url, "%stag/%s", UPDATE_PAGE_PREFIX, s_upd.rel.tag);
         } else {
             s_upd = was;
+        }
+    }
+    if (what == S_ONLINE_JOIN) {   /* Join, the host's address being typed, and why the last Play did not start it */
+        static char mode[64], server[64];
+        Opt* m = opt_find("online", "mode");
+        Opt* sv = opt_find("online", "server");
+        if (on) {
+            snprintf(mode, sizeof mode, "%s", m->cur);
+            snprintf(server, sizeof server, "%s", sv->cur);
+            opt_set(*m, "join");
+            opt_set(*sv, "192.168.1.2");
+            s_edit = (int)(sv - s_opt);
+            snprintf(s_online_err, sizeof s_online_err, "Multiplayer: cannot find gowa-host: is the address right?");
+        } else {
+            opt_set(*m, mode);
+            opt_set(*sv, server);
+            s_edit = -1;
+            s_online_err[0] = 0;
         }
     }
     if (what == S_KEYS || what == S_KEYS_WAIT) {   /* the keyboard keys, and one waiting for a key; never kept */

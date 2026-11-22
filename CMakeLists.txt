@@ -291,6 +291,7 @@ add_executable(${PROJECT_NAME}
     port/patches.cpp
     port/ultrawide.cpp
     port/online.cpp
+    port/multiplayer.cpp
     port/precompile.cpp
     port/loading_screen.cpp
     port/precompile_music.cpp

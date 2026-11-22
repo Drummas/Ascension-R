@@ -701,10 +701,47 @@ static void hide_init(void)
     });
     hide_name(L"USERNAME", "<user>");
     hide_name(L"COMPUTERNAME", "<pc>");
+    /* Multiplayer: the host the player joins, by name (an address goes with every other one, in hide_ips). */
+    const char* host = ps3_settings_str("online", "server", NULL, NULL);
+    if (host && strlen(host) >= 3) s_hide_word.push_back(std::make_pair(std::string(host), std::string("<host>")));
+}
+
+/* Every IPv4 address but loopback and 0.0.0.0 as <private ip> or <ip>: the logs of a multiplayer session name the
+ * other players' addresses, and a report is posted where anyone reads it. Four numbers of 0-255 with dots between
+ * them and no digit or dot either side: a version such as 32.0.21013.1000 has a part past 255 and stays. */
+static void hide_ips(std::string& s)
+{
+    for (size_t i = 0; i < s.size(); i++) {
+        if (!isdigit((unsigned char)s[i]) || (i && (isdigit((unsigned char)s[i - 1]) || s[i - 1] == '.'))) continue;
+        unsigned v[4];
+        size_t j = i;
+        int k = 0;
+        for (; k < 4; k++) {
+            size_t d = 0;
+            unsigned x = 0;
+            while (j < s.size() && isdigit((unsigned char)s[j]) && d < 4) x = x * 10 + (unsigned)(s[j++] - '0'), d++;
+            if (!d || d > 3 || x > 255) break;
+            v[k] = x;
+            if (k < 3) {
+                if (j >= s.size() || s[j] != '.') break;
+                j++;
+            }
+        }
+        if (k < 4) continue;
+        if (j < s.size() && (isdigit((unsigned char)s[j]) || (s[j] == '.' && j + 1 < s.size() && isdigit((unsigned char)s[j + 1]))))
+            continue;
+        if (v[0] == 127 || (v[0] == 0 && v[1] == 0 && v[2] == 0 && v[3] == 0)) { i = j; continue; }
+        const bool priv = v[0] == 10 || (v[0] == 172 && v[1] >= 16 && v[1] <= 31) || (v[0] == 192 && v[1] == 168) ||
+                          (v[0] == 100 && v[1] >= 64 && v[1] <= 127) || (v[0] == 169 && v[1] == 254);
+        const std::string token = priv ? "<private ip>" : "<ip>";
+        s.replace(i, j - i, token);
+        i += token.size() - 1;
+    }
 }
 
 static void hide_in(std::string& s)
 {
+    hide_ips(s);
     for (const auto& h : s_hide) {
         for (size_t p = 0; (p = find_ci(s, h.first, p)) != std::string::npos; p += h.second.size())
             s.replace(p, h.first.size(), h.second);
@@ -1263,6 +1300,17 @@ int gowa_report_create(int with_saves, char* out, size_t n)
         }
     }
 #endif
+    /* Multiplayer: what its node did (multiplayer.cpp, scripts/mp_node.py), the players' addresses hidden. */
+    {
+        const std::string d = dir_of(ps3_settings_path());
+        std::string nlog;
+        if (read_capped((d.empty() ? std::string(".") : d) + "\\online\\node.log", nlog, 64u << 10, 192u << 10) &&
+            !nlog.empty()) {
+            hide_in(nlog);
+            zip_add(z, "multiplayer-node.log", nlog);
+            note += "Multiplayer: multiplayer-node.log\n\n";
+        }
+    }
     std::string ini;
     if (read_capped(ps3_settings_path(), ini, 1u << 20, 0) && !ini.empty()) {
         hide_in(ini);

@@ -1366,6 +1366,9 @@ extern "C" void ps3_pad_tune(double stick_full, int flick_hold);
  * play (--prebuild-pixel-shaders: the launcher's Build all shaders now). */
 extern "C" int gowa_precompile(void);
 extern "C" int gowa_prebuild(void);
+/* multiplayer.cpp: the launcher's Multiplayer settings, started (the node, and its variables before anything reads
+ * them). 1 done or off; 0 when it could not be, which it reports, and the game plays without it. */
+extern "C" int gowa_online_start(char* why, size_t n);
 
 /* A variable the title needs, unless the environment already has one. */
 static void env_default(const char* name, const char* value)
@@ -1849,6 +1852,8 @@ int main(int argc, char** argv)
 #endif
 #endif
     if (launcher && !gowa_launcher()) return 0;
+    /* A script that set the network up itself (PS3_NET_ONLINE: scripts/mp_local.py, mp_play.py) wins over the settings. */
+    if (!getenv("PS3_NET_ONLINE")) gowa_online_start(NULL, 0);
     title_environment(1);
 #ifdef PORT_GAME_MODULE
     if (!game_module_load()) return 1;
