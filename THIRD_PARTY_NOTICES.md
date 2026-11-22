@@ -40,9 +40,10 @@ Copyright (C) Advanced Micro Devices, Inc.; the full text is at the top of each 
 
 ## ANR FG (not included)
 
-Frame generation's ANR FG choice loads Apex Neural Rendering's `nvngx_dlssg.dll` from a release the player downloads
-([apex-compute/ANR](https://github.com/apex-compute/ANR)). It comes with no licence, so nothing of it is in this
-repository or the download. The port declares the DLSS-G interface it calls in `ps3recomp/libs/video/rsx_ngx.h` itself.
+Frame generation's ANR FG choice loads Apex Neural Rendering's `nvngx_dlssg.dll` from one of its releases
+([apex-compute/ANR](https://github.com/apex-compute/ANR)), which the launcher downloads from Apex Compute's own GitHub
+releases when the player agrees, or takes from a zip the player has. It comes with no licence, so nothing of it is in
+this repository or the download. The port declares the DLSS-G interface it calls in `ps3recomp/libs/video/rsx_ngx.h` itself.
 
 ## AMD FidelityFX Super Resolution 1
 

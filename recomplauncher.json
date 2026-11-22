@@ -155,7 +155,7 @@
     },
     {
       "id": "frame_generation", "label": "Frame generation", "group": "Picture",
-      "help": "Twice the frames on screen, with VSync on. The game runs at half the monitor's refresh, and it adds about a frame of delay. AMD FSR makes them, or ANR FG (beta), Apex Neural Rendering's, whose files are your own download: Ascension-R's own launcher adds its zip.",
+      "help": "Twice the frames on screen, with VSync on. The game runs at half the monitor's refresh, and it adds about a frame of delay. AMD FSR makes them, or ANR FG (beta), Apex Neural Rendering's, which Ascension-R's own launcher offers to download from Apex Compute's releases.",
       "choices": [
         { "label": "Off", "set": { "graphics/frame_generation": "off" } },
         { "label": "AMD FSR", "set": { "graphics/frame_generation": "on" } },

@@ -23,6 +23,11 @@ struct GameProgress {
 /* Asks the work to stop, a download at once. */
 void game_progress_stop(GameProgress* p);
 
+/* url into file: several connections where the server takes ranges, a piece dropped taken up again, a stall given up
+ * on; p (or NULL) has the progress and the stop. what names it in err ("RPCS3"). 1 = the whole file. */
+int game_download(const wchar_t* url, const wchar_t* file, const wchar_t* what, GameProgress* p, wchar_t* err,
+                  size_t en);
+
 /* rpcs3.exe of the RPCS3 a game folder is installed in: <RPCS3>\dev_hdd0\game\<id>. 1 = there is one. */
 int game_find_rpcs3(const wchar_t* game_dir, wchar_t* exe, size_t n);
 

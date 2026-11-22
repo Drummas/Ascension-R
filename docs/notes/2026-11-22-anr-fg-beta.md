@@ -8,8 +8,15 @@ game's, while FSR's frame generation swap chain still presents and paces them.
 ## What ANR is to the port
 
 - **Not part of it.** ANR FG is closed, in beta, and comes with no licence. Nothing of it is in the repository or the
-  download, and the program never fetches it: the player downloads a release's zip and the launcher's ready check
-  takes it (**Add zip**), or `Ascension-R.exe --anr-zip <zip>`. That unpacks the folder that holds `nvngx_dlssg.dll`
+  download. When the player chooses it and its files are not there, the launcher asks first ("Download ANR FG?":
+  Download and set up, Choose a zip I have, Not now; the ready check's **Get ANR** asks again). With a yes
+  (`port/anr_get.cpp`) it asks api.github.com for the newest release of apex-compute/ANR, takes its addon zip (else the
+  full one) only from `github.com/apex-compute/ANR/releases/download/`, downloads it with the RPCS3 downloader
+  (`game_download`), checks the SHA-256 GitHub lists for the file (else the release's SHA256SUMS.txt), unpacks it,
+  checks that Apex Compute, Inc. signed the DLL (else takes it out again) and writes the release's name beside it
+  (`ascension-r-anr.txt`, which the ready check shows: `+ ANR FG V.B20`). V.B20's addon came down in 0.6 to 0.8 s.
+  `Ascension-R.exe --anr-get` does the same from a command line, and a zip of the player's goes in by Choose a zip or
+  `Ascension-R.exe --anr-zip <zip>`. That unpacks the folder that holds `nvngx_dlssg.dll`
   into `anr\` beside the exe, `graphics.anr_dll`'s folder; the zip is unpacked as a mod's is (no name outside the
   folder, none Windows refuses). Both of V.B20's zips were tried: the addon (3.9 MB, `Apex Neural Rendering FG\dlssg`
   in it) and the full one (11.1 MB, the same under `game\OptiScaler\custom\`, with OptiScaler's `dxgi.dll` and its
@@ -45,7 +52,7 @@ New since the experiment:
   swap chain are pinned to 3.1 (`rsx_fsr3_fg_version("3.1")`, through `ffxQueryDescGetVersions` and `ffxOverrideVersion`
   as the upscaler's version): `[fsr3] swapchain: 3.1.7, as asked (3.1)`.
 - **The launcher**: Frame generation is a list (Off, AMD FSR, ANR FG (beta)); the ready check's last line says
-  `Upscaling: AMD FSR 4.1.2 + ANR FG`, or `ANR FG's files are not here yet` with **Add zip**; the footer says ANR FG; the
+  `Upscaling: AMD FSR 4.1.2 + ANR FG`, or `ANR FG's files are not here yet` with **Get ANR** (the same question as choosing it); the footer says ANR FG; the
   freeze offer counts anr as on, ANR's frames going through the same swap chain. Problem reports have a line a session:
   `ANR FG: signed by Apex Compute, Inc., 3684136 bytes, SHA-256 ...; made frames at 1920x1080 from 1920x1080`, or why it
   was not loaded, failed or stood aside.

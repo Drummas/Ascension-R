@@ -277,6 +277,7 @@ add_executable(${PROJECT_NAME}
     port/main.cpp
     port/launcher.cpp
     port/update_check.cpp
+    port/anr_get.cpp
     port/update_feed.cpp
     port/report.cpp
     port/game_find.cpp

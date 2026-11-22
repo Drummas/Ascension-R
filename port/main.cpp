@@ -1348,6 +1348,7 @@ static LONG WINAPI crash_report(EXCEPTION_POINTERS* ep)
 extern "C" void gowa_port_defaults(void);
 extern "C" int  gowa_launcher(void);   /* 1 = play, 0 = quit */
 extern "C" int  gowa_anr_zip(const char* zip, char* why, size_t n);   /* --anr-zip: 0 = in place */
+extern "C" int  gowa_anr_get(char* why, size_t n);                      /* --anr-get: 0 = set up */
 extern "C" int  gowa_prepare_cli(const char* game, const char* rpcs3, const char* rap, const char* settings);   /* game_prepare.cpp */
 extern "C" int  gowa_find_game_cli(const char* under);   /* game_find.cpp */
 /* patches.cpp: the title patches switched on in [patches], applied once the
@@ -1717,7 +1718,9 @@ int main(int argc, char** argv)
      * --report [--with-saves]: make a problem report of the last sessions and quit (report.cpp;
      * the launcher's Report a problem).
      * --anr-zip <zip>: ANR FG's files from the zip of one of its releases into the folder of
-     * graphics.anr_dll ("anr" beside the exe), and quit (the launcher's Add zip, launcher.cpp).
+     * graphics.anr_dll ("anr" beside the exe), and quit (the launcher's Choose a zip, launcher.cpp).
+     * --anr-get: the newest ANR FG release fetched from Apex Compute's GitHub releases and set up so,
+     * and quit (the launcher's Download and set up, anr_get.cpp).
      * --end-process <pid> <code>: end that process and quit (end_by_another_process). */
 #ifdef _WIN32
     if (argc == 4 && !strcmp(argv[1], "--end-process")) return end_process_cli(argv[2], argv[3]);
@@ -1737,7 +1740,7 @@ int main(int argc, char** argv)
     const char* settings = NULL;
     char settings_buf[1100];
     const char* sets[32];
-    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0, prebuild = 0;
+    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0, prebuild = 0, anr_get = 0;
     const char* prepare = NULL, *prep_rpcs3 = NULL, *prep_rap = NULL, *find_under = NULL, *anr_zip = NULL;
     int find_game = 0;   /* --find-game [folder]: what Auto detect, or Browse to the folder, finds (game_find.cpp) */
     for (int i = 1; i < argc; i++) {
@@ -1749,6 +1752,7 @@ int main(int argc, char** argv)
         else if (!strcmp(argv[i], "--report"))                         report = 1;
         else if (!strcmp(argv[i], "--with-saves"))                     report_saves = 1;
         else if (!strcmp(argv[i], "--anr-zip") && i + 1 < argc)        anr_zip = argv[++i];
+        else if (!strcmp(argv[i], "--anr-get"))                        anr_get = 1;
         else if (!strcmp(argv[i], "--prepare-game") && i + 1 < argc)   prepare = argv[++i];
         else if (!strcmp(argv[i], "--rpcs3") && i + 1 < argc)          prep_rpcs3 = argv[++i];
         else if (!strcmp(argv[i], "--rap") && i + 1 < argc)            prep_rap = argv[++i];
@@ -1765,9 +1769,9 @@ int main(int argc, char** argv)
 #ifdef _WIN32
     /* A folder portable.txt marks, on its first start: the files of %LOCALAPPDATA%\Ascension-R copied here at the
      * player's word, before its settings are read and its log opened (portable_copy.cpp). */
-    if (settings == settings_buf && !no_launcher && !precompile && !report && !anr_zip)
+    if (settings == settings_buf && !no_launcher && !precompile && !report && !anr_zip && !anr_get)
         portable_offer(settings, portable_note, sizeof portable_note);
-    if (!precompile && !report && !anr_zip) {
+    if (!precompile && !report && !anr_zip && !anr_get) {
         session_log(settings);
         s_prev_crash = SetUnhandledExceptionFilter(crash_report);
     }
@@ -1790,6 +1794,15 @@ int main(int argc, char** argv)
         if (!dot || !eq || dot > eq) { printf("[settings] --set %s: expected section.key=value\n", sets[i]); continue; }
         *dot = 0; *eq = 0;
         ps3_settings_override(sk, dot + 1, eq + 1);
+    }
+    if (anr_get) {
+        char why[600];
+        if (gowa_anr_get(why, sizeof why)) {
+            printf("[anr] not set up: %s\n", why);
+            return 1;
+        }
+        printf("[anr] ANR FG %s is set up, signed by Apex Compute\n", why);
+        return 0;
     }
     if (anr_zip) {
         char why[600];

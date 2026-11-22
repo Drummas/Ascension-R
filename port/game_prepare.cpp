@@ -539,6 +539,7 @@ struct Fetch {
     volatile long busy;         /* pieces being fetched */
     volatile DWORD why, status;
     GameProgress* p;
+    const wchar_t* what;        /* what it is, for the messages: "RPCS3" */
     ULONGLONG started;
     CRITICAL_SECTION cs;
     struct { long long a, b; } again[64];   /* what was left of a dropped piece */
@@ -702,19 +703,21 @@ static int fetch_probe(Fetch* f, const wchar_t* url, wchar_t* err, size_t en)
     if (ok) return 1;
     fprintf(stderr, "[prepare] download could not start: HTTP %u, error %u\n", (unsigned)status, (unsigned)why);
     if (err && en) {
-        if (status) swprintf(err, en, L"Could not download RPCS3: the server said %u", (unsigned)status);
+        if (status) swprintf(err, en, L"Could not download %ls: the server said %u", f->what, (unsigned)status);
         else swprintf(err, en, L"Could not reach the download. Check the connection and try again (error %u)", (unsigned)why);
     }
     return 0;
 }
 
-static int http_download(const wchar_t* url, const wchar_t* file, GameProgress* progress, wchar_t* err, size_t en)
+int game_download(const wchar_t* url, const wchar_t* file, const wchar_t* what, GameProgress* progress, wchar_t* err,
+                  size_t en)
 {
     GameProgress spare = {};
     GameProgress* p = progress ? progress : &spare;
     Fetch* f = (Fetch*)calloc(1, sizeof(Fetch));
     if (!f) return fail(err, en, L"Out of memory");
     f->p = p;
+    f->what = what && *what ? what : L"the file";
     f->file = INVALID_HANDLE_VALUE;
     InitializeCriticalSection(&f->cs);
     f->session = WinHttpOpen(L"Ascension-R", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
@@ -769,9 +772,9 @@ static int http_download(const wchar_t* url, const wchar_t* file, GameProgress* 
                 if (!ok && err && en) {
                     const unsigned quiet = (unsigned)((GetTickCount64() - p->data_at) / 1000);
                     if (stopped(p)) swprintf(err, en, L"Stopped");
-                    else if (f->status) swprintf(err, en, L"Could not download RPCS3: the server said %u", (unsigned)f->status);
+                    else if (f->status) swprintf(err, en, L"Could not download %ls: the server said %u", f->what, (unsigned)f->status);
                     else if (stalled || f->why == ERROR_WINHTTP_TIMEOUT) swprintf(err, en, L"The download stalled: no data for %u s. Check the connection and try again", quiet);
-                    else swprintf(err, en, L"Could not download RPCS3 (error %u). Check the connection and try again", (unsigned)f->why);
+                    else swprintf(err, en, L"Could not download %ls (error %u). Check the connection and try again", f->what, (unsigned)f->why);
                 }
             }
         }
@@ -793,7 +796,7 @@ int game_fetch_rpcs3(const wchar_t* data, wchar_t* exe, size_t n, wchar_t* err, 
     make_path(dir);
     set_phase(p, GP_DOWNLOAD);
     ULONGLONG t0 = GetTickCount64();
-    if (!http_download(k_rpcs3_url, file, p, err, en)) {
+    if (!game_download(k_rpcs3_url, file, L"RPCS3", p, err, en)) {
         remove_tree(dir);
         return 0;
     }

@@ -47,6 +47,7 @@
 #include "loading_screen.h"   /* the header's scene and the pixel font */
 #include "trophies.h"         /* the Trophies tab */
 #include "mods.h"             /* the Mods tab */
+#include "anr_get.h"          /* ANR FG from its own releases, when the player says so */
 extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
 extern "C" int  rsx_d3d12_prebuilt_current(const char* cache);   /* rsx_d3d12_backend.h: the pixel shaders' file */
 
@@ -227,7 +228,7 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 0, LIST(k_fg, k_fg_n), k_fg_s,
       "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
       "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
-      "moves whole where AMD FSR's can tear it; its files are your own download (Play tab, Add zip)." },
+      "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases." },
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
@@ -597,7 +598,7 @@ static struct {
 } s_prep;
 
 /* Build all shaders now (pb_start, below clear_shaders): the pixel shaders' build as a process of its own. */
-enum { WM_PREBUILD = WM_APP + 31 };
+enum { WM_PREBUILD = WM_APP + 31, WM_ANR = WM_APP + 32 };
 static struct {
     HANDLE proc, out, job, reader;
     volatile LONG running, done, total;
@@ -1018,14 +1019,14 @@ static std::wstring anr_find(const std::wstring& dir, const wchar_t* name, int d
     return hit;
 }
 
-/* ANR FG's files from the zip of one of its releases (anr-fg-*-full.zip or -addon.zip): the folder in it that holds
- * the DLL (OptiScaler\custom\Apex Neural Rendering FG\dlssg) put where graphics.anr_dll points, in place of what is
- * there. Unpacked as a mod's zip is (mods_unzip). ANR has no licence: nothing of it is fetched or shipped, the player
- * picks the zip. The game checks the DLL's signature when it loads it. "" when done, else why not. */
-static std::string anr_install(const wchar_t* zip)
+/* ANR FG's files from the zip of one of its releases (anr-fg-*-addon.zip or -full.zip): the folder in it that holds
+ * the DLL (Apex Neural Rendering FG\dlssg) put where dll points (graphics.anr_dll), in place of what is there, with
+ * the release's name in ascension-r-anr.txt beside it ("V.B20", from label or the zip's name). Unpacked as a mod's zip
+ * is (mods_unzip). ANR has no licence: the project ships nothing of it; the player picks the zip or has the launcher
+ * fetch it from Apex Compute's releases (anr_dl_run). The game checks the DLL's signature when it loads it. "" when
+ * done, else why not. */
+static std::string anr_install_to(const wchar_t* zip, const std::wstring& dll, std::string label)
 {
-    std::wstring dll;
-    if (!anr_dll_path(&dll)) return "graphics.anr_dll is not a path";
     const size_t sl = dll.find_last_of(L'\\');
     if (sl == std::wstring::npos || sl < 3) return "graphics.anr_dll names no folder";
     const std::wstring name = dll.substr(sl + 1), dir = dll.substr(0, sl);
@@ -1057,7 +1058,118 @@ static std::string anr_install(const wchar_t* zip)
     }
     mods_remove_tree(old, parent);
     mods_remove_tree(tmp, parent);
+    if (label.empty()) {
+        char z[MAX_PATH * 3];
+        const wchar_t* base = wcsrchr(zip, L'\\');
+        WideCharToMultiByte(CP_UTF8, 0, base ? base + 1 : zip, -1, z, sizeof z, NULL, NULL);
+        label = anr_version_of(z);
+    }
+    if (FILE* f = _wfopen((dir + L"\\ascension-r-anr.txt").c_str(), L"wb")) {
+        fprintf(f, "%s\n", label.c_str());
+        fclose(f);
+    }
     return std::string();
+}
+
+static std::string anr_install(const wchar_t* zip)
+{
+    std::wstring dll;
+    if (!anr_dll_path(&dll)) return "graphics.anr_dll is not a path";
+    return anr_install_to(zip, dll, std::string());
+}
+
+/* The release the installed files came from ("V.B20"), or "". */
+static std::string anr_label(void)
+{
+    std::wstring dll;
+    if (!anr_dll_path(&dll)) return std::string();
+    const size_t sl = dll.find_last_of(L'\\');
+    char b[64] = "";
+    if (FILE* f = _wfopen((dll.substr(0, sl == std::wstring::npos ? 0 : sl) + L"\\ascension-r-anr.txt").c_str(), L"rb")) {
+        if (!fgets(b, sizeof b, f)) b[0] = 0;
+        fclose(f);
+    }
+    std::string v(b);
+    while (!v.empty() && (v.back() == '\n' || v.back() == '\r' || v.back() == ' ')) v.pop_back();
+    return v;
+}
+
+/* ANR FG fetched for the player (anr_get.cpp): the newest release's zip into dll's folder.download, checked, unpacked
+ * (anr_install_to), and the DLL's signature checked; tag gets the release's name as soon as it is known. "" when done,
+ * else why not. On the download thread, or for --anr-get. */
+static std::string anr_dl_run(const std::wstring& dll, GameProgress* p, char* tag, size_t tn)
+{
+    AnrRelease r;
+    std::string why = anr_latest(&r);
+    if (!why.empty()) return why;
+    snprintf(tag, tn, "%s", anr_version_of(r.tag).c_str());
+    const size_t sl = dll.find_last_of(L'\\');
+    if (sl == std::wstring::npos) return "graphics.anr_dll names no folder";
+    const std::wstring dir = dll.substr(0, sl), dl = dir + L".download", parent = dir.substr(0, dir.find_last_of(L'\\'));
+    mods_remove_tree(dl, parent);
+    if (!CreateDirectoryW(dl.c_str(), NULL) && GetLastError() != ERROR_ALREADY_EXISTS) return "no folder could be made for the download";
+    const std::wstring zip = dl + L"\\" + std::wstring(r.name.begin(), r.name.end());
+    why = anr_fetch(r, zip, p);
+    if (why.empty()) why = anr_install_to(zip.c_str(), dll, anr_version_of(r.tag));
+    mods_remove_tree(dl, parent);
+    if (!why.empty()) return why;
+    std::wstring who;
+    if (!anr_signer(dll, &who) || who != L"Apex Compute, Inc.") {
+        mods_remove_tree(dir, parent);
+        return "its DLL is not signed by Apex Compute, Inc., so it was taken out again";
+    }
+    return std::string();
+}
+
+static void toast(const char* s);
+static void toast_bad(const char* s);
+
+/* The download on a thread of its own, its end posted to the window (WM_ANR). */
+static struct {
+    HANDLE thread;
+    GameProgress p;
+    volatile LONG running;
+    std::wstring dll;
+    char tag[32];
+    char result[400];   /* "" done, else why not: for the toast */
+} s_anr_dl;
+
+static DWORD WINAPI anr_dl_thread(void*)
+{
+    const std::string why = anr_dl_run(s_anr_dl.dll, &s_anr_dl.p, s_anr_dl.tag, sizeof s_anr_dl.tag);
+    snprintf(s_anr_dl.result, sizeof s_anr_dl.result, "%s", why.c_str());
+    InterlockedExchange(&s_anr_dl.running, 0);
+    PostMessageA(s_main, WM_ANR, 1, 0);
+    return 0;
+}
+
+static void anr_dl_start(void)
+{
+    if (s_anr_dl.running) return;
+    std::wstring dll;
+    if (!anr_dll_path(&dll)) { toast_bad("ANR FG: graphics.anr_dll is not a path"); return; }
+    if (s_anr_dl.thread) { CloseHandle(s_anr_dl.thread); s_anr_dl.thread = NULL; }
+    memset((void*)&s_anr_dl.p, 0, sizeof s_anr_dl.p);
+    s_anr_dl.dll = dll;
+    s_anr_dl.tag[0] = s_anr_dl.result[0] = 0;
+    InterlockedExchange(&s_anr_dl.running, 1);
+    s_anr_dl.thread = CreateThread(NULL, 0, anr_dl_thread, NULL, 0, NULL);
+    if (!s_anr_dl.thread) { InterlockedExchange(&s_anr_dl.running, 0); toast_bad("ANR FG: the download could not start"); return; }
+    toast("Downloading ANR FG: the Play tab shows how far");
+}
+
+/* The download's end, on the launcher's thread. */
+static void anr_dl_end(void)
+{
+    if (s_anr_dl.thread) { WaitForSingleObject(s_anr_dl.thread, 2000); CloseHandle(s_anr_dl.thread); s_anr_dl.thread = NULL; }
+    char b[480];
+    if (!s_anr_dl.result[0]) {
+        snprintf(b, sizeof b, "ANR FG %s is set up, signed by Apex Compute", s_anr_dl.tag);
+        toast(b);
+    } else {
+        snprintf(b, sizeof b, "ANR FG: %s", s_anr_dl.result);
+        toast_bad(b);
+    }
 }
 
 /* The AMD FSR upscalers the last sessions used (report.cpp reads their logs), for the ready check's line: the newest
@@ -1711,7 +1823,7 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
@@ -2335,18 +2447,30 @@ static void draw_play(void)
     y += 32;
     if (y + 26.0f <= cb - 102.0f) {   /* where the lines above left room: not under the Kit's bar */
         /* The scaling; with AMD FSR the version a last session asked as this one asks had, else what it asks for; and
-         * frame generation's maker. ANR FG without its files: Add zip (anr_install). */
+         * frame generation's maker. ANR FG without its files: Get ANR (anr_offer); while it downloads, how far. */
         const Opt* sc = opt_find("graphics", "scaling");
         const Opt* fg = opt_find("graphics", "frame_generation");
         const Opt* ml = popt_find("disable_mlaa");
         const bool fsr = sc && ps3_settings_ieq(sc->cur, "fsr3");
         const bool anr = fg && ps3_settings_ieq(fg->cur, "anr");
         const bool fgon = anr || (fg && ps3_settings_ieq(fg->cur, "on"));
-        const wchar_t* tail = anr ? L" + ANR FG" : fgon ? L" + FSR frames" : L"";
+        wchar_t anr_tail[48];
+        const std::string label = anr && !s_anr_dl.running ? anr_label() : std::string();
+        swprintf(anr_tail, 48, L" + ANR FG%hs%hs", label.empty() ? "" : " ", label.c_str());
+        const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : L"";
         wchar_t b[200];
-        if (anr && !anr_present()) {
+        if (anr && s_anr_dl.running) {
+            const long long total = s_anr_dl.p.total, done = s_anr_dl.p.done;
+            if (total > 0)
+                swprintf(b, 200, L"Downloading ANR FG %hs: %lld%%", s_anr_dl.tag, done * 100 / total);
+            else
+                swprintf(b, 200, L"Downloading ANR FG %hs", s_anr_dl.tag);
+            check_line(lx, y, lw - 106, 2, b);
+            draw_progress(lx + 26, y + 28, lw - 26 - 106, total > 0 ? (float)done / (float)total : -1.0f, 0, 8.0f);
+            w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_ANR_STOP, B_PLAIN);
+        } else if (anr && !anr_present()) {
             check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
-            w_button(L"Add zip", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
+            w_button(L"Get ANR", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
         } else if ((fsr || fgon) && ml && !opt_on(*ml)) {
             check_line(lx, y, lw, 0, L"AMD FSR needs Disable MLAA (Game patches)");
         } else if (!fsr) {
@@ -4013,6 +4137,19 @@ static int pick_file(const wchar_t* title, const wchar_t* kind, const wchar_t* s
     return ok;
 }
 
+/* --anr-get (main.cpp): anr_dl_run without the window, the player having asked on the command line. 0 = set up,
+ * with the release in why; else why not. */
+extern "C" int gowa_anr_get(char* why, size_t n)
+{
+    std::wstring dll;
+    if (!anr_dll_path(&dll)) { snprintf(why, n, "graphics.anr_dll is not a path"); return 1; }
+    GameProgress p = {};
+    char tag[32] = "";
+    const std::string r = anr_dl_run(dll, &p, tag, sizeof tag);
+    snprintf(why, n, "%s", r.empty() ? tag : r.c_str());
+    return r.empty() ? 0 : 1;
+}
+
 /* --anr-zip <zip> (main.cpp): anr_install without the window, for a script or a player who would rather. zip in UTF-8
  * (the exe's code page). 0 = done, else why not in why. */
 extern "C" int gowa_anr_zip(const char* zip, char* why, size_t n)
@@ -4029,7 +4166,7 @@ extern "C" int gowa_anr_zip(const char* zip, char* why, size_t n)
     return r.empty() ? 0 : 1;
 }
 
-/* Add zip on the ready check: ANR FG's files from the zip the player picks (anr_install). */
+/* ANR FG's files from the zip the player picks (anr_install). */
 static void anr_zip_pick(void)
 {
     wchar_t zip[MAX_PATH];
@@ -4039,11 +4176,58 @@ static void anr_zip_pick(void)
     else toast_bad(("ANR FG: " + why).c_str());
 }
 
+/* ANR FG chosen without its files, or Get ANR on the ready check: asks before anything is fetched. Download and set
+ * up (anr_dl_start), Choose a zip (anr_zip_pick) or Not now; Frame generation stays ANR's either way (until its files
+ * are there the game uses FSR's own). */
+static void anr_offer(void)
+{
+    if (s_anr_dl.running) return;
+    static const wchar_t what[] =
+        L"ANR FG is Apex Neural Rendering's frame generation, by Apex Compute, in beta. It is not part of Ascension-R and "
+        L"has no licence of its own, so it is not in the download.\n\n"
+        L"Ascension-R can download the newest release's addon zip (about 4 MB) from Apex Compute's own releases on "
+        L"GitHub (github.com/apex-compute/ANR), check it against the SHA-256 GitHub lists and Apex Compute's signature, "
+        L"and set it up in the anr folder beside the program. Nothing else is sent or installed.";
+    int pressed = 0;
+    const task_dialog_fn td = task_dialog();
+    if (td) {
+        TASKDIALOG_BUTTON b[3] = { { 100, L"Download and set up" }, { 101, L"Choose a zip I have" }, { 102, L"Not now" } };
+        TASKDIALOGCONFIG c = {};
+        c.cbSize = sizeof c;
+        c.hwndParent = s_main;
+        c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+        c.pszWindowTitle = L"ANR FG (beta)";
+        c.pszMainIcon = TD_INFORMATION_ICON;
+        c.pszMainInstruction = L"Download ANR FG?";
+        c.pszContent = what;
+        c.cButtons = 3;
+        c.pButtons = b;
+        c.nDefaultButton = 100;
+        if (FAILED(td(&c, &pressed, NULL, NULL))) return;
+    } else {
+        pressed = MessageBoxW(s_main, what, L"Download ANR FG?", MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
+    }
+    if (pressed == 100) anr_dl_start();
+    else if (pressed == 101) anr_zip_pick();
+}
+
+/* What follows a choice: ANR FG chosen without its files asks whether to fetch them. */
+static void opt_changed(const Opt& o)
+{
+    if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "anr") && !anr_present() && !s_anr_dl.running)
+        anr_offer();
+}
+
 static void act(int id)
 {
     if (id >= H_MOD) { mods_act(id - H_MOD); return; }
     if (id >= H_DDITEM) {
-        if (s_dd >= 0 && id - H_DDITEM < s_opt[s_dd].n) opt_set(s_opt[s_dd], s_opt[s_dd].values[id - H_DDITEM]);
+        if (s_dd >= 0 && id - H_DDITEM < s_opt[s_dd].n) {
+            opt_set(s_opt[s_dd], s_opt[s_dd].values[id - H_DDITEM]);
+            const int was = s_dd;
+            s_dd = -1;
+            opt_changed(s_opt[was]);
+        }
         s_dd = -1;
         return;
     }
@@ -4085,7 +4269,8 @@ static void act(int id)
         case H_REPORT: report_make(NULL); break;
         case H_SHADERS: clear_shaders(); break;
         case H_PREBUILD: pb_start(); break;
-        case H_ANR_ZIP: anr_zip_pick(); break;
+        case H_ANR_ZIP: anr_offer(); break;
+        case H_ANR_STOP: game_progress_stop(&s_anr_dl.p); break;
         case H_MODS_OPEN: mods_open(); break;
         case H_GAME_BROWSE: game_browse(); break;
         case H_PICK_RPCS3:
@@ -4133,7 +4318,12 @@ static void act(int id)
         else opt_set(o, o.values[opt_on(o) ? 0 : 1]);
         return;
     }
-    if (id >= H_SEG) { Opt& o = s_opt[(id - H_SEG) / 16]; opt_set(o, o.values[(id - H_SEG) % 16]); return; }
+    if (id >= H_SEG) {
+        Opt& o = s_opt[(id - H_SEG) / 16];
+        opt_set(o, o.values[(id - H_SEG) % 16]);
+        opt_changed(o);
+        return;
+    }
     if (id >= H_NAV) {
         s_tab = id - H_NAV;
         if (s_tab == T_MODS) s_mods_stale = 1;   /* what the folder has now */
@@ -4348,6 +4538,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
 #endif
     case WM_PREBUILD:
         if (w == 1) pb_end();   /* it exited */
+        redraw();
+        return 0;
+    case WM_ANR:
+        if (w == 1) anr_dl_end();
         redraw();
         return 0;
     case WM_TIMER: {
@@ -4646,6 +4840,12 @@ extern "C" int gowa_launcher(void)
     find_end();
     update_check_end();
     pb_stop();
+    if (s_anr_dl.thread) {   /* a download of ANR FG stops before the game could load a half-made folder */
+        game_progress_stop(&s_anr_dl.p);
+        WaitForSingleObject(s_anr_dl.thread, 15000);
+        CloseHandle(s_anr_dl.thread);
+        s_anr_dl.thread = NULL;
+    }
     if (s_done == 1) {   /* the game opens on the monitor the launcher was on, and Ultrawide goes by that monitor */
         RECT lr;
         if (GetWindowRect(s_main, &lr)) rsx_d3d12_backend_open_on((lr.left + lr.right) / 2, (lr.top + lr.bottom) / 2);
@@ -4660,4 +4860,5 @@ extern "C" int gowa_launcher(void)
 #else
 extern "C" int gowa_launcher(void) { return 1; }   /* no window here: just play */
 extern "C" int gowa_anr_zip(const char*, char* why, size_t n) { snprintf(why, n, "ANR FG is Windows only"); return 1; }
+extern "C" int gowa_anr_get(char* why, size_t n) { snprintf(why, n, "ANR FG is Windows only"); return 1; }
 #endif
