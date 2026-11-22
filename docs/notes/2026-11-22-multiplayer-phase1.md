@@ -77,6 +77,5 @@ the installed game folder.
 
 ## Phase 2
 
-The SAM wire format from samc's code and what the game sends: the connect response, sessions for the Match, Profile,
-GameTracker and Data services, search, roster and game world messages; then a server that answers them for two
-players. The geo answer's format, and DCDS if a block or setting turns out to need it.
+Done the same day (2026-11-22-multiplayer-phase2.md): the SAM wire format and scripts/mp_sam.py, a matchmaker that signs
+players in, opens the Match service and puts two games on this PC into one game world; they stop at NP signaling.
