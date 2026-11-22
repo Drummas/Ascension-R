@@ -91,6 +91,7 @@ extern "C" int  gowa_title_patch_default(int i);
 /* multiplayer.cpp: the Multiplayer tab's checks, the addresses players reach this PC at, and Play's start of it. */
 extern "C" int  gowa_online_name_ok(const char* name);
 extern "C" int  gowa_online_address_ok(const char* s);
+extern "C" int  gowa_online_nodes_ok(const char* s);
 extern "C" const char* gowa_online_problem(void);
 extern "C" int  gowa_online_start(char* why, size_t n);
 extern "C" void gowa_online_lan(char* out, size_t n);
@@ -305,6 +306,14 @@ static Opt s_opt[] = {
     { T_ONLINE, "online", "relay", "off", "Always relayed", 1, SW,
       "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the "
       "other players: for a network where joining works and playing does not." },
+    { T_ONLINE, "online", "upnp", "on", "Open the port on the router", 1, SW,
+      "Auto: asks the router (UPnP) to let other players reach this PC, as torrent clients do. Players who can be "
+      "reached carry for the ones who cannot." },
+    { T_ONLINE, "online", "relay_others", "on", "Help others connect", 1, SW,
+      "Auto: two players who cannot reach each other may talk through your PC (a few pairs at most)." },
+    { T_ONLINE, "online", "nodes", "", "Community nodes", 0, NULL, NULL, 0, NULL,
+      "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and "
+      "carry for them: address:port, a comma between.", 63 },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -2044,7 +2053,9 @@ static void w_dropdown(Opt& o, int oi, float x, float y, float w)
 static int s_edit = -1;          /* the option typed into, or -1 */
 static int text_ok(const Opt& o)
 {
-    return !strcmp(o.key, "name") ? gowa_online_name_ok(o.cur) : gowa_online_address_ok(o.cur);
+    if (!strcmp(o.key, "name")) return gowa_online_name_ok(o.cur);
+    if (!strcmp(o.key, "nodes")) return gowa_online_nodes_ok(o.cur);
+    return gowa_online_address_ok(o.cur);
 }
 static void w_textbox(Opt& o, int oi, float x, float y, float w)
 {
@@ -2052,16 +2063,19 @@ static void w_textbox(Opt& o, int oi, float x, float y, float w)
     const D2D1_RECT_F box = R(x, y, w, SEG_H);
     bevel(box, hovered(id) || on ? C_CARD_HI : C_BG, C_LO, C_EDGE, 2.0f, 1.0f, 1.0f, 0);
     if (on || bad) frame(box, bad ? C_BAD : C_GOLD, 1.0f, 2.0f);
-    const wchar_t* shown = o.cur[0] ? W(o.cur) : on ? L"" : !strcmp(o.key, "name") ? L"Kratos" : L"192.168.1.20";
+    const wchar_t* shown = o.cur[0] ? W(o.cur) : on ? L"" : !strcmp(o.key, "name") ? L"Kratos" :
+                           !strcmp(o.key, "nodes") ? L"node.example.org:36102" : L"192.168.1.20";
     text(shown, s_tf_ui, R(x + 12, y, w - 24, SEG_H), o.cur[0] ? C_TEXT : C_DIM);
     if (on) fill(R(x + 13 + text_w(o.cur[0] ? shown : L"", s_tf_ui), y + 8, 2, SEG_H - 16), C_GOLD);
     hit(box, id);
 }
-/* What a box takes: a name's letters, digits, - and _; an address's letters, digits, - and dots. */
+/* What a box takes: a name's letters, digits, - and _; an address's letters, digits, - and dots; the community
+ * nodes', colons and commas too. */
 static int text_char(const Opt& o, int c)
 {
     if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-') return 1;
-    return !strcmp(o.key, "name") ? c == '_' : c == '.';
+    if (!strcmp(o.key, "name")) return c == '_';
+    return c == '.' || (!strcmp(o.key, "nodes") && (c == ':' || c == ','));
 }
 static void text_put(Opt& o, int c)
 {
@@ -2185,7 +2199,7 @@ static const wchar_t* const k_tab_desc[T_N] = {
     L"For an easier fight. The game reads these when it starts.",
     L"Files that change the game, from the mods folder. The game reads them when it starts.",
     L"What you have won, from the game's own trophy list.",
-    L"Play the game's multiplayer with other players: found by the game itself, or one hosts and the others join.",
+    L"Play with other players: found by the game itself, or through a host.",
     L"The game's folder, language, saves and this window." };
 
 /* A link down the sidebar: an icon and a name, lit under the mouse. */
@@ -4780,7 +4794,7 @@ static const int k_shots[][2] = {
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
     { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD }, { T_MODS, S_END },
-    { T_ONLINE, S_TAB }, { T_ONLINE, S_ONLINE_JOIN },
+    { T_ONLINE, S_TAB }, { T_ONLINE, S_ONLINE_JOIN }, { T_ONLINE, S_END },
 };
 
 static void shot_state(int what, int on)

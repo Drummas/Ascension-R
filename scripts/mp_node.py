@@ -1,7 +1,8 @@
 """The multiplayer side of a player's game: what the game starts (port/multiplayer.cpp) with the Kit's Python when
 the launcher's Multiplayer is on ([online] in the settings; docs/notes/2026-11-22-multiplayer-phase5.md, phase6.md).
 
-    mp_node.py auto --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N]
+    mp_node.py auto --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N] [--nodes H:P,...]
+                    [--no-upnp] [--no-relay-others] [--no-lan] [--no-dht]
     mp_node.py join --server <host> --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N]
     mp_node.py host --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N] [--mode N]
                     [--players N]
@@ -107,6 +108,11 @@ def main(argv):
     ap.add_argument("--p2p-port", type=int, help="the UDP port peers reach this game at (3658)")
     ap.add_argument("--mode", type=int, help="host: the game mode of every Quick Play match")
     ap.add_argument("--players", type=int, help="host: Quick Play waits for this many players")
+    ap.add_argument("--nodes", default="", help="auto: community nodes to say hello to, host:port with a comma between")
+    ap.add_argument("--no-upnp", action="store_true", help="auto: do not ask the router to forward the node's port")
+    ap.add_argument("--no-relay-others", action="store_true", help="auto: carry no other players' messages")
+    ap.add_argument("--no-lan", action="store_true", help="auto: no multicast on this network")
+    ap.add_argument("--no-dht", action="store_true", help="auto: not on the BitTorrent DHT")
     a = ap.parse_args(argv)
     os.makedirs(a.dir, exist_ok=True)
     for n in (ENV_FILE, ERROR_FILE):
@@ -188,6 +194,21 @@ def host(a, log, lines, wait=forever):
     return 0
 
 
+def nodes_of(text):
+    """(host, port) of each "host[:port]" between commas (port 36102 when none is given)."""
+    out = []
+    for item in (text or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        host, _, port = item.partition(":")
+        try:
+            out.append((host, int(port) if port else 36102))
+        except ValueError:
+            raise Stop("\"%s\" is not a node: host or host:port" % item) from None
+    return out
+
+
 def free_udp(start, tries=10):
     """The first UDP port from start that nothing on this PC holds now."""
     for port in range(start, start + tries):
@@ -209,7 +230,12 @@ def auto(a, name, log, wait=None):
     import mp_p2p  # noqa: E402
 
     async def go():
-        node = mp_p2p.Node(name, log, a.p2p_port or 3658, dht_cache=os.path.join(a.dir, "dht-nodes.json"), **P2P)
+        kw = dict(dht_cache=os.path.join(a.dir, "dht-nodes.json"), nodes=nodes_of(getattr(a, "nodes", "")),
+                  upnp=not getattr(a, "no_upnp", False), relays=not getattr(a, "no_relay_others", False),
+                  lan=not getattr(a, "no_lan", False), dht=not getattr(a, "no_dht", False),
+                  direct=os.environ.get("GOWA_MP_DIRECT") != "0")
+        kw.update(P2P)
+        node = mp_p2p.Node(name, log, a.p2p_port or 3658, **kw)
         try:
             ports = await node.start(SAM_PORT, GEO_PORT, SIGNALING_PORT)
         except OSError as e:

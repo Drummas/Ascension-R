@@ -71,6 +71,8 @@ jobs:
           python tests/test_mp_node.py
           python tests/test_mp_dht.py
           python tests/test_mp_p2p.py
+          python tests/test_mp_nat.py
+          python tests/test_mp_upnp.py
 
       # CI=1: a suite fails rather than skips if no compiler is reachable. The suites in
       # KNOWN_FAILING are red at this commit of the fork: each one is a bug to fix, and

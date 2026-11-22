@@ -9,6 +9,10 @@
  *   port       the UDP port other players reach this game at (3658)
  *   game_mode  host: every Quick Play match in this game mode (empty: as the players' searches suggest)
  *   players    host: Quick Play waits for this many players and puts them all in one world
+ *   upnp       auto: on | off, the node asks the router to forward its port
+ *   relay_others  auto: on | off, the node carries for players who cannot reach each other
+ *   nodes      auto: community nodes, host[:port] with a comma between
+ *   lan, dht   auto: on | off, the ways the node finds the others (tests turn them off)
  *
  * gowa_online_start runs scripts\mp_node.py with the Kit's Python (kit\ beside the program; in a build tree, scripts\
  * beside build\ with the .venv's Python or one on the PATH; GOWA_PYTHON names another) in a job that ends with this
@@ -107,6 +111,18 @@ bool address_ok(const char* s)
     return n > 0 && n <= 253;
 }
 
+/* Community nodes as the launcher takes them: host[:port] items, a comma between; "" is none. */
+bool nodes_ok(const char* s)
+{
+    for (size_t i = 0; s[i]; i++) {
+        const char c = s[i];
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' ||
+              c == ':' || c == ','))
+            return false;
+    }
+    return strlen(s) <= 253;
+}
+
 /* A number setting, "" when it is not one (then left out). */
 std::wstring number(const char* key, long lo, long hi)
 {
@@ -178,6 +194,9 @@ extern "C" int gowa_online_name_ok(const char* name)
 /* A host's address as the launcher takes it: a name or an IPv4 address. */
 extern "C" int gowa_online_address_ok(const char* s) { return s && address_ok(s); }
 
+/* The community nodes setting as the launcher takes it. */
+extern "C" int gowa_online_nodes_ok(const char* s) { return s && nodes_ok(s); }
+
 /* What stops multiplayer from starting with these settings, or NULL: the launcher says it before Play (a toast, so
  * short). */
 extern "C" const char* gowa_online_problem(void)
@@ -186,6 +205,7 @@ extern "C" const char* gowa_online_problem(void)
     if (!mode) return NULL;
     if (!gowa_online_name_ok(setting("name"))) return "Multiplayer: set your online ID first";
     if (mode == 2 && !address_ok(setting("server"))) return "Multiplayer: set the host's address first";
+    if (mode == 3 && !nodes_ok(setting("nodes"))) return "Multiplayer: the community nodes are not host:port";
     std::wstring py, script;
     if (!find_node(&py, &script)) return "Multiplayer needs the Kit's Python";
     return NULL;
@@ -257,6 +277,13 @@ extern "C" int gowa_online_start(char* why, size_t n)
     if (ps3_settings_bool("online", "relay", NULL, 0)) cmd += L" --relay";
     const std::wstring port = number("port", 1024, 65535);
     if (!port.empty()) cmd += L" --p2p-port " + port;
+    if (mode == 3) {
+        if (*setting("nodes")) cmd += L" --nodes " + wide(setting("nodes"));
+        if (!ps3_settings_bool("online", "upnp", NULL, 1)) cmd += L" --no-upnp";
+        if (!ps3_settings_bool("online", "relay_others", NULL, 1)) cmd += L" --no-relay-others";
+        if (!ps3_settings_bool("online", "lan", NULL, 1)) cmd += L" --no-lan";
+        if (!ps3_settings_bool("online", "dht", NULL, 1)) cmd += L" --no-dht";
+    }
     if (mode == 1) {
         const std::wstring gm = number("game_mode", 1, 255), players = number("players", 1, 16);
         if (!gm.empty()) cmd += L" --mode " + gm;

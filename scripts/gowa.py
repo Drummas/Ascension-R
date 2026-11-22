@@ -2209,7 +2209,7 @@ KIT_SCRIPTS = ("gowa.py", "bench.py", "frames.py", "gametext.py", "modpack.py", 
 # (port/multiplayer.cpp) with what it imports, and our TSS blocks. Not in the Kit's id (kit_digest): none of it goes
 # into the DLL, so a new node is no reason to build that again.
 KIT_PLAY = ("scripts/mp_node.py", "scripts/mp_play.py", "scripts/mp_tss.py", "scripts/mp_sam.py", "scripts/mp_p2p.py",
-            "scripts/mp_dht.py", "ps3recomp/tools/np_signaling_server.py")
+            "scripts/mp_dht.py", "scripts/mp_upnp.py", "ps3recomp/tools/np_signaling_server.py")
 KIT_PLAY_FOLDERS = ("online/tss",)
 # Never in the Kit, whatever names them: what decrypts.
 KIT_NEVER = {"sdata_decrypt.h", "edat.c", "edat.h", "pkg_extract.py", "extract_jobmods.py", "check_repo.py"}
