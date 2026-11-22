@@ -124,9 +124,11 @@ static const char* const k_onoff[] = { "off", "on" };
 static const char* const k_mode[] = { "windowed", "borderless" };
 static const char* const k_mode_n[] = { "Windowed", "Borderless fullscreen" };
 static const char* const k_mode_s[] = { "Windowed", "Borderless" };
-static const char* const k_size[] = { "", "1280x720", "1600x900", "1920x1080", "2560x1440", "3840x2160" };
+static const char* const k_size[] = { "", "1280x720", "1600x900", "1920x1080", "2560x1080", "2560x1440", "3440x1440",
+                                      "3840x2160", "5120x1440" };
 static const char* const k_size_n[] = { "Default (720p x Windows scale)", "1280 x 720", "1600 x 900", "1920 x 1080",
-                                        "2560 x 1440", "3840 x 2160" };
+                                        "2560 x 1080 (21:9)", "2560 x 1440", "3440 x 1440 (21:9)", "3840 x 2160",
+                                        "5120 x 1440 (32:9)" };
 static const char* const k_fps[] = { "off", "title", "overlay" };
 static const char* const k_fps_n[] = { "Off", "In the title bar", "On screen, with CPU/GPU load" };
 static const char* const k_fps_s[] = { "Off", "Title bar", "On screen" };
