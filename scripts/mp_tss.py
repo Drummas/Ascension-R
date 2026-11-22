@@ -21,6 +21,7 @@ none of them is kept here. The block folder holds <Name>.json files; blocks.txt 
 the order the file keeps them.
 """
 import argparse
+import json
 import os
 import struct
 import sys
@@ -183,6 +184,32 @@ def read_folder(folder):
     return out
 
 
+def with_server(blocks, host, sam_port=None, geo_port=None):
+    """The blocks with MatchConfig pointing the game's matchmaker (every target) and geo lookups at host."""
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ("SAMServerHostAddr", "GeoServerAddr"):
+                    o[k] = host
+                elif k == "SAMServerPort" and sam_port:
+                    o[k] = sam_port
+                elif k == "GeoPort" and geo_port:
+                    o[k] = geo_port
+                else:
+                    walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+    out = []
+    for name, version, text in blocks:
+        if name == "MatchConfig":
+            doc = json.loads(text)
+            walk(doc)
+            text = json.dumps(doc, separators=(",", ":")).encode("utf-8")
+        out.append((name, version, text))
+    return out
+
+
 def main(argv):
     ap = argparse.ArgumentParser(description="God of War: Ascension's TSS: build from block files, or dump one.")
     ap.add_argument("cmd", choices=("build", "dump"))
@@ -190,12 +217,17 @@ def main(argv):
     ap.add_argument("out", nargs="?")
     ap.add_argument("--elf", default=os.environ.get("GOWA_ELF") or os.path.join(ROOT, "gamedata", "GOWA.elf"))
     ap.add_argument("--mode", default="ofb", choices=("ofb", "cbc", "ecb", "cfb"))
+    ap.add_argument("--server", help="build: the matchmaker's (and geo's) address instead of the blocks' own")
+    ap.add_argument("--sam-port", type=int, help="build, with --server: the matchmaker's port")
+    ap.add_argument("--geo-port", type=int, help="build, with --server: the geo port")
     a = ap.parse_args(argv)
     bf, iv = cipher(Elf(a.elf))
     if a.cmd == "build":
         if not a.out:
             ap.error("build needs an output file")
         blocks = read_folder(a.src)
+        if a.server:
+            blocks = with_server(blocks, a.server, a.sam_port, a.geo_port)
         plain = pack(blocks)
         enc = crypt(bf, iv, plain, a.mode, False)
         with open(a.out, "wb") as f:

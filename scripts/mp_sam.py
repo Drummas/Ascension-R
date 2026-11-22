@@ -2,10 +2,13 @@
 SAM server the lobby's Quick Play connects to, enough of it to sign a player in, open the Match service and put the
 players that search into one game world. The geo port only takes the request and closes, as the real one is gone.
 
-    mp_sam.py [--host 127.0.0.1] [--port 10070] [--geo-port 10012] [--mode N] [--solo] [--quick-wait S] [--log FILE]
+    mp_sam.py [--host 127.0.0.1] [--port 10070] [--geo-port 10012] [--mode N] [--players N] [--solo]
+              [--quick-wait S] [--log FILE]
 
---mode puts every Quick Play match in that game mode (10 is FVS2, two players); --solo reserves a world for a lone
-player, which goes no further than the game's own start-up of the match. mp_local.py runs this in its own process.
+--mode puts every Quick Play match in that game mode (10 is FVS2, two players); --players N waits for N Quick Play
+players and puts them all in one world (with --mode for a count no mode is known to take, such as three); --solo
+reserves a world for a lone player, which goes no further than the game's own start-up of the match. mp_local.py runs
+this in its own process.
 
 The wire: a frame is u16 length (counting itself), service u8, message u8, then the message's fields big-endian in
 order, a trailing field that is zero sometimes left out. Service 0 is the connection, 1 the Match service, 2 Profile.
@@ -95,9 +98,10 @@ def world_blob(mode, searches):
 
 
 class Matchmaker:
-    def __init__(self, mode=None, solo=False, quick_wait=5.0, log=print):
+    def __init__(self, mode=None, solo=False, quick_wait=5.0, log=print, players=None):
         self.force_mode = mode
         self.solo = solo
+        self.players = players   # Quick Play: one world for this many players, none before
         self.quick_wait = quick_wait
         self.log = log
         self.queue = []
@@ -119,11 +123,12 @@ class Matchmaker:
     def pick_mode(self, group, late):
         """The game mode for these players, or None to wait for more."""
         players = sum(q.count for q in group)
+        least = self.players if self.players and group[0].quick else 2
         if self.force_mode is not None:
-            return self.force_mode if (self.solo or players >= 2) else None
+            return self.force_mode if (self.solo or players >= least) else None
         if self.solo:
             return group[-1].mode
-        if players < 2:
+        if players < least:
             return None
         if not group[0].quick:
             q = group[0]
@@ -149,6 +154,8 @@ class Matchmaker:
 
     async def try_match(self, s, late):
         group = self.waiting_with(s)
+        if self.players and s.quick:
+            group = first_players(group, self.players)
         players = sum(q.count for q in group)
         mode = self.pick_mode(group, late)
         self.log("   waiting (%s): %s; mode %s" % ("Quick Play" if s.quick else "mode %d" % s.mode,
@@ -174,6 +181,17 @@ class Matchmaker:
 
     def gone(self, conn):
         self.queue = [q for q in self.queue if q.conn is not conn]
+
+
+def first_players(group, n):
+    """The searches, oldest first, that make up the first n players (a search can bring several)."""
+    out, count = [], 0
+    for q in group:
+        if count >= n:
+            break
+        out.append(q)
+        count += q.count
+    return out
 
 
 class Client:
@@ -306,8 +324,8 @@ class Running:
                 self.loop.close()
 
 
-def start(host="127.0.0.1", port=10070, geo_port=10012, mode=None, solo=False, quick_wait=5.0, log=print):
-    return Running(host, port, geo_port, Matchmaker(mode, solo, quick_wait, log))
+def start(host="127.0.0.1", port=10070, geo_port=10012, mode=None, solo=False, quick_wait=5.0, log=print, players=None):
+    return Running(host, port, geo_port, Matchmaker(mode, solo, quick_wait, log, players))
 
 
 def main(argv):
@@ -316,6 +334,7 @@ def main(argv):
     ap.add_argument("--port", type=int, default=10070)
     ap.add_argument("--geo-port", type=int, default=10012)
     ap.add_argument("--mode", type=int, help="the game mode of every Quick Play match")
+    ap.add_argument("--players", type=int, help="Quick Play waits for this many players: one world for all")
     ap.add_argument("--solo", action="store_true", help="a world for one player")
     ap.add_argument("--quick-wait", type=float, default=5.0,
                     help="seconds Quick Play players wait for a mode they suggested before any mode that takes them")
@@ -330,7 +349,7 @@ def main(argv):
             out.write(line + "\n")
             out.flush()
 
-    srv = start(a.host, a.port, a.geo_port, a.mode, a.solo, a.quick_wait, log)
+    srv = start(a.host, a.port, a.geo_port, a.mode, a.solo, a.quick_wait, log, a.players)
     log("matchmaker on %s: SAM %d, geo %d" % (a.host, srv.ports[0], srv.ports[1]))
     try:
         while True:

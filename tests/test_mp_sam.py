@@ -170,6 +170,40 @@ class Matchmaker(unittest.TestCase):
         b.search(10, 2, 2)
         self.assertEqual(reserved(b.recv_kind(mp_sam.WORLD_RESERVED))[2][0x10], 6)
 
+    def test_a_group_of_four_waits_for_all_of_them(self):
+        port = self.serve(players=4, quick_wait=0)
+        names = ("PlayerA", "PlayerB", "PlayerC", "PlayerD")
+        ps = [self.player(port, 11 * (i + 1), n) for i, n in enumerate(names)]
+        for p in ps:
+            p.sign_in()
+            p.open_match()
+        for p in ps[:3]:
+            p.search(2, 4, 4)
+            time.sleep(0.2)
+        with self.assertRaises((TimeoutError, socket.timeout)):   # three of four: no world yet
+            ps[0].recv_kind(mp_sam.WORLD_RESERVED, timeout=0.5)
+        ps[3].search(10, 2, 2)
+        for p in ps:
+            wid, result, head, players = reserved(p.recv_kind(mp_sam.WORLD_RESERVED))
+            self.assertEqual((head[0x10], len(players)), (2, 4))   # the mode the first three suggested, for four
+            self.assertEqual([e[0x62] for e in players], [1, 0, 0, 0])      # one host
+            self.assertEqual([e[0x68] for e in players], [0, 1, 2, 3])      # every player its own peer index
+            self.assertEqual(sorted(struct.unpack(">Q", e[:8])[0] for e in players), [11, 22, 33, 44])
+
+    def test_three_players_in_a_forced_mode(self):
+        port = self.serve(players=3, mode=4, quick_wait=0)
+        a, b, c = (self.player(port, i, n) for i, n in ((11, "PlayerA"), (22, "PlayerB"), (33, "PlayerC")))
+        for p in (a, b, c):
+            p.sign_in()
+            p.open_match()
+        a.search(2, 4, 4)
+        b.search(2, 4, 4)
+        with self.assertRaises((TimeoutError, socket.timeout)):
+            b.recv_kind(mp_sam.WORLD_RESERVED, timeout=0.5)
+        c.search(2, 4, 4)
+        wid, result, head, players = reserved(c.recv_kind(mp_sam.WORLD_RESERVED))
+        self.assertEqual((head[0x10], len(players)), (4, 3))
+
     def test_fixed_modes_only_meet_their_own(self):
         port = self.serve(quick_wait=0)
         a, b, c = (self.player(port, i, n) for i, n in ((11, "PlayerA"), (22, "PlayerB"), (33, "PlayerC")))
