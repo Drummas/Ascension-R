@@ -13,8 +13,8 @@
  * 2: atol and calloc (native/spu_edge_memo.c). 3: the VRAM guards (port/vram_guard.cpp). 4: two more of them.
  * 5: gowa_vram_cut. 6: the vertex pass's second stride, in rsx_d3d12_vertex_pass_set's high half, and the
  * copy's first vertex in its table (native/spu_edge_gpulight.c). 7: gowa_edge_prop, a mod's proportions
- * (port/edge_prop.c). */
-#define GAME_MODULE_ABI 7
+ * (port/edge_prop.c). 8: the multiplayer's hooks (port/online.cpp). */
+#define GAME_MODULE_ABI 8
 
 /* The program's functions. In the DLL each is one jump through the table. */
 #define GAME_MODULE_FUNCS(X)                                                                                                  \
@@ -27,7 +27,7 @@
     X(spu_register_function) X(spu_stop) X(spu_workload_register_img) X(spu_wrch)                                             \
     X(vm_read8) X(vm_read16) X(vm_read32) X(vm_read64) X(vm_write8) X(vm_write16) X(vm_write32) X(vm_write64)                 \
     X(gowa_vram_alloc) X(gowa_vram_cut) X(gowa_vram_move) X(gowa_vram_runs) X(gowa_vram_stream) X(gowa_vram_texture)    \
-    X(gowa_edge_prop)
+    X(gowa_edge_prop) X(gowa_game_log) X(gowa_online_pass) X(gowa_sam_ssl) X(gowa_tss_seen)
 
 /* The C runtime's, called by name. */
 #define GAME_MODULE_CRT(X) X(atexit) X(fputc) X(fwrite) X(memcmp) X(memcpy) X(memmove) X(sqrt) X(sqrtf)
