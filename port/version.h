@@ -4,7 +4,7 @@
 #ifndef ASCENSION_R_VERSION_H
 #define ASCENSION_R_VERSION_H
 
-#define AR_VERSION    "0.2.0"
-#define AR_VERSION_RC 0,2,0,0  /* for the file's properties: major, minor, patch, and the alpha's number (0: none) */
+#define AR_VERSION    "0.3.0"
+#define AR_VERSION_RC 0,3,0,0  /* for the file's properties: major, minor, patch, and the alpha's number (0: none) */
 
 #endif
