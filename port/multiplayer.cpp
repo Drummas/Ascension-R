@@ -21,7 +21,12 @@
  * this game and the players who join it; auto leaves the node of multiplayer with no host running (mp_p2p.py), which
  * finds the other players' nodes itself (the BitTorrent DHT, this network) and is this game's matchmaker and signaling
  * server (docs/notes/2026-11-22-multiplayer-phase6.md). The node's folder is online\ beside the settings: tss.bin, np_tus\ (the
- * multiplayer profile), node.log.
+ * multiplayer profile), node.log, and on auto players.txt, the players it knows of (the launcher's Online now).
+ *
+ * On auto the launcher starts the node as soon as it shows the settings (gowa_online_begin, on a thread of its own,
+ * a message to the window when it is up or could not be), starts it again when a setting it takes changes, and stops
+ * it when Multiplayer is no longer on auto (gowa_online_stop: the node ends and its variables leave the environment).
+ * Play then finds it running (gowa_online_start waits for one that is starting). Host and join start at Play.
  */
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
@@ -32,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <vector>
 #include "ps3emu/ps3_settings.h"
 #pragma comment(lib, "iphlpapi.lib")
 
@@ -156,25 +162,44 @@ std::string last_line(const std::string& s)
     return s.substr(start == std::string::npos ? 0 : start + 1, end + 1 - (start == std::string::npos ? 0 : start + 1));
 }
 
-int s_state;          /* 0 not started (or it failed: the launcher may try again), 1 started or off */
-HANDLE s_job;         /* the node's: never closed, so the node ends with this process */
-char s_why[300];
+/* What a node is started with: the settings as they were, so a thread can start it while they change. sig holds them
+ * all: a node started with another sig is not the one the settings ask for now. */
+struct Args {
+    int mode = 0;
+    std::string name, server, nodes, elf, sig;
+    bool relay = false, upnp = true, relay_others = true, lan = true, dht = true;
+    std::wstring port, game_mode, players, dir;
+};
+
+SRWLOCK s_lock = SRWLOCK_INIT;
+int s_state;                     /* 0 none (or it failed), 1 running (its variables in), 2 starting */
+std::string s_sig;               /* the settings of the node running or starting */
+HANDLE s_job;                    /* the node's: closed only by gowa_online_stop, so the node ends with this process */
+std::vector<std::string> s_vars; /* the variables its game.env put in */
+char s_why[300];                 /* why the last start failed */
+HANDLE s_worker;                 /* the thread of a start under way */
+volatile LONG s_cancel;          /* that start is no longer wanted */
 
 int fail(char* why, size_t n, const char* fmt, const char* a = "")
 {
-    snprintf(s_why, sizeof s_why, fmt, a);
-    if (why && n) snprintf(why, n, "%s", s_why);
-    fprintf(stderr, "[online] %s\n", s_why);
+    char w[300];
+    snprintf(w, sizeof w, fmt, a);
+    AcquireSRWLockExclusive(&s_lock);
+    snprintf(s_why, sizeof s_why, "%s", w);
+    ReleaseSRWLockExclusive(&s_lock);
+    if (why && n) snprintf(why, n, "%s", w);
+    fprintf(stderr, "[online] %s\n", w);
     return 0;
 }
+
+int mode_of(const char* m) { return !_stricmp(m, "host") ? 1 : !_stricmp(m, "join") ? 2 : !_stricmp(m, "auto") ? 3 : 0; }
 
 }  // namespace
 
 /* 0 off, 1 host, 2 join, 3 auto. */
 extern "C" int gowa_online_mode(void)
 {
-    const char* m = setting("mode");
-    return !_stricmp(m, "host") ? 1 : !_stricmp(m, "join") ? 2 : !_stricmp(m, "auto") ? 3 : 0;
+    return mode_of(setting("mode"));
 }
 
 /* The runtime's rule for an online id (np_psnr.c), taken as it is: 1 if name is one. */
@@ -250,44 +275,100 @@ extern "C" void gowa_online_lan(char* out, size_t n)
     snprintf(out, n, "%s", list.c_str());
 }
 
-/* Multiplayer as the settings say: the node started and its variables in this environment. 1 when that is done or
- * multiplayer is off; 0 and why when it could not be (the game then plays without it). Once a process. */
-extern "C" int gowa_online_start(char* why, size_t n)
+namespace {
+
+/* The settings now, on the thread that may read them (the launcher's, or main's). */
+Args args_now(void)
 {
-    if (s_state == 1) return 1;
-    const int mode = gowa_online_mode();
-    if (!mode) {
-        s_state = 1;
-        return 1;
-    }
-    if (const char* p = gowa_online_problem()) return fail(why, n, "%s", p);
+    Args a;
+    a.mode = gowa_online_mode();
+    a.name = setting("name");
+    a.server = setting("server");
+    a.nodes = setting("nodes");
     const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
-    if (!elf || !*elf || !is_file(wide(elf))) return fail(why, n, "Multiplayer: no GOWA.elf where the settings say");
+    a.elf = elf ? elf : "";
+    a.relay = ps3_settings_bool("online", "relay", NULL, 0) != 0;
+    a.upnp = ps3_settings_bool("online", "upnp", NULL, 1) != 0;
+    a.relay_others = ps3_settings_bool("online", "relay_others", NULL, 1) != 0;
+    a.lan = ps3_settings_bool("online", "lan", NULL, 1) != 0;
+    a.dht = ps3_settings_bool("online", "dht", NULL, 1) != 0;
+    a.port = number("port", 1024, 65535);
+    a.game_mode = number("game_mode", 1, 255);
+    a.players = number("players", 1, 16);
+    a.dir = settings_dir() + L"\\online";
+    char sig[1200];
+    snprintf(sig, sizeof sig, "%d|%s|%s|%s|%s|%d%d%d%d%d|%ls|%ls|%ls", a.mode, a.name.c_str(), a.server.c_str(),
+             a.nodes.c_str(), a.elf.c_str(), a.relay, a.upnp, a.relay_others, a.lan, a.dht, a.port.c_str(),
+             a.game_mode.c_str(), a.players.c_str());
+    a.sig = sig;
+    return a;
+}
+
+/* The node gone: asked to stop (node.stop: it says goodbye to the other nodes and ends), ended after a second
+whatever it did, its variables out of the environment. The lock is held. */
+void stop_locked(void)
+{
+    if (s_job) {
+        const std::wstring stop = settings_dir() + L"\\online\\node.stop";
+        HANDLE f = CreateFileW(stop.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (f != INVALID_HANDLE_VALUE) CloseHandle(f);
+        for (int t = 0; t < 20; t++) {
+            JOBOBJECT_BASIC_ACCOUNTING_INFORMATION ai = {};
+            if (!QueryInformationJobObject(s_job, JobObjectBasicAccountingInformation, &ai, sizeof ai, NULL) ||
+                !ai.ActiveProcesses)
+                break;
+            Sleep(50);
+        }
+        TerminateJobObject(s_job, 0);
+        CloseHandle(s_job);
+        s_job = NULL;
+    }
+    for (const std::string& v : s_vars) _putenv_s(v.c_str(), "");
+    s_vars.clear();
+    s_state = 0;
+    s_sig.clear();
+}
+
+/* A start under way, called off and waited for. */
+void cancel_worker(void)
+{
+    AcquireSRWLockExclusive(&s_lock);
+    HANDLE w = s_worker;
+    if (w) InterlockedExchange(&s_cancel, 1);
+    ReleaseSRWLockExclusive(&s_lock);
+    if (w) WaitForSingleObject(w, 35000);
+}
+
+void stop_at_exit(void);
+
+/* The node of a, started, and its variables put in: 1, or 0 and why. Any thread. */
+int start_with(const Args& a, char* why, size_t n)
+{
+    if (a.elf.empty() || !is_file(wide(a.elf.c_str()))) return fail(why, n, "Multiplayer: no GOWA.elf where the settings say");
     std::wstring py, script;
-    find_node(&py, &script);
-    const std::wstring dir = settings_dir() + L"\\online";
+    if (!find_node(&py, &script)) return fail(why, n, "Multiplayer needs the Kit's Python");
+    const int mode = a.mode;
+    const std::wstring dir = a.dir;
     CreateDirectoryW(dir.c_str(), NULL);
     const std::wstring env_file = dir + L"\\game.env", err_file = dir + L"\\node.error", out_file = dir + L"\\node.out";
     DeleteFileW(env_file.c_str());
     DeleteFileW(err_file.c_str());
 
     std::wstring cmd = L"\"" + py + L"\" -E -s -B -X utf8 \"" + script + L"\" " + (mode == 1 ? L"host" : mode == 2 ? L"join" : L"auto") +
-                       L" --name " + wide(setting("name")) + L" --elf \"" + wide(elf) + L"\" --dir \"" + dir + L"\"";
-    if (mode == 2) cmd += L" --server " + wide(setting("server"));
-    if (ps3_settings_bool("online", "relay", NULL, 0)) cmd += L" --relay";
-    const std::wstring port = number("port", 1024, 65535);
-    if (!port.empty()) cmd += L" --p2p-port " + port;
+                       L" --name " + wide(a.name.c_str()) + L" --elf \"" + wide(a.elf.c_str()) + L"\" --dir \"" + dir + L"\"";
+    if (mode == 2) cmd += L" --server " + wide(a.server.c_str());
+    if (a.relay) cmd += L" --relay";
+    if (!a.port.empty()) cmd += L" --p2p-port " + a.port;
     if (mode == 3) {
-        if (*setting("nodes")) cmd += L" --nodes " + wide(setting("nodes"));
-        if (!ps3_settings_bool("online", "upnp", NULL, 1)) cmd += L" --no-upnp";
-        if (!ps3_settings_bool("online", "relay_others", NULL, 1)) cmd += L" --no-relay-others";
-        if (!ps3_settings_bool("online", "lan", NULL, 1)) cmd += L" --no-lan";
-        if (!ps3_settings_bool("online", "dht", NULL, 1)) cmd += L" --no-dht";
+        if (!a.nodes.empty()) cmd += L" --nodes " + wide(a.nodes.c_str());
+        if (!a.upnp) cmd += L" --no-upnp";
+        if (!a.relay_others) cmd += L" --no-relay-others";
+        if (!a.lan) cmd += L" --no-lan";
+        if (!a.dht) cmd += L" --no-dht";
     }
     if (mode == 1) {
-        const std::wstring gm = number("game_mode", 1, 255), players = number("players", 1, 16);
-        if (!gm.empty()) cmd += L" --mode " + gm;
-        if (!players.empty()) cmd += L" --players " + players;
+        if (!a.game_mode.empty()) cmd += L" --mode " + a.game_mode;
+        if (!a.players.empty()) cmd += L" --players " + a.players;
     }
 
     SECURITY_ATTRIBUTES sa = { sizeof sa, NULL, TRUE };
@@ -325,14 +406,20 @@ extern "C" int gowa_online_start(char* why, size_t n)
     ResumeThread(pi.hThread);
     CloseHandle(pi.hThread);
 
-    /* Its game.env, or its end: about a second (Python, the TSS); 30 at most. */
+    /* Its game.env, or its end: about a second (Python, the TSS); 30 at most, and not past a cancel. */
     std::string env;
-    for (int t = 0; t < 600; t++) {
+    for (int t = 0; t < 600 && !s_cancel; t++) {
         if (is_file(env_file)) {
             env = read_small(env_file, 1 << 16);
             if (!env.empty()) break;
         }
         if (WaitForSingleObject(pi.hProcess, 50) == WAIT_OBJECT_0 && !is_file(env_file)) break;
+    }
+    if (s_cancel) {
+        TerminateJobObject(job, 1);
+        CloseHandle(job);
+        CloseHandle(pi.hProcess);
+        return fail(why, n, "Multiplayer: the start was called off");
     }
     if (env.empty()) {
         std::string w = last_line(read_small(err_file, 4096));
@@ -343,8 +430,9 @@ extern "C" int gowa_online_start(char* why, size_t n)
         return fail(why, n, "Multiplayer: %s", w.empty() ? "the node gave no answer (online\\node.log)" : w.c_str());
     }
     CloseHandle(pi.hProcess);
-    s_job = job;   /* kept: the node ends with this process */
 
+    AcquireSRWLockExclusive(&s_lock);
+    s_job = job;   /* kept: the node ends with this process, or with gowa_online_stop */
     size_t at = 0;
     int vars = 0;
     while (at < env.size()) {
@@ -356,11 +444,138 @@ extern "C" int gowa_online_start(char* why, size_t n)
         const size_t eq = line.find('=');
         if (eq == std::string::npos || !eq) continue;
         _putenv_s(line.substr(0, eq).c_str(), line.substr(eq + 1).c_str());   /* "" takes it away */
+        s_vars.push_back(line.substr(0, eq));
         vars++;
     }
-    printf("[online] %s as %s%s%s: %d variables from %ls\n",
-           mode == 1 ? "hosting" : mode == 2 ? "joining" : "finding players", setting("name"),
-           mode == 2 ? " " : "", mode == 2 ? setting("server") : "", vars, env_file.c_str());
     s_state = 1;
+    s_sig = a.sig;
+    s_why[0] = 0;
+    static LONG at_exit;
+    if (!InterlockedExchange(&at_exit, 1)) atexit(stop_at_exit);
+    ReleaseSRWLockExclusive(&s_lock);
+    printf("[online] %s as %s%s%s: %d variables from %ls\n",
+           mode == 1 ? "hosting" : mode == 2 ? "joining" : "finding players", a.name.c_str(),
+           mode == 2 ? " " : "", mode == 2 ? a.server.c_str() : "", vars, env_file.c_str());
     return 1;
+}
+
+/* At the program's end (the launcher's Quit, the game's): the node says goodbye. A crash or a kill leaves that to the
+other nodes' minute of silence. */
+void stop_at_exit(void)
+{
+    AcquireSRWLockExclusive(&s_lock);
+    stop_locked();
+    ReleaseSRWLockExclusive(&s_lock);
+}
+
+struct Begin {
+    Args a;
+    HWND notify;
+    UINT msg;
+};
+
+DWORD WINAPI begin_thread(void* p)
+{
+    Begin* b = static_cast<Begin*>(p);
+    char why[300];
+    const int ok = start_with(b->a, why, sizeof why);
+    AcquireSRWLockExclusive(&s_lock);
+    if (!ok && s_state == 2) {
+        s_state = 0;
+        s_sig.clear();
+    }
+    ReleaseSRWLockExclusive(&s_lock);
+    if (b->notify) PostMessageW(b->notify, b->msg, (WPARAM)ok, 0);
+    delete b;
+    return 0;
+}
+
+}  // namespace
+
+/* The node gone, whatever it was doing: a start under way called off, a running one ended, its variables taken out of
+ * the environment. */
+extern "C" void gowa_online_stop(void)
+{
+    cancel_worker();
+    AcquireSRWLockExclusive(&s_lock);
+    if (s_worker) {
+        CloseHandle(s_worker);
+        s_worker = NULL;
+    }
+    stop_locked();
+    ReleaseSRWLockExclusive(&s_lock);
+}
+
+/* The launcher's: on auto, the node of the settings as they are now started on a thread (a message to notify when it
+ * is up or could not be), unless that one runs or starts already; any other node stopped. Nothing on host, join or
+ * off but the stop: those start at Play. */
+extern "C" void gowa_online_begin(void* notify, unsigned msg)
+{
+    Args a = args_now();
+    AcquireSRWLockShared(&s_lock);
+    const bool same = (s_state == 1 || s_state == 2) && s_sig == a.sig;
+    ReleaseSRWLockShared(&s_lock);
+    if (same) return;
+    gowa_online_stop();
+    if (a.mode != 3 || gowa_online_problem()) return;
+    Begin* b = new Begin{ a, static_cast<HWND>(notify), msg };
+    AcquireSRWLockExclusive(&s_lock);
+    s_state = 2;
+    s_sig = a.sig;
+    s_why[0] = 0;
+    InterlockedExchange(&s_cancel, 0);
+    s_worker = CreateThread(NULL, 0, begin_thread, b, 0, NULL);
+    if (!s_worker) {
+        s_state = 0;
+        s_sig.clear();
+        delete b;
+    }
+    ReleaseSRWLockExclusive(&s_lock);
+}
+
+/* What the node is doing: 0 none, 1 running, 2 starting, -1 the last start failed (why says why). */
+extern "C" int gowa_online_status(char* why, size_t n)
+{
+    AcquireSRWLockShared(&s_lock);
+    const int st = s_state ? s_state : s_why[0] ? -1 : 0;
+    if (why && n) snprintf(why, n, "%s", s_why);
+    ReleaseSRWLockShared(&s_lock);
+    return st;
+}
+
+/* The node's players.txt (auto): "me\t<reachable>\t<state>\t<count>" and a "player\t<state>\t<how>\t<name>" line
+ * for each player it knows of; "" when there is none. */
+extern "C" void gowa_online_players(char* out, size_t n)
+{
+    if (!out || !n) return;
+    out[0] = 0;
+    AcquireSRWLockShared(&s_lock);
+    const bool running = s_state == 1;
+    ReleaseSRWLockShared(&s_lock);
+    if (!running) return;
+    const std::string text = read_small(settings_dir() + L"\\online\\players.txt", n - 1);
+    snprintf(out, n, "%s", text.c_str());
+}
+
+/* Multiplayer as the settings say: the node started and its variables in this environment. 1 when that is done (or
+ * a node the launcher started is that one) or multiplayer is off; 0 and why when it could not be (the game then
+ * plays without it). */
+extern "C" int gowa_online_start(char* why, size_t n)
+{
+    Args a = args_now();
+    AcquireSRWLockShared(&s_lock);
+    HANDLE w = s_worker;
+    ReleaseSRWLockShared(&s_lock);
+    if (w) WaitForSingleObject(w, 35000);     /* the launcher's start, under way: its end */
+    AcquireSRWLockExclusive(&s_lock);
+    if (s_worker) {
+        CloseHandle(s_worker);
+        s_worker = NULL;
+    }
+    const bool same = s_state == 1 && s_sig == a.sig;
+    if (!same) stop_locked();
+    ReleaseSRWLockExclusive(&s_lock);
+    if (same || !a.mode) return 1;
+    if (const char* p = gowa_online_problem()) return fail(why, n, "%s", p);
+    return start_with(a, why, n);
 }

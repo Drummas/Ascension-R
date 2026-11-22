@@ -228,9 +228,14 @@ def auto(a, name, log, wait=None):
     another game's node has them (two games on one PC: the second one's P2P port is 3659 or later)."""
     import asyncio
     import mp_p2p  # noqa: E402
+    try:
+        os.remove(os.path.join(a.dir, "node.stop"))
+    except FileNotFoundError:
+        pass
 
     async def go():
         kw = dict(dht_cache=os.path.join(a.dir, "dht-nodes.json"), nodes=nodes_of(getattr(a, "nodes", "")),
+                  status_file=os.path.join(a.dir, "players.txt"), stop_file=os.path.join(a.dir, "node.stop"),
                   upnp=not getattr(a, "no_upnp", False), relays=not getattr(a, "no_relay_others", False),
                   lan=not getattr(a, "no_lan", False), dht=not getattr(a, "no_dht", False),
                   direct=os.environ.get("GOWA_MP_DIRECT") != "0")
@@ -251,8 +256,9 @@ def auto(a, name, log, wait=None):
             if wait:
                 await wait(node)
             else:
-                while True:
-                    await asyncio.sleep(3600)
+                while not node.stopped:     # the game ends the node, or asks it to stop (node.stop)
+                    await asyncio.sleep(0.25)
+                await asyncio.sleep(0.2)    # its goodbyes on their way
         finally:
             node.close()
         return 0

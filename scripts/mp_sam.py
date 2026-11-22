@@ -22,6 +22,7 @@ import threading
 import time
 
 CONN, MATCH, PROFILE = 0, 1, 2
+GAME_TRACKER = 4                     # opened as a match starts, ended as it ends
 # (service, message)
 CLIENT_CONNECT = (CONN, 0x00)        # u64 build, u64 protocol, u32 default session, u16 n, u8, u8, n bytes NP ticket
 CONNECT_RESPONSE = (CONN, 0x01)      # u64 account, u32 session, u8 service, u8 response, u8 log level, u8 reason,
@@ -181,6 +182,12 @@ class Matchmaker:
         self.queue = [q for q in self.queue if q not in group]
         self.log("   world %d, mode %d: %s" % (wid, mode, [n for q in group for n in q.names()]))
 
+    def session_opened(self, conn, service):
+        """A service's session opened by a game (a matchmaker that follows its games' matches takes this)."""
+
+    def session_closed(self, conn, service):
+        """...and ended."""
+
     def gone(self, conn):
         self.queue = [q for q in self.queue if q.conn is not conn]
 
@@ -245,6 +252,7 @@ class Client:
             self.sessions[service] = sid
             self.mm.log("   session %d for service %d" % (sid, service))
             self.send(SESSION, struct.pack(">IBH", sid, service, 1))
+            self.mm.session_opened(self, service)
         elif kind == SESSION_END:
             # Not answered: the game has dropped the session by then, and an answer is "session id mismatch".
             sid, service, reason = struct.unpack(">IBB", p[0:6])
@@ -252,6 +260,7 @@ class Client:
             if service == MATCH:
                 self.mm.gone(self)
             self.mm.log("   session %d for service %d ended (reason %d)" % (sid, service, reason))
+            self.mm.session_closed(self, service)
         elif kind == SEARCH:
             s = Search(self, p)
             self.mm.log("   search: %s players %d..%d, mode %d%s" % (s.names(), s.minp, s.maxp, s.mode,

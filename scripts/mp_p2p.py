@@ -21,6 +21,12 @@ world (its own player first: the host) and proposes it; a node that is searching
 with every yes the leader commits, and every node gives its game the same world. A no or no answer ends the proposal
 and the leader tries again without the node that said no.
 
+Who is online: every node says what its player is doing (ready: the node runs, in the launcher or the game; lobby:
+the game is in the multiplayer menu; searching: Quick Play; playing: a match), in its hello, its pings (and at once
+when it changes) and in what other nodes tell of it; the node writes the players it knows of into a file the
+launcher shows (status_file). A node that is asked to stop (stop_file appears) says goodbye first, so the others
+take it off their lists at once instead of after a minute of silence.
+
 Signaling: in a world, each other player is a RemotePlayer of the node's signaling server. Its messages
 (ACTIVATED, DEACTIVATED, GONE, MOVED) go to the node it plays behind, which hands them to its game with the address
 it sees our node at; datagrams the runtime relays (two games that cannot reach each other) go the same way.
@@ -69,6 +75,7 @@ INTRO_AGAIN_CARRIED = 600.0   # a node reached through another: a direct path tr
 RELAY_PAIRS = 8                    # the pairs of nodes one node carries for at a time
 UPNP_LEASE, UPNP_RENEW = 3600, 1800
 MAX_PLAYERS = 8
+STATES = ("ready", "lobby", "searching", "playing")
 
 
 def b64(b):
@@ -115,6 +122,7 @@ class Peer:
         self.lan = []
         self.relays = False         # it carries other nodes' messages
         self.knows = {}             # the nodes it told us it knows: id -> what it said of them
+        self.state = "ready"        # what its player is doing (STATES)
         self.last = self.pinged = self.gossiped = time.monotonic()
         self.search = None          # its game's search while it searches (the message)
         self.search_at = 0.0
@@ -174,6 +182,17 @@ class Matchmaker(mp_sam.Matchmaker):
         if self.node.local is not None and self.node.local.conn is conn:
             self.node.cancel_search("its game stopped searching")
         self.queue = [q for q in self.queue if q.conn is not conn]
+        if conn.closed:
+            self.node.set_playing(False)
+
+    def session_opened(self, conn, service):
+        if service == mp_sam.GAME_TRACKER:
+            self.node.set_playing(True)
+        self.node.presence()
+
+    def session_closed(self, conn, service):
+        if service == mp_sam.GAME_TRACKER:
+            self.node.set_playing(False)
 
     def deliver(self, q, wid, blob):
         q.conn.send(mp_sam.WORLD_RESERVED, struct.pack(">IHB", wid, len(blob), 0) + blob)
@@ -213,7 +232,7 @@ class Lan(asyncio.DatagramProtocol):
 class Node:
     def __init__(self, name, log=lambda text: None, p2p_port=3658, node_port=NODE_PORT, lan=True, dht=True,
                  dht_cache=None, quick_wait=5.0, boot=None, private=False, nodes=(), relays=True, upnp=False,
-                 community=False, direct=True):
+                 community=False, direct=True, status_file=None, stop_file=None):
         self.id = os.urandom(8).hex()
         self.name, self.log, self.p2p_port = name, log, p2p_port
         self.want_port, self.use_lan, self.use_dht, self.use_upnp = node_port, lan, dht, upnp
@@ -221,6 +240,12 @@ class Node:
         self.nodes = list(nodes)        # (host, port): nodes the settings name (a community node)
         self.node_addrs = set()         # their addresses, once looked up
         self.direct = direct            # off (tests): no node but the named ones is reached itself
+        self.status_file = status_file  # where the players this node knows of are written (the launcher reads it)
+        self.stop_file = stop_file      # its appearing asks the node to stop
+        self.stopped = False
+        self.playing = False            # our game is in a match
+        self.said_state = "ready"
+        self.status_written = None
         self.relays = relays or community
         self.community = community      # no game here: it introduces nodes and carries their messages
         self.nat = "open" if community else "?"
@@ -366,7 +391,62 @@ class Node:
 
     def hello(self, re):
         return {"t": "hello", "name": self.name, "v": PROTOCOL, "re": re, "nat": self.nat, "lan": self.lan_addrs,
-                "relays": self.relays}
+                "relays": self.relays, "state": self.state()}
+
+    def state(self):
+        if self.community:
+            return "ready"
+        if self.playing:
+            return "playing"
+        if self.search:
+            return "searching"
+        return "lobby" if self.mm.clients else "ready"
+
+    def set_playing(self, on):
+        if self.playing != on:
+            self.playing = on
+            self.presence()
+
+    def presence(self):
+        """Our player's state to every node at once, when it changed."""
+        st = self.state()
+        if st != self.said_state:
+            self.said_state = st
+            self.to_all(t="ping", state=st)
+
+    def players(self):
+        """(name, state, how) of every player this node knows of: reached itself, through another node, or heard of
+        from one."""
+        out, seen = [], {self.id}
+        for p in sorted(self.peers.values(), key=lambda p: p.name.lower()):
+            seen.add(p.id)
+            if p.name and p.name != "community":
+                out.append((p.name, p.state, "through" if p.via is not None else "direct"))
+        for p in list(self.peers.values()):
+            for nid, e in p.knows.items():
+                if nid not in seen and e.get("name") and e.get("name") != "community":
+                    seen.add(nid)
+                    st = e.get("state") if e.get("state") in STATES else "ready"
+                    out.append((str(e["name"])[:16], st, "heard"))
+        return out
+
+    def write_status(self):
+        if not self.status_file:
+            return
+        rows = self.players()
+        clean = lambda s: "".join(c for c in str(s) if c.isprintable() and c not in "\t\r\n")
+        text = "me\t%s\t%s\t%d\n" % (self.nat, self.state(), len(rows)) + "".join(
+            "player\t%s\t%s\t%s\n" % (st, how, clean(name)) for name, st, how in rows)
+        if text == self.status_written:
+            return
+        try:
+            tmp = self.status_file + ".new"
+            with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+                f.write(text)
+            os.replace(tmp, self.status_file)
+            self.status_written = text
+        except OSError:
+            pass
 
     def peer_at(self, addr):
         for p in self.peers.values():
@@ -454,6 +534,8 @@ class Node:
         p.nat = m.get("nat") if m.get("nat") in ("open", "easy", "hard", "?") else "?"
         p.lan = [a for a in (addr_of(x) for x in (m.get("lan") or [])[:4]) if a]
         p.relays = bool(m.get("relays"))
+        if m.get("state") in STATES:
+            p.state = m["state"]
         if new:
             self.log("node %s (%s, %s) at %s" % (nid[:8], p.name, p.nat,
                                                  "%s:%d" % addr if via is None else "node %s" % via.id[:8]))
@@ -463,7 +545,12 @@ class Node:
         if not m.get("re"):
             self.send_to(p, **self.hello(1))
 
+    def on_bye(self, p, m):
+        self.drop(p, "left")
+
     def on_ping(self, p, m):
+        if m.get("state") in STATES:
+            p.state = m["state"]
         self.send_to(p, t="pong")
 
     def on_pong(self, p, m):
@@ -482,7 +569,7 @@ class Node:
     # -- what nodes know of each other: introductions, punching, carrying ----------------------------------------
 
     def gossip(self, p):
-        known = [{"id": q.id, "name": q.name, "nat": q.nat, "addr": list(q.addr), "lan": q.lan}
+        known = [{"id": q.id, "name": q.name, "nat": q.nat, "addr": list(q.addr), "lan": q.lan, "state": q.state}
                  for q in self.peers.values() if q is not p and q.via is None and q.addr is not None]
         random.shuffle(known)
         self.send_to(p, t="peers", list=known[:GOSSIP_MAX])
@@ -610,6 +697,11 @@ class Node:
                 self.log("tick: %r" % e)
 
     def tick(self):
+        if self.stop_file and not self.stopped and os.path.exists(self.stop_file):
+            self.log("asked to stop: goodbye to %d nodes" % len(self.peers))
+            self.to_all(t="bye")
+            self.stopped = True
+            return
         now = time.monotonic()
         playing = set(x["id"] for x in self.world["players"]) if self.world else set()
         for p in list(self.peers.values()):
@@ -617,7 +709,7 @@ class Node:
                 self.drop(p, "gone quiet")
             elif now - p.pinged > PING_EVERY:
                 p.pinged = now
-                self.send_to(p, t="ping")
+                self.send_to(p, t="ping", state=self.state())
             if p.via is None and p.id in self.peers and now - p.gossiped > GOSSIP_EVERY:
                 p.gossiped = now
                 self.gossip(p)
@@ -645,6 +737,8 @@ class Node:
         if self.lock and self.lock["leader"] != self.id and now > self.lock["until"]:
             self.lock = None
         self.match()
+        self.presence()
+        self.write_status()
 
     def drop(self, p, why):
         if self.peers.get(p.id) is not p:
@@ -879,6 +973,7 @@ class Node:
         self.log("world %d, mode %d: %s" % (wid, mode, [x["name"] for x in players]))
         self.to_all(t="cancel")
         self.search = self.local = self.lock = None
+        self.playing = True             # until its GameTracker session ends, or the game goes
         if q is not None:
             self.mm.deliver(q, wid, blob)
 

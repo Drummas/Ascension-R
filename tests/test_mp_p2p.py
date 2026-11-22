@@ -147,6 +147,84 @@ class P2P(unittest.TestCase):
         with self.assertRaises((TimeoutError, socket.timeout)):
             left.recv_kind(mp_sam.WORLD_RESERVED, timeout=1.5)
 
+    def status(self, r):
+        """The node's players file: (me line, {name: (state, how)})."""
+        try:
+            lines = Path(r.node.status_file).read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return None, {}
+        me = lines[0].split("\t") if lines else None
+        return me, {f[3]: (f[1], f[2]) for f in (line.split("\t") for line in lines[1:]) if len(f) == 4}
+
+    def until(self, what, seconds=8):
+        end = time.time() + seconds
+        while time.time() < end:
+            if what():
+                return True
+            time.sleep(0.1)
+        return False
+
+    def test_who_is_online_and_what_they_do(self):
+        import tempfile
+        d = tempfile.mkdtemp(prefix="mp-status-")
+        a, b = self.node("PlayerA"), self.node("PlayerB", 3659)
+        for r, n in ((a, "a.txt"), (b, "b.txt")):
+            r.node.status_file = str(Path(d, n))
+        self.link(a, b)
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB") == ("ready", "direct")), self.status(a))
+        me, _ = self.status(a)
+        self.assertEqual(me[:3], ["me", "?", "ready"])
+        gb = self.game(b, 22, "PlayerB")                          # B's game in the multiplayer menu
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB", ("",))[0] == "lobby"), self.status(a))
+        gb.search(10, 2, 2)
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB", ("",))[0] == "searching"), self.status(a))
+        ga = self.game(a, 11, "PlayerA")
+        ga.search(10, 2, 2)
+        ga.recv_kind(mp_sam.WORLD_RESERVED, timeout=15)
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB", ("",))[0] == "playing" and
+                                   self.status(b)[1].get("PlayerA", ("",))[0] == "playing"), (self.status(a), self.status(b)))
+        gb.send(mp_sam.SESSION, struct.pack(">IB", 0, mp_sam.GAME_TRACKER))    # the match starts...
+        sid = struct.unpack(">I", gb.recv_kind(mp_sam.SESSION)[:4])[0]
+        gb.send(mp_sam.SESSION_END, struct.pack(">IBB", sid, mp_sam.GAME_TRACKER, 0))   # ...and ends
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB", ("",))[0] == "lobby"), self.status(a))
+        gb.close()                                                 # B's game leaves the multiplayer menu
+        self.assertTrue(self.until(lambda: self.status(a)[1].get("PlayerB", ("",))[0] == "ready"), self.status(a))
+
+    def test_a_node_asked_to_stop_says_goodbye(self):
+        import tempfile
+        d = tempfile.mkdtemp(prefix="mp-status-")
+        a, b = self.node("PlayerA"), self.node("PlayerB", 3659)
+        a.node.stop_file = str(Path(d, "node.stop"))
+        b.node.status_file = str(Path(d, "b.txt"))
+        self.link(a, b)
+        self.assertTrue(self.until(lambda: "PlayerA" in self.status(b)[1]), self.status(b))
+        Path(a.node.stop_file).write_text("")
+        self.assertTrue(self.until(lambda: a.node.stopped, 3))
+        self.assertTrue(self.until(lambda: "PlayerA" not in self.status(b)[1], 3), self.status(b))   # not a minute later
+
+    def test_a_player_heard_of_then_reached_through_another(self):
+        import tempfile
+        d = tempfile.mkdtemp(prefix="mp-status-")
+        rr = mp_p2p.Running(mp_p2p.Node("community", lambda t: None, node_port=0, lan=False, dht=False, community=True))
+        self.addCleanup(rr.stop)
+        rs = []
+        for name in ("PlayerA", "PlayerB"):
+            n = mp_p2p.Node(name, lambda t, name=name: self.lines.append("%s %s" % (name, t)), node_port=0, lan=False,
+                            dht=False, nodes=[("127.0.0.1", rr.ports[3])], direct=False,
+                            status_file=str(Path(d, name + ".txt")))
+            r = mp_p2p.Running(n, sam_port=0, geo_port=0, sig_port=0)
+            self.addCleanup(r.stop)
+            rs.append(r)
+        a = rs[0]
+        seen = set()
+
+        def how():
+            h = self.status(a)[1].get("PlayerB", (None, None))[1]
+            seen.add(h)
+            return h == "through"
+        self.assertTrue(self.until(how, 15), (self.status(a), self.lines[-20:]))
+        self.assertNotIn("community", self.status(a)[1])            # a community node is no player
+
     def test_a_game_that_stops_searching_is_left_out(self):
         a, b = self.node("PlayerA"), self.node("PlayerB", 3659)
         self.link(a, b)

@@ -95,6 +95,9 @@ extern "C" int  gowa_online_nodes_ok(const char* s);
 extern "C" const char* gowa_online_problem(void);
 extern "C" int  gowa_online_start(char* why, size_t n);
 extern "C" void gowa_online_lan(char* out, size_t n);
+extern "C" void gowa_online_begin(void* notify, unsigned msg);   /* Auto: the node, on a thread of its own */
+extern "C" int  gowa_online_status(char* why, size_t n);         /* 0 none, 1 running, 2 starting, -1 failed */
+extern "C" void gowa_online_players(char* out, size_t n);       /* the node's players.txt */
 
 /* ---------------------------------------------------------------------------
  * What the window offers
@@ -485,6 +488,85 @@ static int   s_capture = -1;  /* the binding waiting for a key or a mouse button
 
 static int S(int v) { return MulDiv(v, s_dpi, 96); }
 static void redraw(void);
+
+/* The node on Auto, as the launcher shows it: its status, and the players it knows of (its players.txt), read on the
+ * window's timer. Shots make them up (s_mp_fake). */
+enum { WM_ONLINE = WM_APP + 33 };   /* gowa_online_begin's start ended */
+struct MpPlayer {
+    char name[20], state[12], how[10];
+};
+static int s_mp_status;              /* gowa_online_status */
+static char s_mp_why[300];
+static char s_mp_text[8192];         /* players.txt as last read */
+static MpPlayer s_mp_players[24];
+static int s_mp_n, s_mp_total;       /* shown, and in all */
+static char s_mp_nat[8];
+static int s_mp_fake;
+
+static void mp_parse(void)
+{
+    s_mp_n = s_mp_total = 0;
+    s_mp_nat[0] = 0;
+    const char* p = s_mp_text;
+    while (*p) {
+        const char* e = strchr(p, '\n');
+        const size_t len = e ? (size_t)(e - p) : strlen(p);
+        char line[160];
+        snprintf(line, sizeof line, "%.*s", (int)(len < sizeof line - 1 ? len : sizeof line - 1), p);
+        char* f[5] = {};
+        int k = 0;
+        for (char* q = line; k < 5 && q; k++) {
+            f[k] = q;
+            q = strchr(q, '\t');
+            if (q) *q++ = 0;
+        }
+        if (k >= 2 && !strcmp(f[0], "me")) {
+            snprintf(s_mp_nat, sizeof s_mp_nat, "%s", f[1]);
+        } else if (k >= 4 && !strcmp(f[0], "player")) {
+            s_mp_total++;
+            if (s_mp_n < (int)(sizeof s_mp_players / sizeof s_mp_players[0])) {
+                MpPlayer& m = s_mp_players[s_mp_n++];
+                snprintf(m.state, sizeof m.state, "%s", f[1]);
+                snprintf(m.how, sizeof m.how, "%s", f[2]);
+                snprintf(m.name, sizeof m.name, "%s", f[3]);
+            }
+        }
+        p += len + (e ? 1 : 0);
+    }
+}
+
+/* The node's status and players read again: 1 when something shown changed. */
+static int mp_refresh(void)
+{
+    if (s_mp_fake) return 0;
+    char why[300], text[8192];
+    const int st = gowa_online_status(why, sizeof why);
+    gowa_online_players(text, sizeof text);
+    if (st == s_mp_status && !strcmp(why, s_mp_why) && !strcmp(text, s_mp_text)) return 0;
+    s_mp_status = st;
+    snprintf(s_mp_why, sizeof s_mp_why, "%s", why);
+    snprintf(s_mp_text, sizeof s_mp_text, "%s", text);
+    mp_parse();
+    return 1;
+}
+
+static const wchar_t* mp_state_name(const char* st)
+{
+    return !strcmp(st, "lobby") ? L"in the multiplayer menu" : !strcmp(st, "searching") ? L"looking for a match" :
+           !strcmp(st, "playing") ? L"in a match" : L"online";
+}
+
+/* Multiplayer as the settings are now: on Auto the node runs, starting again when what it takes changes; on anything
+ * else none does (Host and Join start at Play). The online settings go to ps3_settings first: that is where the
+ * node's start reads them (the file is written on Save or Play, as for every setting). */
+static void online_sync(void)
+{
+    for (int i = 0; i < N_OPT; i++)
+        if (!strcmp(s_opt[i].section, "online")) ps3_settings_set("online", s_opt[i].key, s_opt[i].cur);
+    gowa_online_begin(s_main, WM_ONLINE);
+    mp_refresh();
+    redraw();
+}
 
 static void dark_caption(HWND h)
 {
@@ -2051,6 +2133,14 @@ static void w_dropdown(Opt& o, int oi, float x, float y, float w)
 /* A box typed into (Opt.text): the value, a caret while it is typed into, else an example in grey; a red edge when
  * what it holds will not do. Clicked, it takes the keys (s_edit); Enter, Esc, Tab or a click elsewhere end that. */
 static int s_edit = -1;          /* the option typed into, or -1 */
+static void online_sync(void);
+static void edit_end(void)
+{
+    if (s_edit < 0) return;
+    const int was = s_edit;
+    s_edit = -1;
+    if (!strcmp(s_opt[was].section, "online")) online_sync();
+}
 static int text_ok(const Opt& o)
 {
     if (!strcmp(o.key, "name")) return gowa_online_name_ok(o.cur);
@@ -2618,6 +2708,20 @@ static void draw_play(void)
     if (Opt* fps = opt_find("display", "show_fps")) {
         text(L"Frame rate on screen", s_tf_ui, R(rx, ry, rw - SW_W - 10, SW_H), C_TEXT);
         w_switch(ps3_settings_ieq(fps->cur, "overlay"), rx + rw - SW_W, ry, H_SW + (int)(fps - s_opt));
+        ry += SW_H + 16;
+    }
+    if (const Opt* m = opt_find("online", "mode")) {   /* Multiplayer: what it is on; on Auto, who is online */
+        wchar_t b[120];
+        if (ps3_settings_ieq(m->cur, "auto"))
+            swprintf(b, 120, s_mp_status == 1 ? L"Auto \x00B7 %d online" : s_mp_status == 2 ? L"Auto \x00B7 starting" :
+                     s_mp_status < 0 ? L"Auto \x00B7 did not start" : L"Auto", s_mp_total);
+        else
+            swprintf(b, 120, L"%ls", W(opt_short(m)));
+        const D2D1_RECT_F r = R(rx, ry, rw, SW_H);
+        const int hov = hovered(H_NAV + T_ONLINE);
+        text(L"Multiplayer", s_tf_ui, R(rx, ry, 160, SW_H), C_TEXT);
+        text(b, s_tf_ui, R(rx + 160, ry, rw - 160, SW_H), hov ? C_GOLD_HI : C_TEXT2, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
+        hit(r, H_NAV + T_ONLINE);
     }
 }
 
@@ -3059,12 +3163,13 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
          s_tf_small, R(x + 26, y + 8, w - 26, 26), C_MUTED);
 }
 
+
 /* The Multiplayer tab's notes, under its rows: why Play could not start multiplayer (until it does), where the players
  * who join find this PC (Host), and what they all see of it. */
 static char s_online_err[300];
-static int online_notes(const wchar_t* out[4], unsigned rgb[4])
+static int online_notes(const wchar_t* out[5], unsigned rgb[5])
 {
-    static wchar_t host[1400], err[400];
+    static wchar_t host[1400], err[400], node[400];
     static char lan[400];
     static int lan_read;
     int n = 0;
@@ -3075,9 +3180,19 @@ static int online_notes(const wchar_t* out[4], unsigned rgb[4])
     }
     const Opt* m = opt_find("online", "mode");
     if (m && ps3_settings_ieq(m->cur, "auto")) {
+        const wchar_t* reach = !strcmp(s_mp_nat, "open") ? L"other players can reach it" :
+                               !strcmp(s_mp_nat, "easy") ? L"others reach it once introduced" :
+                               !strcmp(s_mp_nat, "hard") ? L"others reach it only through another node" :
+                               L"how others reach it is not known yet";
+        if (s_mp_status == 1) swprintf(node, 400, L"Your node is on: %ls.", reach);
+        else if (s_mp_status == 2) swprintf(node, 400, L"Your node is starting\x2026");
+        else if (s_mp_status < 0) swprintf(node, 400, L"Your node did not start: %ls", W(s_mp_why));
+        else swprintf(node, 400, L"Your node starts once your online ID is set.");
+        out[n] = node;
+        rgb[n++] = s_mp_status < 0 ? C_BAD : C_TEXT2;
         out[n] = L"Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks "
-                 L"for Ascension-R players there can see this PC's address while the game runs. Windows may ask to let "
-                 L"Python through: allow it.";
+                 L"for Ascension-R players there can see this PC's address while this window or the game is open on Auto. "
+                 L"Windows may ask to let Python through: allow it.";
         rgb[n++] = C_TEXT2;
     }
     if (m && ps3_settings_ieq(m->cur, "host")) {
@@ -3098,17 +3213,22 @@ static int online_notes(const wchar_t* out[4], unsigned rgb[4])
 }
 static float online_h(float w)
 {
-    const wchar_t* t[4];
-    unsigned c[4];
+    const wchar_t* t[5];
+    unsigned c[5];
     const int n = online_notes(t, c);
     float h = 10.0f;
     for (int i = 0; i < n; i++) h += text_h(t[i], s_tf_desc, w - 26) + 10.0f;
+    const Opt* m = opt_find("online", "mode");
+    if (m && ps3_settings_ieq(m->cur, "auto") && s_mp_status == 1) {   /* Online now: its title, a row a player */
+        const int rows = s_mp_n > 10 ? 11 : s_mp_n ? s_mp_n : 1;
+        h += 34.0f + 24.0f * (float)rows;
+    }
     return h;
 }
 static void online_draw(float x, float y, float w)
 {
-    const wchar_t* t[4];
-    unsigned c[4];
+    const wchar_t* t[5];
+    unsigned c[5];
     const int n = online_notes(t, c);
     w_rule(x, y, w);
     y += 12.0f;
@@ -3117,6 +3237,33 @@ static void online_draw(float x, float y, float w)
         icon(c[i] == C_BAD ? k_ic_cross : k_ic_info, x, y + 1, c[i] == C_BAD ? C_BAD : C_MUTED);
         text(t[i], s_tf_desc, R(x + 26, y, w - 26, h + 2), c[i]);
         y += h + 10.0f;
+    }
+    const Opt* m = opt_find("online", "mode");
+    if (!m || !ps3_settings_ieq(m->cur, "auto") || s_mp_status != 1) return;
+    /* Online now: the players the node knows of, what each is doing, and how it reaches them. */
+    w_rule(x, y, w);
+    wchar_t b[200];
+    swprintf(b, 200, L"ONLINE NOW: %d", s_mp_total);
+    text(b, s_tf_head, R(x, y + 10, w, 18), C_GOLD);
+    y += 34.0f;
+    if (!s_mp_n) {
+        text(L"No other player yet. Players show up here while their launcher or game runs on Auto.", s_tf_desc,
+             R(x, y, w, 22), C_MUTED);
+        return;
+    }
+    for (int i = 0; i < s_mp_n && i < 10; i++) {
+        const MpPlayer& p = s_mp_players[i];
+        const unsigned dot = !strcmp(p.state, "searching") ? C_GOLD : !strcmp(p.state, "playing") ? C_CYAN : C_OK;
+        fill(R(x + 2, y + 8, 8, 8), dot);
+        text(W(p.name), s_tf_ui_b, R(x + 22, y, 200, 22), C_TEXT);
+        swprintf(b, 200, L"%ls%ls", mp_state_name(p.state), !strcmp(p.how, "through") ? L" \x00B7 through another node" :
+                 !strcmp(p.how, "heard") ? L" \x00B7 heard of from another node" : L"");
+        text(b, s_tf_desc, R(x + 230, y + 1, w - 230, 22), C_TEXT2);
+        y += 24.0f;
+    }
+    if (s_mp_n > 10 || s_mp_total > s_mp_n) {
+        swprintf(b, 200, L"and %d more", s_mp_total - (s_mp_n < 10 ? s_mp_n : 10));
+        text(b, s_tf_desc, R(x + 22, y, w - 22, 22), C_MUTED);
     }
 }
 
@@ -4367,6 +4514,7 @@ static void anr_offer(void)
 /* What follows a choice: ANR FG chosen without its files asks whether to fetch them. */
 static void opt_changed(const Opt& o)
 {
+    if (!strcmp(o.section, "online")) online_sync();
     if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "anr") && !anr_present() && !s_anr_dl.running)
         anr_offer();
 }
@@ -4467,6 +4615,7 @@ static void act(int id)
         case H_DEFAULTS:
             for (int i = 0; i < N_OPT; i++) if (!s_opt[i].text) opt_set(s_opt[i], s_opt[i].def);   /* a name stays */
             for (int i = 0; i < s_npopt; i++) opt_set(s_popt[i], s_popt[i].def);
+            online_sync();
             toast("Defaults back: Save or Play keeps them");
             break;
         }
@@ -4486,6 +4635,7 @@ static void act(int id)
         Opt& o = s_opt[id - H_SW];
         if (!strcmp(o.key, "show_fps")) opt_set(o, ps3_settings_ieq(o.cur, "overlay") ? "title" : "overlay");
         else opt_set(o, o.values[opt_on(o) ? 0 : 1]);
+        if (!strcmp(o.section, "online")) online_sync();
         return;
     }
     if (id >= H_SEG) {
@@ -4629,7 +4779,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         s_mx = (float)(short)LOWORD(l) * 96.0f / s_ui;
         s_my = (float)(short)HIWORD(l) * 96.0f / s_ui;
         s_press = hit_at(s_mx, s_my);
-        if (s_edit >= 0 && s_press != H_TXT + s_edit) s_edit = -1;   /* a click elsewhere ends the typing */
+        if (s_edit >= 0 && s_press != H_TXT + s_edit) edit_end();   /* a click elsewhere ends the typing */
         if (s_capture >= 0 && s_press == H_KBIND + s_capture) {   /* on the binding that waits: the left button */
             kb_mouse(m, w);
             s_press = -1;
@@ -4679,7 +4829,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         }
         if (s_edit >= 0) {   /* typing into a box: Enter, Esc and Tab end it; the characters come as WM_CHAR */
             if (w == VK_RETURN || w == VK_ESCAPE || w == VK_TAB) {
-                s_edit = -1;
+                edit_end();
                 redraw();
                 return 0;
             }
@@ -4709,6 +4859,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
             return 0;
         }
         break;
+    case WM_ONLINE:
+        mp_refresh();
+        redraw();
+        return 0;
     case WM_GAME_FOUND:
         find_done();
         redraw();
@@ -4743,6 +4897,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         }
         if (w == 2) { redraw(); return 0; }
         if (s_toast[0] && GetTickCount64() >= s_toast_until) { s_toast[0] = 0; redraw(); }   /* the toast goes */
+        if (mp_refresh()) redraw();   /* the node's players, as it knows them now */
         if (s_find.thread) redraw();   /* the folder it is in */
 #ifdef PORT_GAME_MODULE
         if (s_kit.running) redraw();    /* the time it has taken */
@@ -4782,7 +4937,7 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
  * or at GOWA_LAUNCHER_SHOT_DPI. The scene stands still in them, and nothing
  * runs: each state is only set while its shot is drawn, then put back. */
 enum { S_TAB, S_LIST, S_SEARCH, S_END, S_TOAST, S_DECRYPT, S_KEYS, S_KEYS_WAIT, S_KIT_RUN, S_KIT_NEED, S_KIT_ROW,
-       S_UPDATE, S_PREBUILD, S_ONLINE_JOIN };
+       S_UPDATE, S_PREBUILD, S_ONLINE_JOIN, S_ONLINE_LIST };
 static const int k_shots[][2] = {
     { T_PLAY, S_TAB }, { T_GRAPHICS, S_TAB }, { T_DISPLAY, S_TAB }, { T_CONTROLS, S_TAB }, { T_PATCHES, S_TAB },
     { T_CHEATS, S_TAB }, { T_MODS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB },
@@ -4794,7 +4949,8 @@ static const int k_shots[][2] = {
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
 #endif
     { T_PLAY, S_UPDATE }, { T_PLAY, S_PREBUILD }, { T_MODS, S_END },
-    { T_ONLINE, S_TAB }, { T_ONLINE, S_ONLINE_JOIN }, { T_ONLINE, S_END },
+    { T_ONLINE, S_TAB }, { T_ONLINE, S_ONLINE_JOIN }, { T_ONLINE, S_END }, { T_ONLINE, S_ONLINE_LIST },
+    { T_PLAY, S_ONLINE_LIST },
 };
 
 static void shot_state(int what, int on)
@@ -4835,6 +4991,26 @@ static void shot_state(int what, int on)
             snprintf(s_upd.rel.url, sizeof s_upd.rel.url, "%stag/%s", UPDATE_PAGE_PREFIX, s_upd.rel.tag);
         } else {
             s_upd = was;
+        }
+    }
+    if (what == S_ONLINE_LIST) {   /* Auto, the node on, and the players it knows of */
+        static char mode[64];
+        Opt* m = opt_find("online", "mode");
+        if (on) {
+            snprintf(mode, sizeof mode, "%s", m->cur);
+            opt_set(*m, "auto");
+            s_mp_fake = 1;
+            s_mp_status = 1;
+            snprintf(s_mp_text, sizeof s_mp_text, "%s",
+                     "me\teasy\tready\t4\nplayer\tsearching\tdirect\tKratosFan\nplayer\tplaying\tthrough\tDeimos_77\n"
+                     "player\tlobby\tdirect\tCallisto\nplayer\tready\theard\tSpartanX\n");
+            mp_parse();
+        } else {
+            opt_set(*m, mode);
+            s_mp_fake = 0;
+            s_mp_status = 0;
+            s_mp_text[0] = 0;
+            mp_parse();
         }
     }
     if (what == S_ONLINE_JOIN) {   /* Join, the host's address being typed, and why the last Play did not start it */
@@ -4898,7 +5074,7 @@ static void shots(const char* dir)
     for (int t = 0; t < (int)(sizeof k_shots / sizeof k_shots[0]); t++) {
         const int what = k_shots[t][1];
         s_tab = k_shots[t][0];
-        s_scroll[s_tab] = what == S_END ? 1e9f : 0.0f;   /* to its end */
+        s_scroll[s_tab] = what == S_END || what == S_ONLINE_LIST ? 1e9f : 0.0f;   /* to its end */
         s_dd = -1;
         s_hover = -1;
         shot_state(what, 1);
@@ -5022,6 +5198,7 @@ extern "C" int gowa_launcher(void)
     if (const Opt* u = opt_find("launcher", "update_check"))
         if (opt_on(*u)) update_check_begin(s_main, WM_UPDATE, &s_upd);   /* a newer release on GitHub */
     report_offer();
+    online_sync();   /* on Auto, the node from now on: players found before Play */
     redraw();   /* what the offer's answer did (a toast) */
 
     MSG msg;
