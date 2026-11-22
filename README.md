@@ -40,13 +40,14 @@ Website: [rigaz29.github.io/Ascension-R](https://rigaz29.github.io/Ascension-R/)
 It boots, plays the cinematics and goes through the menus into the levels. It has not been played from start to finish, so expect
 problems further in.
 
-- **Game:** God of War: Ascension at version 1.12: the digital US release NPUA80918, or the European disc BCES01741 or
-  the US disc BCUS98232 with its updates installed in RPCS3 (the Asian disc BCAS25016 too, from the next release). Each
-  needs the game and its updates 1.04 to 1.12.
+- **Game:** God of War: Ascension at version 1.12: the digital US release NPUA80918, or the European disc BCES01741,
+  the US disc BCUS98232 or the Asian disc BCAS25016 with its updates installed in RPCS3. Each needs the game and its
+  updates 1.04 to 1.12.
 - **Platform:** Windows 10 or 11, 64-bit. Tested on Windows 11.
 - **Speed:** above 30 frames a second in the two scenes measured, a fight of the first level and the gate, on a Ryzen 5 4600H with
   a GTX 1650 Ti and the Smooth preset.
-- **Online:** not supported. The port is single player.
+- **Multiplayer:** a beta, with no PSN account and nothing sent to Sony's servers. Played on one PC so far, two games
+  in whole matches; players on different networks and more than two players have not been tried yet.
 - **Downloads:** the Kit, on the [releases page](https://github.com/rigaz29/Ascension-R/releases). It holds none of the game's code
   and builds it on your PC from your copy.
 
@@ -64,12 +65,16 @@ problems further in.
 - **Game patches:** switch off MLAA, depth of field, motion blur, mesh trimming or dynamic shadows.
 - **Cheats:** damage to and from Kratos, max red orbs, infinite magic and items, infinite rage and double jumps.
 - **Controls:** a controller or keyboard and mouse. Xbox and other XInput pads, and through SDL3 the DualShock 4, the
-  DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings,
-  and Xbox button icons in place of the PlayStation ones, by choice or for an Xbox controller.
+  DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings.
+  Xbox button icons in place of the PlayStation ones come as an optional mod in the download (`optional mods`).
+- **Multiplayer (beta):** the game's online modes, from the launcher's Multiplayer tab. Auto finds other Ascension-R
+  players by itself, as torrent clients find their peers (the BitTorrent DHT and the local network), with no server;
+  Host and Join let one PC host its friends. The router is asked to open the port (UPnP), and two players who cannot
+  reach each other play through a third player's PC or a community node. The cheats are off in multiplayer.
 - **Trophies:** read from the game's own trophy list, in the game's language. A notice over the picture for each one
   won, a Trophies page in the launcher, and the platinum once every single-player trophy is won.
 - **Saves:** backups kept before the game writes over a save.
-- **Mods:** a `mods` folder beside the program. A mod's folder or `.zip` dropped in shows on the
+- **Mods:** a `mods` folder beside the settings, which the launcher's Mods tab opens. A mod's folder or `.zip` dropped in shows on the
   launcher's Mods tab, where each one is switched on or off and ordered. Its files are read in place of the game's,
   files inside the game's archives and lines of its text go in as one more update, and its pictures take the place of
   the game's textures; the game's own folder is never changed ([docs/MODDING.md](docs/MODDING.md)).
@@ -99,7 +104,7 @@ launcher finds the two together, and decrypts the update's GOWA.SELF with no `.r
 EBOOT.BIN, which it hands to RPCS3. Both releases run the same GOWA.elf at 1.12, byte for byte, so the same game code.
 The US disc (BCUS98232) is taken the same way, its updates in `dev_hdd0\game\BCUS98232`: its update is the European
 disc's (the same PPU cache folders in RPCS3, [#4](https://github.com/rigaz29/Ascension-R/issues/4)). So is the Asian
-disc (BCAS25016) from the next release, its updates in `dev_hdd0\game\BCAS25016`. The files of these two are not
+disc (BCAS25016), its updates in `dev_hdd0\game\BCAS25016`. The files of these two are not
 checked yet, as a list of them is not in the port.
 
 ## What you need
@@ -221,7 +226,7 @@ At version 1.12, with every update from 1.04 installed:
 | Digital, US | NPUA80918 | supported |
 | Disc, Europe and Australia | BCES01741 | supported: a decrypted dump of the disc, its updates in RPCS3 |
 | Disc, US | BCUS98232 | supported, as the European disc: a decrypted dump of the disc, its updates in RPCS3 |
-| Disc, Asia | BCAS25016 | in the next release (a build from source has it): as the European disc |
+| Disc, Asia | BCAS25016 | supported, as the European disc: a decrypted dump of the disc, its updates in RPCS3 |
 | Digital, Europe, and the others | | not yet |
 
 For a copy that is not supported yet, its serial and version (RPCS3's game list shows both) in

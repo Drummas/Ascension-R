@@ -265,3 +265,29 @@ The game's text, subtitles included, is plain UTF-8 inside its archives, so a tr
 `gowa.py text export [--part story]` writes the English text into `build\text\`, a line for each line of text, and
 `gowa.py text build <translation files>` checks a translation and writes it as a mod, `build\mods\translation\`
 (`--name` for another), which the Mods tab then lists. The game's folder is only read.
+
+## Multiplayer (beta)
+
+The launcher's **Multiplayer** tab (`[online]`) brings back the game's online modes with no PSN account; nothing is
+sent to Sony's servers. Set an **Online ID** (`name`: 3 to 16 letters, digits, `-` and `_`, starting with a letter;
+every player needs their own), choose how to meet (`mode`), then Multi-Player on the game's title screen and Quick
+Play.
+
+- **Auto** (`auto`): from the moment Auto is chosen, the launcher runs a node that finds the other Ascension-R players
+  by itself, as torrent clients find their peers: on the BitTorrent DHT and on the local network. Nobody runs a server.
+  The tab lists the players online and what each is doing, and the Play tab shows how many.
+- **Host** (`host`) and **Join** (`join`): one PC runs the matchmaking for its own game and the players who join it at
+  its address (**Host's address**, `server`): on one network, over the internet with the ports the tab names forwarded
+  (TCP 10070 and 10012, TCP and UDP 36101), or on a virtual LAN.
+- **Always relayed** (`relay`): the game's traffic goes by the host's PC or the players' nodes instead of straight to
+  the other players, for a network where joining works and playing does not.
+- **Open the port on the router** (`upnp`, on): Auto asks the router (UPnP) to forward the node's UDP port, 36102, so
+  that other players reach this PC.
+- **Help others connect** (`relay_others`, on): two players who cannot reach each other may talk through this PC, a few
+  pairs at most.
+- **Community nodes** (`nodes`): nodes anyone can run on a reachable machine, which introduce players and carry for
+  them: `address:port`, a comma between. One runs with `kit\python\python.exe kit\scripts\mp_p2p.py community` in the
+  download's folder, or `python3 scripts/mp_p2p.py community` from the repository, its UDP port 36102 reachable.
+
+The launcher's cheats go off once the game goes online for multiplayer, until it is started again. How it works: the
+notes from [phase 0](notes/2026-11-22-multiplayer-phase0.md) to [phase 7](notes/2026-11-22-multiplayer-phase7.md).
