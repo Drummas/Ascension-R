@@ -14,6 +14,8 @@
  * SAM's SSL. SamStateStart::connect (func_0040A560) takes the SSL flag from byte 0x796 of the network settings,
  * which their constructor sets to 1 and nothing in the TSS changes; the matchmaker then speaks SSL of the game's own.
  * Ours does not, so gowa_sam_ssl clears the byte just before connect reads it. GOWA_SAM_SSL=1 leaves it.
+ * That connect is also where the game goes online for multiplayer: the launcher's cheats go off there
+ * (cheats.cpp, gowa_cheats_off), until the game is started again.
  *
  * The Online Pass: gowa_online_pass, below.
  */
@@ -24,6 +26,8 @@
 #include <string.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+
+extern "C" void gowa_cheats_off(const char* why);   /* cheats.cpp */
 
 static int env_on(const char* name)
 {
@@ -234,6 +238,7 @@ extern "C" void gowa_online_pass(ppu_context* ctx, uint32_t)
  * its error 28), so both go. */
 extern "C" void gowa_sam_ssl(ppu_context* ctx, uint32_t)
 {
+    gowa_cheats_off("the game went online for multiplayer");
     static int keep = -1;
     if (keep < 0) keep = env_on("GOWA_SAM_SSL");
     const uint32_t flags = (uint32_t)ctx->gpr[4] + 0x796;

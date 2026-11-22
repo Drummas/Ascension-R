@@ -12,6 +12,11 @@
  * What a creature is shows in its controller, at +0x1304: goPlayer for Kratos, goAI for enemies,
  * goPassiveAI and goNeoIO for the level's props, which a script may need alive (health 10000 and
  * 1 in the first fight).
+ *
+ * Multiplayer: the hooks are the engine's, so they would work in a match against other players too.
+ * Once the game goes online for multiplayer (online.cpp's gowa_sam_ssl, at its matchmaker's
+ * connect) every cheat is off for the rest of the session: gowa_cheats_off. The next start reads the
+ * settings again.
  */
 #include "ppu_recomp.h"
 #include "ps3emu/ps3_settings.h"
@@ -29,6 +34,7 @@ static const uint32_t CREATURE_HEALTH = 0x214, CREATURE_MAX_HEALTH = 0x218, CREA
 static double s_taken = 1.0;   /* what a hit on Kratos takes, of what it would */
 static double s_dealt = 1.0;   /* what his hits on enemies take; below 0, all their health */
 static int s_max_orbs, s_infinite_magic, s_infinite_rage, s_infinite_jumps;
+static volatile LONG s_off;    /* gowa_cheats_off: none from now on, whatever the settings say */
 
 /* Objects live on the title's heap. Anything else in an attacker's register is not a creature. */
 static int on_heap(uint64_t addr)
@@ -79,9 +85,21 @@ static int position_line(char* out, int max)
     return snprintf(out, (size_t)max, "X -   Y -   Z -");
 }
 
+/* Every cheat off until the game is started again (multiplayer: a fight against other players is a fair one). */
+extern "C" void gowa_cheats_off(const char* why)
+{
+    if (InterlockedExchange(&s_off, 1)) return;
+    const int any = s_taken != 1.0 || s_dealt != 1.0 || s_max_orbs || s_infinite_magic || s_infinite_rage ||
+                    s_infinite_jumps;
+    s_taken = s_dealt = 1.0;
+    s_max_orbs = s_infinite_magic = s_infinite_rage = s_infinite_jumps = 0;
+    if (any) fprintf(stderr, "[cheats] off until the game is started again: %s\n", why);
+}
+
 extern "C" void gowa_cheats_apply(void)
 {
     rsx_d3d12_backend_overlay_line(position_line);
+    if (s_off) return;
     const double taken = atof(ps3_settings_str("cheats", "damage_taken", "GOWA_CHEAT_DAMAGE_TAKEN", "1"));
     s_taken = taken < 0.0 ? 0.0 : taken > 1.0 ? 1.0 : taken;
     const char* dealt = ps3_settings_str("cheats", "damage_dealt", "GOWA_CHEAT_DAMAGE_DEALT", "1");

@@ -2286,7 +2286,7 @@ static const Icon k_tab_icon[T_N] = { k_ic_play, k_ic_pic, k_ic_screen, k_ic_pad
 static const wchar_t* const k_tab_desc[T_N] = {
     L"", L"How the picture is scaled, smoothed and filtered.", L"The window, its pace and the frame rate display.",
     L"Controller and keyboard.", L"Switches that change what the game draws, for speed.",
-    L"For an easier fight. The game reads these when it starts.",
+    L"For an easier fight. The game reads these when it starts; multiplayer turns them off until the next start.",
     L"Files that change the game, from the mods folder. The game reads them when it starts.",
     L"What you have won, from the game's own trophy list.",
     L"Play with other players: found by the game itself, or through a host.",
