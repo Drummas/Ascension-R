@@ -1,0 +1,10 @@
+# Our TSS blocks: <name> <version the game asks for> (docs/notes/2026-11-22-multiplayer-phase1.md)
+VersionMap 1
+MatchConfig 10
+TssConfig 1
+KillSwitchConfig 1
+DcdsConfig 7
+EntitlementConfig 1
+UiConfig 2
+XpConfig 3
+VoiceConfig 1

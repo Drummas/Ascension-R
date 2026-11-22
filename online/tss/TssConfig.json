@@ -1,0 +1,7 @@
+{
+ "MaxCacheAgeInSeconds": 3600,
+ "ExperimentNumber": 0,
+ "MotdUsesDcds": false,
+ "ShowDemoExec": false,
+ "EnableErrorCodeDisplay": true
+}

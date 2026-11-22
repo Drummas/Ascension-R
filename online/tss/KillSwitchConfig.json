@@ -1,0 +1,6 @@
+{
+ "DisableHealthReactionFix": false,
+ "DisableHostQuitTelemetryFix": false,
+ "DisableRestoreAvatarLoadOutSaveHack": false,
+ "DisableLoadoutValidation": false
+}

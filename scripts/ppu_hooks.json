@@ -1,5 +1,5 @@
 {
-  "note": "ppu_lifter.py --insn-hooks: gowa_poll_wait (poll_wait.cpp) at the heads of the main thread's polling loops, the launcher's cheats (cheats.cpp) on a creature's damage, the VRAM manager's guards (vram_guard.cpp)",
+  "note": "ppu_lifter.py --insn-hooks: gowa_poll_wait (poll_wait.cpp) at the heads of the main thread's polling loops, the launcher's cheats (cheats.cpp) on a creature's damage, the VRAM manager's guards (vram_guard.cpp), the online side (online.cpp): the game's log, the TSS, the Online Pass, SAM's SSL",
   "hooks": [
     {"addr": "0x0039B984", "fn": "gowa_vram_texture",
      "note": "func_0039B93C: r3 the size of the texture in r31's data, [+0x20] - [+0x1C], about to be allocated (issue #9)"},
@@ -52,6 +52,14 @@
     {"addr": "0x002726A4", "fn": "gowa_cheat_jump",
      "note": "func_00272140: the same test, the flags in r3, the creature in r31"},
     {"addr": "0x000B62DC", "fn": "gowa_cheat_jump",
-     "note": "func_000B57A0: the same test, the flags in r4, the creature in r31, choosing the jump func_000AB200 makes"}
+     "note": "func_000B57A0: the same test, the flags in r4, the creature in r31, choosing the jump func_000AB200 makes"},
+    {"addr": "0x001C2784", "fn": "gowa_game_log",
+     "note": "func_001C2784, the game's printf-style log, emptied in the release build: r3 the level, r4 the format, the arguments from r5 (online.cpp, GOWA_GAME_LOG=1)"},
+    {"addr": "0x0035D780", "fn": "gowa_tss_seen",
+     "note": "func_0035D684 after the TSS decrypted: r29 the buffer, r31 its owner (the size at +0x10708), about to check the version"},
+    {"addr": "0x0040A66C", "fn": "gowa_sam_ssl",
+     "note": "SamStateStart::connect (func_0040A560) about to read the SSL flag at +0x796 of the network settings in r4"},
+    {"addr": "0x002CA2B4", "fn": "gowa_online_pass",
+     "note": "func_002CA2A8 returning in r3 the mask of the add-on content found installed; bit 0 is the Online Pass the online gate wants"}
   ]
 }

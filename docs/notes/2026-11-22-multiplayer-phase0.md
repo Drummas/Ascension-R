@@ -179,3 +179,9 @@ would play each other only, never PS3 players on Sony's servers.
 - Whether telemetry or DCDS failures stop the lobby.
 - The values Sony's TSS held (match sizes, countdowns, Elo constants): ours will be guesses within the code's ranges
   unless a copy turns up.
+
+## Phase 1
+
+Done the same day (2026-11-22-multiplayer-phase1.md): the TSS cipher is Blowfish OFB, the Multi-Player entry is on
+the title's carousel (right), and the game now gets through the gate into the lobby and opens a plain TCP
+connection to a matchmaker of ours.

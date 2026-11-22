@@ -290,6 +290,7 @@ add_executable(${PROJECT_NAME}
     port/vram_guard.cpp
     port/patches.cpp
     port/ultrawide.cpp
+    port/online.cpp
     port/precompile.cpp
     port/loading_screen.cpp
     port/precompile_music.cpp
