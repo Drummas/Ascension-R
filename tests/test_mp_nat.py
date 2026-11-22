@@ -157,7 +157,8 @@ class Routers(unittest.TestCase):
                                        a.peers[b.id].via is not None and b.peers[a.id].via is not None, 15)
                 self.assertTrue(met, "\n".join(self.lines))
                 self.assertIs(a.peers[b.id].via, a.peers[r.id])
-                self.assertTrue(any("carrying for nodes" in line for line in self.lines))
+                carried = await self.until(lambda: any("carrying for nodes" in line for line in self.lines), 5)
+                self.assertTrue(carried, "\n".join(self.lines))   # the first message through it may still be on its way
 
                 sa, sb = search(11, "PlayerA"), search(22, "PlayerB")
                 a.start_search(sa)
