@@ -115,6 +115,25 @@ class Node(unittest.TestCase):
         self.assertEqual(mp_node.host(a, lambda t: None, ["X=1"], wait=wait), 0)
         self.assertEqual(seen, [True, True])
 
+    def test_auto_runs_the_node_and_tells_the_game_its_ports(self):
+        self.addCleanup(setattr, mp_node, "P2P", mp_node.P2P)
+        mp_node.P2P = {"lan": False, "dht": False, "node_port": 0}
+        seen = {}
+
+        async def wait(node):
+            seen["env"] = env_of(self.dir)
+            seen["ports"] = node.ports
+            seen["p2p"] = node.p2p_port
+
+        a = mp_node.argparse.Namespace(name="PlayerA", elf="x.elf", dir=self.dir, relay=False, p2p_port=None)
+        self.assertEqual(mp_node.auto(a, "PlayerA", lambda t: None, wait=wait), 0)
+        env, ports = seen["env"], seen["ports"]
+        self.assertEqual(env["PS3_NP_SIGNALING_SERVER"], "127.0.0.1:%d" % ports[2])   # the node's own, whatever port
+        self.assertEqual(env["PS3_NET_HOSTS"], "*=127.0.0.1")
+        self.assertEqual(env["PS3_NET_P2P_PORT"], str(seen["p2p"]))
+        self.assertGreaterEqual(seen["p2p"], 3658)
+        self.assertEqual(env["PS3_NP_ONLINE_ID"], "PlayerA")
+
     def test_a_taken_port_stops_the_host(self):
         s = socket.socket()
         s.bind(("0.0.0.0", 0))

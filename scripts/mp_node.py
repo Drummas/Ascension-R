@@ -1,15 +1,17 @@
 """The multiplayer side of a player's game: what the game starts (port/multiplayer.cpp) with the Kit's Python when
-the launcher's Multiplayer is on ([online] in the settings; docs/notes/2026-11-22-multiplayer-phase5.md).
+the launcher's Multiplayer is on ([online] in the settings; docs/notes/2026-11-22-multiplayer-phase5.md, phase6.md).
 
+    mp_node.py auto --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N]
     mp_node.py join --server <host> --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N]
     mp_node.py host --name <online id> --elf <GOWA.elf> --dir <folder> [--relay] [--p2p-port N] [--mode N]
                     [--players N]
 
-Both build our TSS from the player's own GOWA.elf with the matchmaker the game is to use (join: the host's; host:
-this PC's) and write the game's environment into <dir>/game.env, one NAME=value a line (an empty value: none), which
-the game applies before anything reads it. join then ends; host runs the matchmaker and the signaling server on
-every address, for this PC's game and for the players who join it, until the game ends (the node is in the game's
-job). Anything that stops it writes the reason into <dir>/node.error and ends with 2; what it does goes into
+Each builds our TSS from the player's own GOWA.elf with the matchmaker the game is to use (auto and host: this PC's;
+join: the host's) and writes the game's environment into <dir>/game.env, one NAME=value a line (an empty value:
+none), which the game applies before anything reads it. join then ends; host runs the matchmaker and the signaling
+server on every address, for this PC's game and for the players who join it; auto runs the node of multiplayer with
+no host (mp_p2p.py), which finds the other players' nodes itself. Both run until the game ends (the node is in the
+game's job). Anything that stops it writes the reason into <dir>/node.error and ends with 2; what it does goes into
 <dir>/node.log.
 """
 import argparse
@@ -29,6 +31,7 @@ SAM_PORT, GEO_PORT = 10070, 10012
 SIGNALING_PORT = mp_play.SIGNALING_PORT
 TSS_BLOCKS = os.path.join(ROOT, "online", "tss")
 ENV_FILE, ERROR_FILE, LOG_FILE = "game.env", "node.error", "node.log"
+P2P = {}      # more for mp_p2p.Node (tests: no LAN, no DHT)
 # Every variable the node decides: one it leaves out of a run is cleared, so nothing of another run or of the
 # player's own environment says otherwise.
 MANAGED = ("PS3_NET_ONLINE", "PSNR_SERVER", "PS3_NP_TEST_TICKET", "PS3_NP_TSS_FILE", "PS3_NP_TUS_DIR", "PS3_NET_HOSTS",
@@ -48,8 +51,8 @@ def clean_online_id(name):
     return name if ok else None
 
 
-def build_tss(elf, out, server_ip):
-    """Our TSS with server_ip as the matchmaker and geo service, keyed from the player's GOWA.elf."""
+def build_tss(elf, out, server_ip, sam_port=SAM_PORT, geo_port=GEO_PORT):
+    """Our TSS with server_ip (and those ports) as the matchmaker and geo service, keyed from the player's GOWA.elf."""
     try:
         bf, iv = mp_tss.cipher(mp_tss.Elf(elf))
         blocks = mp_tss.read_folder(TSS_BLOCKS)
@@ -57,8 +60,8 @@ def build_tss(elf, out, server_ip):
         raise Stop(str(e.code)) from None
     except OSError as e:
         raise Stop("cannot read %s: %s" % (e.filename or elf, e.strerror)) from None
-    if server_ip != "127.0.0.1":
-        blocks = mp_tss.with_server(blocks, server_ip, SAM_PORT, GEO_PORT)
+    if server_ip != "127.0.0.1" or sam_port != SAM_PORT or geo_port != GEO_PORT:
+        blocks = mp_tss.with_server(blocks, server_ip, sam_port, geo_port)
     data = mp_tss.crypt(bf, iv, mp_tss.pack(blocks), "ofb", False)
     tmp = out + ".new"
     with open(tmp, "wb") as f:
@@ -66,8 +69,9 @@ def build_tss(elf, out, server_ip):
     os.replace(tmp, out)
 
 
-def env_lines(server_ip, tss, tus, name, p2p_port=None, relay=False):
-    env = mp_play.game_env({}, server_ip, tss, tus, name, p2p_port, SIGNALING_PORT, relay, game_log=False)
+def env_lines(server_ip, tss, tus, name, p2p_port=None, relay=False, signaling_port=None):
+    env = mp_play.game_env({}, server_ip, tss, tus, name, p2p_port, signaling_port or SIGNALING_PORT, relay,
+                           game_log=False)
     unknown = set(env) - set(MANAGED)
     if unknown:
         raise RuntimeError("mp_play.game_env sets %s, which the node does not manage" % sorted(unknown))
@@ -94,12 +98,12 @@ def resolve(host):
 
 def main(argv):
     ap = argparse.ArgumentParser(description="God of War: Ascension's multiplayer, as the game starts it.")
-    ap.add_argument("role", choices=("join", "host"))
+    ap.add_argument("role", choices=("auto", "join", "host"))
     ap.add_argument("--server", help="join: the host's address")
     ap.add_argument("--name", required=True, help="the player's online id")
     ap.add_argument("--elf", required=True, help="the player's GOWA.elf")
     ap.add_argument("--dir", required=True, help="where the TSS, the TUS data, game.env and the log go")
-    ap.add_argument("--relay", action="store_true", help="the game's datagrams through the host's relay")
+    ap.add_argument("--relay", action="store_true", help="the game's datagrams always relayed (host or nodes)")
     ap.add_argument("--p2p-port", type=int, help="the UDP port peers reach this game at (3658)")
     ap.add_argument("--mode", type=int, help="host: the game mode of every Quick Play match")
     ap.add_argument("--players", type=int, help="host: Quick Play waits for this many players")
@@ -132,6 +136,8 @@ def run(a, log):
     name = clean_online_id(a.name)
     if not name:
         raise Stop("\"%s\" is not an online id: 3-16 letters, digits, - and _, starting with a letter" % a.name)
+    if a.role == "auto":
+        return auto(a, name, log)
     server_ip = "127.0.0.1" if a.role == "host" else resolve(a.server)
     tss = os.path.join(a.dir, "tss.bin")
     build_tss(a.elf, tss, server_ip)
@@ -180,6 +186,52 @@ def host(a, log, lines, wait=forever):
         sam.stop()
         sig.stop()
     return 0
+
+
+def free_udp(start, tries=10):
+    """The first UDP port from start that nothing on this PC holds now."""
+    for port in range(start, start + tries):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.bind(("0.0.0.0", port))
+            return port
+        except OSError:
+            continue
+        finally:
+            s.close()
+    return start
+
+
+def auto(a, name, log, wait=None):
+    """Multiplayer with no host: this PC's node (mp_p2p.py). Its ports on this PC are the usual ones, or any when
+    another game's node has them (two games on one PC: the second one's P2P port is 3659 or later)."""
+    import asyncio
+    import mp_p2p  # noqa: E402
+
+    async def go():
+        node = mp_p2p.Node(name, log, a.p2p_port or 3658, dht_cache=os.path.join(a.dir, "dht-nodes.json"), **P2P)
+        try:
+            ports = await node.start(SAM_PORT, GEO_PORT, SIGNALING_PORT)
+        except OSError as e:
+            raise Stop("the node could not start: %s" % e.strerror) from None
+        if not a.p2p_port:
+            node.p2p_port = free_udp(3658 if ports[0] == SAM_PORT else 3659)
+        tss = os.path.join(a.dir, "tss.bin")
+        build_tss(a.elf, tss, "127.0.0.1", ports[0], ports[1])
+        log("auto as %s: TSS %s, matchmaker 127.0.0.1:%d, P2P port %d" % (name, tss, ports[0], node.p2p_port))
+        write_env(a.dir, env_lines("127.0.0.1", tss, os.path.join(a.dir, "np_tus"), name, node.p2p_port, a.relay,
+                                   ports[2]))
+        try:
+            if wait:
+                await wait(node)
+            else:
+                while True:
+                    await asyncio.sleep(3600)
+        finally:
+            node.close()
+        return 0
+
+    return asyncio.run(go())
 
 
 if __name__ == "__main__":

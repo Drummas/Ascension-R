@@ -87,14 +87,16 @@ class Search:
         return [online_id(e) for e in self.entries]
 
 
-def world_blob(mode, searches):
-    """A reserved world's players: 16 bytes of ours, the game mode, the count, flags 0; each player's entry with the
-    host flag on the first and every player its own peer index."""
-    rows = []
-    for e in (e for s in searches for e in s.entries):
-        slot = len(rows)
-        rows.append(e + struct.pack(">BBBBHBB", 1 if slot == 0 else 0, 0, 0, 0, 0, slot, 0))
+def world_blob_of(mode, entries):
+    """A reserved world's players from their search entries (ENTRY_SEARCH bytes each), in order: 16 bytes of ours,
+    the game mode, the count, flags 0; each player's entry with the host flag on the first and every player its own
+    peer index."""
+    rows = [e + struct.pack(">BBBBHBB", 1 if slot == 0 else 0, 0, 0, 0, 0, slot, 0) for slot, e in enumerate(entries)]
     return os.urandom(16) + bytes([mode, len(rows), 0]) + b"".join(rows)
+
+
+def world_blob(mode, searches):
+    return world_blob_of(mode, [e for s in searches for e in s.entries])
 
 
 class Matchmaker:

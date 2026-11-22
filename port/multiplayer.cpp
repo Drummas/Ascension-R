@@ -2,7 +2,7 @@
  * Ascension-R -- multiplayer from the launcher's settings (docs/notes/2026-11-22-multiplayer-phase5.md).
  *
  * [online]
- *   mode       off | host | join
+ *   mode       off | auto | host | join
  *   name       the player's online id: 3-16 letters, digits, - and _, starting with a letter
  *   server     join: the host's address (a name or an IPv4 address)
  *   relay      off | on: the game's datagrams always through the host's relay
@@ -14,7 +14,9 @@
  * beside build\ with the .venv's Python or one on the PATH; GOWA_PYTHON names another) in a job that ends with this
  * process, and waits for the node's game.env: the variables the runtime's network and NP read, put into this
  * environment before anything reads them. host leaves the node running: the matchmaker and the signaling server for
- * this game and the players who join it. The node's folder is online\ beside the settings: tss.bin, np_tus\ (the
+ * this game and the players who join it; auto leaves the node of multiplayer with no host running (mp_p2p.py), which
+ * finds the other players' nodes itself (the BitTorrent DHT, this network) and is this game's matchmaker and signaling
+ * server (docs/notes/2026-11-22-multiplayer-phase6.md). The node's folder is online\ beside the settings: tss.bin, np_tus\ (the
  * multiplayer profile), node.log.
  */
 #define WIN32_LEAN_AND_MEAN
@@ -152,11 +154,11 @@ int fail(char* why, size_t n, const char* fmt, const char* a = "")
 
 }  // namespace
 
-/* 0 off, 1 host, 2 join. */
+/* 0 off, 1 host, 2 join, 3 auto. */
 extern "C" int gowa_online_mode(void)
 {
     const char* m = setting("mode");
-    return !_stricmp(m, "host") ? 1 : !_stricmp(m, "join") ? 2 : 0;
+    return !_stricmp(m, "host") ? 1 : !_stricmp(m, "join") ? 2 : !_stricmp(m, "auto") ? 3 : 0;
 }
 
 /* The runtime's rule for an online id (np_psnr.c), taken as it is: 1 if name is one. */
@@ -249,7 +251,7 @@ extern "C" int gowa_online_start(char* why, size_t n)
     DeleteFileW(env_file.c_str());
     DeleteFileW(err_file.c_str());
 
-    std::wstring cmd = L"\"" + py + L"\" -E -s -B -X utf8 \"" + script + L"\" " + (mode == 1 ? L"host" : L"join") +
+    std::wstring cmd = L"\"" + py + L"\" -E -s -B -X utf8 \"" + script + L"\" " + (mode == 1 ? L"host" : mode == 2 ? L"join" : L"auto") +
                        L" --name " + wide(setting("name")) + L" --elf \"" + wide(elf) + L"\" --dir \"" + dir + L"\"";
     if (mode == 2) cmd += L" --server " + wide(setting("server"));
     if (ps3_settings_bool("online", "relay", NULL, 0)) cmd += L" --relay";
@@ -329,7 +331,8 @@ extern "C" int gowa_online_start(char* why, size_t n)
         _putenv_s(line.substr(0, eq).c_str(), line.substr(eq + 1).c_str());   /* "" takes it away */
         vars++;
     }
-    printf("[online] %s as %s%s%s: %d variables from %ls\n", mode == 1 ? "hosting" : "joining", setting("name"),
+    printf("[online] %s as %s%s%s: %d variables from %ls\n",
+           mode == 1 ? "hosting" : mode == 2 ? "joining" : "finding players", setting("name"),
            mode == 2 ? " " : "", mode == 2 ? setting("server") : "", vars, env_file.c_str());
     s_state = 1;
     return 1;

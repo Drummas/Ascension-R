@@ -195,9 +195,9 @@ static const char* const k_lang_n[] = { "Windows language", "English (US)", "Eng
                                         "Polish", "Turkish" };
 
 /* online.mode (multiplayer.cpp). */
-static const char* const k_omode[] = { "off", "host", "join" };
-static const char* const k_omode_n[] = { "Off", "Host: this PC", "Join a host" };
-static const char* const k_omode_s[] = { "Off", "Host", "Join" };
+static const char* const k_omode[] = { "off", "auto", "host", "join" };
+static const char* const k_omode_n[] = { "Off", "Auto: find players", "Host: this PC", "Join a host" };
+static const char* const k_omode_s[] = { "Off", "Auto", "Host", "Join" };
 
 #define LIST(v, n) v, n, (int)(sizeof v / sizeof v[0])
 #define SW k_onoff, NULL, 2, NULL
@@ -294,16 +294,17 @@ static Opt s_opt[] = {
       "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, "
       "named by the id a picture in its place takes. The game is slower while it is on." },
     { T_ONLINE, "online", "mode", "off", "Multiplayer", 0, LIST(k_omode, k_omode_n), k_omode_s,
-      "Host: this PC runs the matchmaking, for its own game and the players who join it. Join: play through a host's "
-      "PC. Then Multi-Player on the game's title screen, and Quick Play." },
+      "Auto: the game finds other players itself, as torrents find their peers: no host. Host: this PC runs the "
+      "matchmaking, for its own game and the players who join it. Join: play through a host's PC. Then Multi-Player "
+      "on the game's title screen, and Quick Play." },
     { T_ONLINE, "online", "name", "", "Online ID", 0, NULL, NULL, 0, NULL,
       "Your name in the game: 3 to 16 letters, digits, - and _, starting with a letter. Every player needs their own.",
       16 },
     { T_ONLINE, "online", "server", "", "Host's address", 0, NULL, NULL, 0, NULL,
       "To join: the address the host's Multiplayer tab shows, or the host's name.", 63 },
-    { T_ONLINE, "online", "relay", "off", "Always through the host", 1, SW,
-      "Your game's traffic goes by the host's PC instead of straight to the other players: for a network where joining "
-      "works and playing does not." },
+    { T_ONLINE, "online", "relay", "off", "Always relayed", 1, SW,
+      "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the "
+      "other players: for a network where joining works and playing does not." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -2184,7 +2185,7 @@ static const wchar_t* const k_tab_desc[T_N] = {
     L"For an easier fight. The game reads these when it starts.",
     L"Files that change the game, from the mods folder. The game reads them when it starts.",
     L"What you have won, from the game's own trophy list.",
-    L"Play the game's multiplayer with other players: one hosts, the others join.",
+    L"Play the game's multiplayer with other players: found by the game itself, or one hosts and the others join.",
     L"The game's folder, language, saves and this window." };
 
 /* A link down the sidebar: an icon and a name, lit under the mouse. */
@@ -3047,7 +3048,7 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
 /* The Multiplayer tab's notes, under its rows: why Play could not start multiplayer (until it does), where the players
  * who join find this PC (Host), and what they all see of it. */
 static char s_online_err[300];
-static int online_notes(const wchar_t* out[3], unsigned rgb[3])
+static int online_notes(const wchar_t* out[4], unsigned rgb[4])
 {
     static wchar_t host[1400], err[400];
     static char lan[400];
@@ -3059,6 +3060,12 @@ static int online_notes(const wchar_t* out[3], unsigned rgb[3])
         rgb[n++] = C_BAD;
     }
     const Opt* m = opt_find("online", "mode");
+    if (m && ps3_settings_ieq(m->cur, "auto")) {
+        out[n] = L"Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks "
+                 L"for Ascension-R players there can see this PC's address while the game runs. Windows may ask to let "
+                 L"Python through: allow it.";
+        rgb[n++] = C_TEXT2;
+    }
     if (m && ps3_settings_ieq(m->cur, "host")) {
         if (!lan_read) {
             gowa_online_lan(lan, sizeof lan);
@@ -3077,8 +3084,8 @@ static int online_notes(const wchar_t* out[3], unsigned rgb[3])
 }
 static float online_h(float w)
 {
-    const wchar_t* t[3];
-    unsigned c[3];
+    const wchar_t* t[4];
+    unsigned c[4];
     const int n = online_notes(t, c);
     float h = 10.0f;
     for (int i = 0; i < n; i++) h += text_h(t[i], s_tf_desc, w - 26) + 10.0f;
@@ -3086,8 +3093,8 @@ static float online_h(float w)
 }
 static void online_draw(float x, float y, float w)
 {
-    const wchar_t* t[3];
-    unsigned c[3];
+    const wchar_t* t[4];
+    unsigned c[4];
     const int n = online_notes(t, c);
     w_rule(x, y, w);
     y += 12.0f;
