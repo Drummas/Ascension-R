@@ -10,6 +10,7 @@ a two-player mode two meet and the third waits; a game that stops searching is l
 Usage:
     python tests/test_mp_p2p.py
 """
+import asyncio
 import socket
 import struct
 import sys
@@ -224,6 +225,16 @@ class P2P(unittest.TestCase):
             return h == "through"
         self.assertTrue(self.until(how, 15), (self.status(a), self.lines[-20:]))
         self.assertNotIn("community", self.status(a)[1])            # a community node is no player
+
+    def test_the_signaling_port_when_udp_cannot_have_it(self):
+        # The number the signaling server's TCP got, refused to UDP (Windows keeps ranges of ports by protocol): the
+        # node takes another for both, and the game is welcomed there.
+        tried = []
+        with sig_t.refusing_udp(True, tried):
+            r = self.node("PlayerA")
+        self.assertEqual(len(tried), 2)
+        self.assertEqual(r.ports[2], tried[1])
+        self.signaling(r, "PlayerA", 3658)
 
     def test_a_game_that_stops_searching_is_left_out(self):
         a, b = self.node("PlayerA"), self.node("PlayerB", 3659)

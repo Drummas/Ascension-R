@@ -291,14 +291,26 @@ class Node:
                 return await asyncio.start_server(handler, "127.0.0.1", port)
             except OSError:
                 return await asyncio.start_server(handler, "127.0.0.1", 0)
+
+        async def signaling(port):
+            """The signaling server's TCP and UDP, on one number as the game has them: port, or another when it is
+            taken, or when UDP cannot have it (Windows keeps ranges of ports by protocol, for Hyper-V and the like)."""
+            for attempt in range(20):
+                sig = await server(lambda r, w: nss.Player(self.srv, r, w).run(), port if attempt == 0 else 0)
+                number = sig.sockets[0].getsockname()[1]
+                try:
+                    udp, _ = await loop.create_datagram_endpoint(lambda: nss.Udp(self.srv),
+                                                                 local_addr=("127.0.0.1", number))
+                    return sig, udp, number
+                except OSError:
+                    sig.close()
+                    await sig.wait_closed()
+            raise OSError("no port that both TCP and UDP can have for the signaling server")
         front = (0, 0, 0)
         if not self.community:
             sam = await server(lambda r, w: mp_sam.Client(self.mm, r, w).run(), sam_port)
             geo = await server(mp_sam.geo, geo_port)
-            sig = await server(lambda r, w: nss.Player(self.srv, r, w).run(), sig_port)
-            sport = sig.sockets[0].getsockname()[1]
-            self.sig_udp, _ = await loop.create_datagram_endpoint(lambda: nss.Udp(self.srv),
-                                                                  local_addr=("127.0.0.1", sport))
+            sig, self.sig_udp, sport = await signaling(sig_port)
             self.srv.udp_port = sport
             self.servers = [sam, geo, sig]
             front = (sam.sockets[0].getsockname()[1], geo.sockets[0].getsockname()[1], sport)
