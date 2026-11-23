@@ -112,6 +112,14 @@ extern "C" void gowa_title_patches_apply(void)
     }
 }
 
+/* Whether a patch is on in this run: switched on, and taken (not refused for another build of the title). */
+extern "C" int gowa_title_patch_on(const char* id)
+{
+    for (const gowa_title_patch* p = k_title_patches; p->id; p++)
+        if (!strcmp(p->id, id)) return *p->guard != 0;
+    return 0;
+}
+
 /* For the launcher: the patches this build has, in the catalog's order. */
 extern "C" int gowa_title_patch_count(void)
 {

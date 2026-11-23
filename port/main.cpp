@@ -285,6 +285,8 @@ static ULONGLONG clock_us(void)
 #endif
 }
 
+extern "C" int gowa_title_patch_on(const char* id);   /* patches.cpp */
+
 static DWORD WINAPI frame_clock(LPVOID)
 {
     ps3_thread_name("frame clock");   /* vblank ticks, the RSX drain and presents */
@@ -373,6 +375,20 @@ static DWORD WINAPI frame_clock(LPVOID)
             fprintf(stderr, "[gowa] frame cap %.2f fps: a flip no sooner than %.2f ms after the last\n",
                     fps, (double)flip_min_us / 1000.0);
         }
+    }
+    /* Unlock FPS (the title patch unlock_fps, experimental): the title steps its world by each
+     * frame's own time, so a flip may come sooner than a vblank period, no sooner than 1/fps_limit s
+     * ([display] fps_limit, 120 by default; 0: as soon as the drain reaches it). VSync still holds
+     * the flips to the display's rate. Not under frame_cap or frame generation, whose own pace is
+     * set above. */
+    if (gowa_title_patch_on("unlock_fps") && !frame_cap) {
+        const double lim = atof(ps3_settings_str("display", "fps_limit", "GOWA_FPS_LIMIT", "120"));
+        flip_min_us = lim > 0.0 ? (ULONGLONG)(1000000.0 / lim) : 0;
+        if (lim > 0.0)
+            fprintf(stderr, "[gowa] unlock fps: a flip no sooner than %.2f ms after the last (%.0f fps)\n",
+                    (double)flip_min_us / 1000.0, lim);
+        else
+            fprintf(stderr, "[gowa] unlock fps: a flip as soon as the drain reaches it\n");
     }
     if (const char* e = getenv("GOWA_FLIP_MIN_MS")) flip_min_us = (ULONGLONG)atoi(e) * 1000;
     if (const char* e = getenv("GOWA_FLIP_MIN_US")) flip_min_us = (ULONGLONG)atoi(e);
