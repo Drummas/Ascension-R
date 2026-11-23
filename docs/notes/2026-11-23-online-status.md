@@ -14,7 +14,10 @@ taken elsewhere and published where the page can read it, with no server of the 
   the last count, so a passing outage neither shows zero nor fails the job.
 - `site/index.html` reads `https://raw.githubusercontent.com/rigaz29/Ascension-R/status/status.json` (which GitHub
   serves to any page, cached up to 5 minutes) and says "about N players on Auto, counted M minutes ago"; older than
-  three hours, or none at all, it says so. The text goes in with `textContent`.
+  three hours, or none at all, it says so. The text goes in with `textContent`. While the count is fresh, the same
+  count also shows under the download buttons at the top of the page.
+- The README has a badge of it: shields.io's dynamic JSON badge reads `players` from the same file
+  (`cacheSeconds=600`), as a README cannot run a script.
 
 What the count misses:
 

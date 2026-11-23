@@ -6,6 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform: Windows x64](https://img.shields.io/badge/platform-Windows%20x64-lightgrey.svg)
 ![Status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
+[![Players online now](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Frigaz29%2FAscension-R%2Fstatus%2Fstatus.json&query=%24.players&label=players%20online%20now&color=2ea043&cacheSeconds=600)](https://rigaz29.github.io/Ascension-R/)
 
 <a href="https://recomplauncher.com/game/ascension-r"><picture><source media="(prefers-color-scheme: dark)" srcset="https://recomplauncher.com/assets/press/launcher/badge-light.svg"><img alt="Get it on RecompLauncher" src="https://recomplauncher.com/assets/press/launcher/badge-dark.svg" height="48"></picture></a>
 
@@ -70,7 +71,8 @@ problems further in.
 - **Multiplayer (beta):** the game's online modes, from the launcher's Multiplayer tab. Auto finds other Ascension-R
   players by itself, as torrent clients find their peers (the BitTorrent DHT and the local network), with no server;
   Host and Join let one PC host its friends. The router is asked to open the port (UPnP), and two players who cannot
-  reach each other play through a third player's PC or a community node. The cheats are off in multiplayer.
+  reach each other play through a third player's PC or a community node. The cheats are off in multiplayer. The
+  badge above and the website show about how many players are online on Auto, counted every 20 minutes.
 - **Trophies:** read from the game's own trophy list, in the game's language. A notice over the picture for each one
   won, a Trophies page in the launcher, and the platinum once every single-player trophy is won.
 - **Saves:** backups kept before the game writes over a save.
