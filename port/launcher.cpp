@@ -1343,14 +1343,18 @@ static void dlss_dl_end(void)
     }
 }
 
-/* The card the game will use is NVIDIA's, or the launcher does not know which it is. */
-static bool gpu_maybe_nvidia(void)
+/* The card the game will use is one of NVIDIA's RTX cards ("NVIDIA GeForce RTX 3060", "NVIDIA RTX A2000", "Quadro
+ * RTX 4000"), which DLSS runs on, or the launcher does not know which it is. */
+static bool gpu_maybe_rtx(void)
 {
     const char* g = gpu_chosen();
     if (!g || !*g) return true;
-    for (const char* p = g; *p; p++)
-        if (!_strnicmp(p, "NVIDIA", 6)) return true;
-    return false;
+    bool nvidia = false, rtx = false;
+    for (const char* p = g; *p; p++) {
+        if (!_strnicmp(p, "NVIDIA", 6) || !_strnicmp(p, "Quadro", 6)) nvidia = true;
+        if (!_strnicmp(p, "RTX", 3)) rtx = true;
+    }
+    return nvidia && rtx;
 }
 
 /* The AMD FSR upscalers the last sessions used (report.cpp reads their logs), for the ready check's line: the newest
@@ -2717,7 +2721,7 @@ static void draw_play(void)
         } else if (anr && !anr_present()) {
             check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
             w_button(L"Get ANR", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
-        } else if (dlss && !gpu_maybe_nvidia()) {
+        } else if (dlss && !gpu_maybe_rtx()) {
             check_line(lx, y, lw, 0, L"DLSS needs an RTX card: AMD FSR instead");
         } else if (dlss && s_dlss_dl.running) {
             const long long total = s_dlss_dl.p.total, done = s_dlss_dl.p.done;
@@ -4645,7 +4649,7 @@ static void opt_changed(const Opt& o)
     if (!strcmp(o.section, "online")) online_sync();
     if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "anr") && !anr_present() && !s_anr_dl.running)
         anr_offer();
-    if (!strcmp(o.key, "scaling") && ps3_settings_ieq(o.cur, "dlss") && gpu_maybe_nvidia() && !dlss_present() &&
+    if (!strcmp(o.key, "scaling") && ps3_settings_ieq(o.cur, "dlss") && gpu_maybe_rtx() && !dlss_present() &&
         !s_dlss_dl.running)
         dlss_offer();
 }
