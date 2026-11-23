@@ -100,8 +100,25 @@ and set each frame's step against its ticks over the timebase's 79.8 MHz.
 - Step 1's streaming stretch (HECA100.TS's 2nd to 18th open) is no measure of speed: 15.2 and 16.7 s in two runs
   without the patch, 16.1-16.5 s with it.
 
+## VSync on a 120 Hz display: three buffers
+
+First play on a 120 Hz display, Unlocked with VSync on: the opening movie at 120, Village of Kirra at 60. The swap chain
+had two buffers: under VSync a frame that took longer than a refresh (8.3 ms) held the next until the refresh after,
+so a game that ran 70-110 on its own was shown at 60. With Unlock FPS the swap chain has three
+(`D3D12_SWAP_BUFFERS=3`, which main.cpp sets with the patch; rsx_d3d12_backend.c keeps two otherwise, frame generation
+and the 60 of the vblanks included, where a third buffer would only add a frame of delay).
+
+- The player's own session played again (its pad, its saves as they were at its start), Unlocked, VSync on, FSR 3 at
+  1.5x, one run each: Village of Kirra, 70-100 s, two buffers 84, 59, 57, 51, 56, 58, 60 flips a second; three 113, 83,
+  76, 67, 66, 68, 72.
+- The descriptor slots of the presentation passes were laid out for two display targets: `PP_SLOT_UP` for the
+  upscaler and SMAA's weights overlapped with a third, and the AMD driver crashed in `fg_targets` at the first FSR
+  frame. Every per-target run is FRAME_COUNT (3) long now, checked by a static assert.
+- Two buffers again checked with SMAA and bilinear, and with frame generation on (60 flips a second, a 120 Hz display):
+  no crash, no D3D12 error, the picture whole.
+
 ## Not done
 
-- A 144 Hz monitor, and VSync on at 120 or 144: this display ran with VSync off.
+- A 144 Hz monitor.
 - Frame generation from a game above 60 (72 for a 144 Hz monitor).
-- The game beyond the first level at more than 60.
+- The game beyond Village of Kirra at more than 60.

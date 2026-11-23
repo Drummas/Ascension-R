@@ -128,7 +128,9 @@ stays on screen for the same number of refreshes.
 120, 144 and Unlocked are experimental and let the game run past 60 at its own speed. A patch of the title
 (`unlock_fps`) has each frame move the world by its own length, where the game moved it at least a 60th of a second,
 and the frame clock lets a frame come up to the cap's pace (Unlocked: as fast as the PC goes). With VSync on, the
-monitor's refresh rate is the most. Frame generation is off with these, and the game goes back to 60 when it goes online
+monitor's refresh rate is the most, and the swap chain has three buffers, so a game that cannot hold the refresh shows
+what it makes instead of dropping to half of it (Village of Kirra on a 120 Hz display: 66-113 instead of 51-60).
+Frame generation is off with these, and the game goes back to 60 when it goes online
 for multiplayer, until it is started again. On an i5-12400F with an RX 6700 XT, VSync off: the title, the menus and the
 opening movie at 120, the first fight held by the CPU at 37-53 as without the patch; every frame's step equal to its
 real length, the movie's clock at 1.000 s a second, and the first level's load 1-3 s shorter than at 60, as the game

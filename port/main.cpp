@@ -1933,6 +1933,9 @@ int main(int argc, char** argv)
     {
         const char* cap = ps3_settings_str("display", "frame_cap", "GOWA_FRAME_CAP", "off");
         env_default("GOWA_PATCH_UNLOCK_FPS", cap && (ps3_settings_ieq(cap, "unlocked") || atof(cap) > 60.5) ? "1" : "0");
+        /* Three buffers in the swap chain (rsx_d3d12_backend.c): with two, VSync on a 120 or 144 Hz display let a
+         * frame that took longer than a refresh hold the next one until the refresh after, and the game sat at 60. */
+        if (gowa_title_patch_wanted("unlock_fps")) env_default("D3D12_SWAP_BUFFERS", "3");
         const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
         if (gowa_title_patch_wanted("unlock_fps") && fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr"))) {
             fprintf(stderr, "[gowa] frame generation off: Unlock FPS sets the pace\n");
