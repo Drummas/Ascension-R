@@ -289,5 +289,11 @@ Play.
   them: `address:port`, a comma between. One runs with `kit\python\python.exe kit\scripts\mp_p2p.py community` in the
   download's folder, or `python3 scripts/mp_p2p.py community` from the repository, its UDP port 36102 reachable.
 
-The launcher's cheats go off once the game goes online for multiplayer, until it is started again. How it works: the
+The launcher's cheats go off once the game goes online for multiplayer, until it is started again.
+
+The website shows about how many players are online on Auto: every 20 minutes a GitHub Actions job
+(`.github/workflows/online-status.yml`) looks them up on the DHT as a node does (`scripts/mp_status.py`), and puts
+the count alone, with its time, as `status.json` on the `status` branch. It is a rough count: players behind a router
+that maps by destination do not announce themselves, one who has just gone can still be counted for up to about 30
+minutes, and Host and Join games are not on the DHT ([note](notes/2026-11-23-online-status.md)). How it works: the
 notes from [phase 0](notes/2026-11-22-multiplayer-phase0.md) to [phase 7](notes/2026-11-22-multiplayer-phase7.md).

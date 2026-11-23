@@ -71,6 +71,7 @@ jobs:
           python tests/test_mp_play.py
           python tests/test_mp_node.py
           python tests/test_mp_dht.py
+          python tests/test_mp_status.py
           python tests/test_mp_p2p.py
           python tests/test_mp_nat.py
           python tests/test_mp_upnp.py

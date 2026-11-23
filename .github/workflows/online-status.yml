@@ -1,0 +1,49 @@
+# How many Ascension-R players are online on Auto, for the website: every 20 minutes scripts/mp_status.py looks the
+# players up on the BitTorrent DHT, as a player's node does, and status.json goes on the status branch, a single commit
+# put there again each time, which the website reads. It holds counts alone: no address and no name. A lookup no DHT
+# node answered leaves the last count as it was (docs/notes/2026-11-23-online-status.md).
+name: Online status
+
+on:
+  schedule:
+    - cron: '7,27,47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: online-status
+  cancel-in-progress: false
+
+jobs:
+  count:
+    name: Count the players online
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Look the players up on the DHT
+        run: python3 scripts/mp_status.py --out status.json
+
+      - name: Put status.json on the status branch
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! python3 -c "import json, sys; sys.exit(0 if json.load(open('status.json'))['ok'] else 1)"; then
+            echo "No DHT node answered: the last count stays."
+            exit 0
+          fi
+          mkdir publish
+          cp status.json publish/
+          cd publish
+          git init -q
+          git checkout -q --orphan status
+          git add status.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Online status"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${REPO}.git" status
