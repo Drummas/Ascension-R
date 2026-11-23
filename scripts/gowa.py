@@ -1121,10 +1121,19 @@ def title_patches(elf):
         for e in p.get("spu", []):
             mod, ls = e.get("module", ""), int(str(e["ls"]), 0)
             orig, new = int(str(e["orig"]), 0), int(str(e["new"]), 0)
-            if not re.fullmatch(r"jobmod_[0-9a-f]{12}_e[0-9A-F]+", mod):
-                bad(p, "spu edit: %r is not a job module's name" % mod)
             if ls & 3 or not 0 <= ls < 0x40000 or orig >> 32 or new >> 32:
                 bad(p, "spu edit: bad local-store address or word at 0x%X" % ls)
+            if "image" in e:   # an SPU program embedded in the ELF, by its sha256 (build_spu_workloads.py)
+                img = spu_program(elf, e["image"])
+                if not img:
+                    bad(p, "spu edit: the ELF has no embedded SPU program %s (another build?)" % e["image"])
+                held = img[1](ls)
+                if held != orig:
+                    bad(p, "SPU program %s holds %s at LS 0x%X, the patch expects 0x%08X (another build?)"
+                        % (e["image"][:12], "0x%08X" % held if held is not None else "nothing", ls, orig))
+                continue
+            if not re.fullmatch(r"jobmod_[0-9a-f]{12}_e[0-9A-F]+", mod):
+                bad(p, "spu edit: %r is not a job module's name" % mod)
             # Where a lift has placed the module, its bytes in the ELF must be the
             # original; spu_lifter.py checks them again at the lift either way.
             for m in jobmods_manifest():
@@ -1161,17 +1170,65 @@ def jobmods_manifest():
     return json.load(open(path)) if os.path.exists(path) else []
 
 
+def spu_program(elf, image):
+    """The SPU program embedded in the ELF whose sha256 is or starts with `image` (as build_spu_workloads.py finds
+    them): (sha256, word at a local-store address or None), or None."""
+    sys.path.insert(0, TOOLS)
+    from spu_elf import scan_spu_candidates
+    buf = open(elf, "rb").read()
+    for offset, info, error in scan_spu_candidates(buf):
+        if error:
+            continue
+        blob = buf[offset:offset + info["size"]]
+        digest = hashlib.sha256(blob).hexdigest()
+        if not digest.startswith(image):
+            continue
+        phoff, = struct.unpack_from(">I", blob, 0x1C)
+        phentsize, phnum = struct.unpack_from(">HH", blob, 0x2A)
+        segs = []
+        for i in range(phnum):
+            p_type, p_off, p_vaddr, _, p_filesz = struct.unpack_from(">IIIII", blob, phoff + i * phentsize)
+            if p_type == 1:
+                segs.append((p_off, p_vaddr, p_filesz))
+
+        def word(ls, segs=segs, blob=blob):
+            for p_off, p_vaddr, p_filesz in segs:
+                if p_vaddr <= ls and ls + 4 <= p_vaddr + p_filesz:
+                    return struct.unpack_from(">I", blob, p_off + ls - p_vaddr)[0]
+            return None
+        return digest, word
+    return None
+
+
 def title_patches_spu_file(patches):
-    """lift_jobmods.py --insn-patches from the catalog's spu edits, or None."""
+    """lift_jobmods.py --insn-patches from the catalog's spu edits of job modules, or None."""
     edits = [{"module": e["module"], "addr": e["ls"], "orig": e["orig"], "new": e["new"],
               "guard": p["guard"], "optional": bool(e.get("optional")),
               "note": "%s: %s" % (p["id"], e.get("note", ""))}
-             for p in patches for e in p.get("spu", [])]
+             for p in patches for e in p.get("spu", []) if "image" not in e]
     if not edits:
         return None
     path = os.path.join(ANALYSIS, "GOWA.spu_insn_patches.json")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         json.dump({"patches": edits}, f, indent=1)
+    return path
+
+
+def title_patches_spu_image_file(patches):
+    """build_spu_workloads.py --insn-patches from the catalog's edits of the ELF's embedded SPU programs (their
+    "image"), or "" when there are none."""
+    edits = [{"image": e["image"], "addr": e["ls"], "orig": e["orig"], "new": e["new"],
+              "guard": p["guard"], "optional": bool(e.get("optional")),
+              "note": "%s: %s" % (p["id"], e.get("note", ""))}
+             for p in patches for e in p.get("spu", []) if "image" in e]
+    if not edits:
+        return ""
+    os.makedirs(ANALYSIS, exist_ok=True)
+    path = os.path.join(ANALYSIS, "GOWA.spu_image_insn_patches.json")
+    text = json.dumps({"patches": edits}, indent=1) + "\n"
+    if not os.path.exists(path) or open(path, encoding="utf-8").read() != text:   # unchanged: CMake does not generate again
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
     return path
 
 
@@ -1341,6 +1398,7 @@ def cmd_build(args):
               "-DCMAKE_C_COMPILER=" + compiler, "-DCMAKE_CXX_COMPILER=" + cxx,
               "-DPS3RECOMP_DIR=" + PS3RECOMP, "-DRECOMP_DIR=" + RECOMPILED,
               "-DPORT_SPU_INPUTS=" + spu_inputs,
+              "-DPORT_SPU_INSN_PATCHES=" + (title_patches_spu_image_file(title_patches(spu_inputs)) if spu_inputs else ""),
               "-DPORT_SPU_LINES=" + ("ON" if args.spu_lines else "OFF"),
               "-DPORT_SPU_JOBCAP=" + ("ON" if args.jobcap else "OFF"),
               "-DPORT_SPU_FLOAT_APPROX=" + ("ON" if args.spu_approx else "OFF"),
@@ -2081,8 +2139,10 @@ def cmd_module(args):
     os.makedirs(gen, exist_ok=True)
     say("[module] the SPU programs inside the game's ELF%s" % (", PGO " + pgo_tag[:16] if pgo else ""))
     PROGRESS.phase(pre + "spu_programs", "Translating the SPU programs" if not pre else "Optimising for this PC: the training copy")
+    spu_patches = title_patches_spu_image_file(title_patches(elf))   # the title patches' edits of these programs
     step("build_spu_workloads", py + [os.path.join(TOOLS, "build_spu_workloads.py"), "--lifted", gen,
-                                      "--out", os.path.join(gen, "spu_workloads.c"), "--constructor", "--merge-chunks", "--input", elf])
+                                      "--out", os.path.join(gen, "spu_workloads.c"), "--constructor", "--merge-chunks", "--input", elf]
+         + (["--insn-patches", spu_patches] if spu_patches else []))
     PROGRESS.part(1, 2)
     os.makedirs(os.path.join(out, "native"), exist_ok=True)
     env = dict(os.environ, GOWA_WORK=WORK, GOWA_ELF=elf)

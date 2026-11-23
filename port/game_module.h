@@ -14,7 +14,7 @@
  * 5: gowa_vram_cut. 6: the vertex pass's second stride, in rsx_d3d12_vertex_pass_set's high half, and the
  * copy's first vertex in its table (native/spu_edge_gpulight.c). 7: gowa_edge_prop, a mod's proportions
  * (port/edge_prop.c). 8: the multiplayer's hooks (port/online.cpp). */
-#define GAME_MODULE_ABI 8
+#define GAME_MODULE_ABI 9
 
 /* The program's functions. In the DLL each is one jump through the table. */
 #define GAME_MODULE_FUNCS(X)                                                                                                  \
@@ -42,7 +42,8 @@ typedef struct { uint8_t* vb; const unsigned char* coh; } GameModuleMm;
 #define GAME_MODULE_DATA(X)                                                                                                   \
     X(uint8_t*, vm_base) X(GameModuleMm, g_ppu_mm) X(volatile int, g_spu_direct) X(volatile int, g_spu_ijmp_local)            \
     X(int, g_gowa_patch_disable_depth_of_field) X(int, g_gowa_patch_disable_mesh_trimming) X(int, g_gowa_patch_disable_mlaa)  \
-    X(int, g_gowa_patch_disable_motion_blur) X(int, g_gowa_patch_disable_shadows)
+    X(int, g_gowa_patch_disable_motion_blur) X(int, g_gowa_patch_disable_shadows) X(int, g_gowa_patch_mlaa_path_off)        \
+    X(int, g_gowa_patch_unlock_fps)
 
 typedef struct GameModuleHost {
     uint32_t abi, size;

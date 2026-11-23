@@ -315,8 +315,9 @@ static DWORD WINAPI frame_clock(LPVOID)
      * the rest being full-screen and HUD programs. Its motion blur's draws of what moves
      * have last frame's in c335-c338 and a vertex's last position in attribute 7. */
     rsx_d3d12_backend_camera_register(264, 335, 7);
-    /* MLAA pipelines the frame: at its final composite the depth is the next frame's. */
-    if (!gowa_title_patch_wanted("disable_mlaa")) rsx_d3d12_backend_fsr3_refuse("MLAA is on");
+    /* MLAA pipelines the frame: at its final composite the depth is the next frame's. The title's path without it
+     * (mlaa_path_off, which main switches on for AMD FSR and frame generation) does not. */
+    if (!gowa_title_patch_wanted("mlaa_path_off")) rsx_d3d12_backend_fsr3_refuse("MLAA is on");
 #endif
     int rsx_ok = (rsx_backend_init(WINDOW_WIDTH, WINDOW_HEIGHT, title) == 0);
     fprintf(stderr, "[rsx] %s backend init %s\n", RSX_BACKEND_NAME,
@@ -1937,6 +1938,15 @@ int main(int argc, char** argv)
             fprintf(stderr, "[gowa] frame generation off: Unlock FPS sets the pace\n");
             ps3_settings_override("graphics", "frame_generation", "off");
         }
+    }
+    /* AMD FSR (scaling fsr3) and frame generation take the title's frame order without MLAA, whose depth at the final
+     * composite is the frame's own (frame_clock); in it bloom and the motion blur are drawn and then written over, so
+     * they go with it. The patch has no row: these switch it on, GOWA_PATCH_MLAA_PATH_OFF or --set as ever. */
+    {
+        const char* sc = ps3_settings_str("graphics", "scaling", NULL, "bilinear");
+        const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
+        const bool fsr = (sc && ps3_settings_ieq(sc, "fsr3")) || (fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr")));
+        env_default("GOWA_PATCH_MLAA_PATH_OFF", fsr ? "1" : "0");
     }
     gowa_title_patches_apply();   /* [patches]: the ones switched on (patches.cpp) */
     gowa_cheats_apply();          /* [cheats]: cheats.cpp */

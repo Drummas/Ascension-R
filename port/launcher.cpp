@@ -360,11 +360,12 @@ static int s_npopt;
 static const char* patch_desc(const char* id)
 {
     static const char* const d[][2] = {
-        { "disable_mlaa", "The PS3's SPU anti-aliasing, whose picture this port never shows: about 5% "
-                          "faster. The bloom goes with it. AMD FSR and frame generation need this on." },
+        { "disable_mlaa", "The PS3's SPU anti-aliasing, whose picture this port never shows, does no work: "
+                          "about 5% faster, and the bloom stays. AMD FSR and frame generation take the "
+                          "game's order without MLAA, which has no bloom or motion blur." },
         { "disable_depth_of_field", "The blur of what lies outside the camera's focus." },
-        { "disable_motion_blur", "Saves the blur's work. With Disable MLAA on it never reaches the screen "
-                                 "anyway. AMD FSR and frame generation keep its draws, for what moves." },
+        { "disable_motion_blur", "No blur of what moves fast. With AMD FSR or frame generation it never "
+                                 "reaches the screen anyway, and they keep its draws, for what moves." },
         { "disable_mesh_trimming", "Keeps the triangles the game drops as too thin for its 720p grid. For "
                                    "Internal resolution above 720p: at 720p it only adds geometry (3% slower "
                                    "at the first level, 11% at the gate)." },
@@ -382,6 +383,7 @@ static void popt_init(void)
     const int n = gowa_title_patch_count();
     for (int i = 0; i < n && s_npopt < MAX_POPT; i++) {
         if (!strcmp(gowa_title_patch_id(i), "unlock_fps")) continue;   /* the Display tab's Frame rate cap switches it */
+        if (!strcmp(gowa_title_patch_id(i), "mlaa_path_off")) continue;   /* AMD FSR and frame generation switch it (main.cpp) */
         Opt& o = s_popt[s_npopt++];
         o = Opt();
         o.tab = T_PATCHES; o.section = "patches"; o.key = gowa_title_patch_id(i);
@@ -2631,7 +2633,6 @@ static void draw_play(void)
          * frame generation's maker. ANR FG without its files: Get ANR (anr_offer); while it downloads, how far. */
         const Opt* sc = opt_find("graphics", "scaling");
         const Opt* fg = opt_find("graphics", "frame_generation");
-        const Opt* ml = popt_find("disable_mlaa");
         const bool fsr = sc && ps3_settings_ieq(sc->cur, "fsr3");
         const bool anr = fg && ps3_settings_ieq(fg->cur, "anr");
         const bool fgon = anr || (fg && ps3_settings_ieq(fg->cur, "on"));
@@ -2652,8 +2653,6 @@ static void draw_play(void)
         } else if (anr && !anr_present()) {
             check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
             w_button(L"Get ANR", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
-        } else if ((fsr || fgon) && ml && !opt_on(*ml)) {
-            check_line(lx, y, lw, 0, L"AMD FSR needs Disable MLAA (Game patches)");
         } else if (!fsr) {
             swprintf(b, 200, L"Scaling: %ls%ls", W(sc ? opt_name(*sc) : "Bilinear"), tail);
             check_line(lx, y, lw, 2, b);

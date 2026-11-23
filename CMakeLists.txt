@@ -183,9 +183,13 @@ set(SPU_SOURCES "")
 # branch between them is a trampoline round trip. Merging them was worth a fifth
 # of a particle task's time in the God of War HD port.
 option(PORT_SPU_MERGE_CHUNKS "Lift the embedded SPU programs with --merge-chunks" ON)
+# The title patches' edits of the embedded SPU programs (scripts/title_patches.json, "image" edits), written by
+# gowa.py: each lifted both ways behind its patch's guard.
+set(PORT_SPU_INSN_PATCHES "" CACHE STRING "JSON of instruction edits of the embedded SPU programs (build_spu_workloads.py --insn-patches)")
 if(PORT_ENABLE_SPU AND PORT_SPU_INPUTS)
     include("${PS3RECOMP_DIR}/cmake/PS3RecompSPU.cmake")
     set(PS3RECOMP_SPU_MERGE_CHUNKS ${PORT_SPU_MERGE_CHUNKS})
+    set(PS3RECOMP_SPU_INSN_PATCHES "${PORT_SPU_INSN_PATCHES}")
     ps3recomp_generate_spu("${CMAKE_CURRENT_BINARY_DIR}/generated_spu" ${PORT_SPU_INPUTS})
     list(APPEND SPU_SOURCES ${SPU_GENERATED_SOURCES}
          "${PS3RECOMP_DIR}/runtime/spu/spu_dispatch_mt.c")

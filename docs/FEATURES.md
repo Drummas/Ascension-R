@@ -206,9 +206,14 @@ under `../fsr-sdk`, or from local.json's `fsr_dir`. Without the DLLs the log say
 
 Both take what moves from the title's motion blur draws, so Disable Motion Blur is left off with them: EDGE goes from 46
 to 67 ms a flip, and a fight at the 30 cap loses about 0.3 frames a second on a cool machine, more on a hot one.
-`graphics.frame_generation_objects = off` goes back to the camera's motion alone, and the patch applies. Both need Disable
-MLAA on: with MLAA the depth at the final composite is the next frame's, so FSR stays off and the log says why. The
-[plan](notes/2026-11-07-fsr31-plan.md) has the measurements.
+`graphics.frame_generation_objects = off` goes back to the camera's motion alone, and the patch applies. Both take the
+title's frame order without MLAA, which the game switches on for them (`mlaa_path_off`): with MLAA the depth at the final
+composite is the next frame's. In that order the bloom and the motion blur are drawn and then written over, so with AMD
+FSR or frame generation there is no bloom. The [plan](notes/2026-11-07-fsr31-plan.md) has the measurements.
+
+Disable MLAA in the Patches tab (on by default) has the PS3's SPU anti-aliasing, whose picture this port never shows, do
+no work, as RPCS3's Disable SPU MLAA does: the title keeps its frame order with MLAA, so the bloom reaches the picture,
+at the frame rate of the order without it ([note](notes/2026-11-23-bloom-spu-mlaa.md)).
 
 ## Controllers
 

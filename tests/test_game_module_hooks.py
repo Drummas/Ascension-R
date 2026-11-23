@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Every function scripts/ppu_hooks.json has the lift call is in the Kit's table (port/game_module.h).
+"""Every function scripts/ppu_hooks.json has the lift call is in the Kit's table (port/game_module.h), and every title
+patch's guard is in the data the program hands the DLL.
 
 The lifted code calls a hook by name, and in the Kit's ascension_game.dll that name is one jump through the table the
 program fills, GAME_MODULE_FUNCS. A hook left out of it links in the one exe of a source build and fails the DLL's
@@ -22,6 +23,12 @@ def funcs():
     return set(re.findall(r"X\((\w+)\)", body))
 
 
+def data():
+    src = (ROOT / "port" / "game_module.h").read_text(encoding="utf-8")
+    body = re.search(r"#define GAME_MODULE_DATA\(X\)(.*?)(?:\n\n|\n/\*)", src, re.S).group(1)
+    return set(re.findall(r"X\([^,]+,\s*(\w+)\)", body))
+
+
 class Hooks(unittest.TestCase):
     def test_every_hook_is_in_the_table(self):
         hooks = json.loads((ROOT / "scripts" / "ppu_hooks.json").read_text(encoding="utf-8"))["hooks"]
@@ -29,6 +36,15 @@ class Hooks(unittest.TestCase):
         have = funcs()
         missing = sorted({h["fn"] for h in hooks} - have)
         self.assertEqual(missing, [], "hooks the lift calls that GAME_MODULE_FUNCS does not have: %s" % missing)
+
+    def test_every_patch_guard_is_in_the_data(self):
+        """The lifted code reads a patch's guard by name; in the DLL that is its own copy, set from GAME_MODULE_DATA
+        (game_module.c, module_sync). One left out links in a source build and fails the DLL's link."""
+        patches = json.loads((ROOT / "scripts" / "title_patches.json").read_text(encoding="utf-8"))["patches"]
+        self.assertTrue(patches)
+        have = data()
+        missing = sorted({p["guard"] for p in patches if p.get("ppu") or p.get("spu")} - have)
+        self.assertEqual(missing, [], "patch guards GAME_MODULE_DATA does not have: %s" % missing)
 
 
 if __name__ == "__main__":
