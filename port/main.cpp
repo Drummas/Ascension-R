@@ -286,6 +286,18 @@ static ULONGLONG clock_us(void)
 }
 
 extern "C" int gowa_title_patch_on(const char* id);   /* patches.cpp */
+extern "C" int gowa_title_patch_off(const char* id);  /* patches.cpp */
+
+/* Unlock FPS goes off when the game goes online for multiplayer (online.cpp, where the cheats go off too): the title's
+ * own instructions and constants back, and the frame clock back to the vblank period, until the game is started again.
+ * A match runs at the 60 every other player has. */
+static volatile LONG g_unlock_fps_gone = 0;
+extern "C" void gowa_unlock_fps_off(const char* why)
+{
+    if (!gowa_title_patch_off("unlock_fps")) return;
+    InterlockedExchange(&g_unlock_fps_gone, 1);
+    fprintf(stderr, "[gowa] unlock fps: off until the game is started again (%s)\n", why);
+}
 
 static DWORD WINAPI frame_clock(LPVOID)
 {
@@ -376,13 +388,18 @@ static DWORD WINAPI frame_clock(LPVOID)
                     fps, (double)flip_min_us / 1000.0);
         }
     }
-    /* Unlock FPS (the title patch unlock_fps, experimental): the title steps its world by each
-     * frame's own time, so a flip may come sooner than a vblank period, no sooner than 1/fps_limit s
-     * ([display] fps_limit, 120 by default; 0: as soon as the drain reaches it). VSync still holds
-     * the flips to the display's rate. Not under frame_cap or frame generation, whose own pace is
-     * set above. */
-    if (gowa_title_patch_on("unlock_fps") && !frame_cap) {
-        const double lim = atof(ps3_settings_str("display", "fps_limit", "GOWA_FPS_LIMIT", "120"));
+    /* Unlock FPS (the title patch unlock_fps, experimental; the launcher's Frame rate cap 120, 144 or
+     * Unlocked switches it on, see main): the title steps its world by each frame's own time, so a
+     * flip may come sooner than a vblank period, no sooner than 1/the cap s (0, Unlocked: as soon as
+     * the drain reaches it; GOWA_FPS_LIMIT or [display] fps_limit in its place; 120 when the patch
+     * was switched on by itself). VSync still holds the flips to the display's rate. Not under a cap
+     * below 60, whose own pace is set above; frame generation is off with it (main). Back to one
+     * vblank period when the game goes online (gowa_unlock_fps_off). */
+    bool unlocked = gowa_title_patch_on("unlock_fps") && !frame_cap;
+    if (unlocked) {
+        const char* cap = ps3_settings_str("display", "frame_cap", "GOWA_FRAME_CAP", "off");
+        const char* dflt = cap && ps3_settings_ieq(cap, "unlocked") ? "0" : cap && atof(cap) > 60.5 ? cap : "120";
+        const double lim = atof(ps3_settings_str("display", "fps_limit", "GOWA_FPS_LIMIT", dflt));
         flip_min_us = lim > 0.0 ? (ULONGLONG)(1000000.0 / lim) : 0;
         if (lim > 0.0)
             fprintf(stderr, "[gowa] unlock fps: a flip no sooner than %.2f ms after the last (%.0f fps)\n",
@@ -420,6 +437,10 @@ static DWORD WINAPI frame_clock(LPVOID)
          * the wait can wake a millisecond late, and a title running ahead of
          * the vblanks would lose that millisecond on every flip. Not under
          * frame_cap, whose flips land on the beat. */
+        if (unlocked && g_unlock_fps_gone) {   /* online: the title's own pace again */
+            unlocked = false;
+            flip_min_us = 1001000ull / 60ull;
+        }
         if (held && !frame_cap && flip_min_us) {
             const ULONGLONG due = last_flip_us + flip_min_us, t = clock_us();
             if (t < due) {
@@ -1901,6 +1922,21 @@ int main(int argc, char** argv)
     if (!entry) {
         fprintf(stderr, "ERROR: could not load %s\n", elf);
         return 1;
+    }
+    /* [display] frame_cap = 120, 144 or unlocked (the launcher's Frame rate cap, experimental): the title patch
+     * unlock_fps, and the frame clock's pace for it (frame_clock). Frame generation is off with it: it would hold the
+     * game at half the display's refresh, 60 at most. The game going online for multiplayer takes the patch back
+     * (gowa_unlock_fps_off). The cap is its only switch for players: [patches] unlock_fps in the file is passed over
+     * (the launcher has no row for it), while GOWA_PATCH_UNLOCK_FPS=1 and --set patches.unlock_fps=on still switch it on
+     * by themselves, for tests. */
+    {
+        const char* cap = ps3_settings_str("display", "frame_cap", "GOWA_FRAME_CAP", "off");
+        env_default("GOWA_PATCH_UNLOCK_FPS", cap && (ps3_settings_ieq(cap, "unlocked") || atof(cap) > 60.5) ? "1" : "0");
+        const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
+        if (gowa_title_patch_wanted("unlock_fps") && fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr"))) {
+            fprintf(stderr, "[gowa] frame generation off: Unlock FPS sets the pace\n");
+            ps3_settings_override("graphics", "frame_generation", "off");
+        }
     }
     gowa_title_patches_apply();   /* [patches]: the ones switched on (patches.cpp) */
     gowa_cheats_apply();          /* [cheats]: cheats.cpp */

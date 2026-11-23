@@ -119,6 +119,22 @@ next start, and the first session compiles part of the shaders again.
 Frame generation works without its pass for moving objects at these widths. The
 [note](notes/2026-11-10-ultrawide.md) has what was measured and what has not been tried.
 
+## Frame rate cap
+
+Frame rate cap in the launcher's Display tab (`display.frame_cap`). Off, the default, is the game's own pace: 60 frames a
+second at most, as on a PS3. 20 and 30 give an even pace for a PC that cannot hold more: with VSync on, every frame
+stays on screen for the same number of refreshes.
+
+120, 144 and Unlocked are experimental and let the game run past 60 at its own speed. A patch of the title
+(`unlock_fps`) has each frame move the world by its own length, where the game moved it at least a 60th of a second,
+and the frame clock lets a frame come up to the cap's pace (Unlocked: as fast as the PC goes). With VSync on, the
+monitor's refresh rate is the most. Frame generation is off with these, and the game goes back to 60 when it goes online
+for multiplayer, until it is started again. On an i5-12400F with an RX 6700 XT, VSync off: the title, the menus and the
+opening movie at 120, the first fight held by the CPU at 37-53 as without the patch; every frame's step equal to its
+real length, the movie's clock at 1.000 s a second, and the first level's load 1-3 s shorter than at 60, as the game
+loads a little each frame. A 144 Hz monitor and the game past the first level have not been tried
+([note](notes/2026-11-23-unlock-fps.md)).
+
 ## Frame rate on screen
 
 Frame rate display in the launcher's Display tab (`display.show_fps`): in the title bar (the default), off, or on screen,

@@ -16,7 +16,8 @@
  * catalog, on unless switched off (= off). A data edit whose bytes in guest
  * memory are not the ones the patch expects refuses the whole patch, guard
  * included: the patch was made for another build of the title. The lifted code
- * reads the guards, so they change only here, before the guest starts.
+ * reads the guards, so they change only here, before the guest starts, and in
+ * gowa_title_patch_off, which takes one back while the title runs.
  */
 #include "ps3emu/ps3_settings.h"
 #include <ctype.h>
@@ -117,6 +118,26 @@ extern "C" int gowa_title_patch_on(const char* id)
 {
     for (const gowa_title_patch* p = k_title_patches; p->id; p++)
         if (!strcmp(p->id, id)) return *p->guard != 0;
+    return 0;
+}
+
+/* Takes a patch that is on back while the title runs: its data edits get the title's bytes again, then its guard is
+ * cleared, so the lifted code runs the title's own instructions. A function of the title halfway through when it
+ * happens may run that once with the two mixed. 1 = taken back, 0 = it was not on. Unlock FPS when the game goes
+ * online (main.cpp, gowa_unlock_fps_off). */
+extern "C" int gowa_title_patch_off(const char* id)
+{
+    for (const gowa_title_patch* p = k_title_patches; p->id; p++) {
+        if (strcmp(p->id, id) || !*p->guard)
+            continue;
+        const int self = (int)(p - k_title_patches);
+        for (const gowa_title_data* d = k_title_data; d->patch >= 0; d++)
+            for (uint32_t i = 0; d->patch == self && i < d->n; i++)
+                vm_write8(d->addr + i, d->orig[i]);
+        *(volatile int*)p->guard = 0;
+        fprintf(stderr, "[patches] %s: off\n", p->name);
+        return 1;
+    }
     return 0;
 }
 

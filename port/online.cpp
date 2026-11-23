@@ -28,6 +28,7 @@
 #include <windows.h>
 
 extern "C" void gowa_cheats_off(const char* why);   /* cheats.cpp */
+extern "C" void gowa_unlock_fps_off(const char* why);   /* main.cpp */
 
 static int env_on(const char* name)
 {
@@ -239,6 +240,7 @@ extern "C" void gowa_online_pass(ppu_context* ctx, uint32_t)
 extern "C" void gowa_sam_ssl(ppu_context* ctx, uint32_t)
 {
     gowa_cheats_off("the game went online for multiplayer");
+    gowa_unlock_fps_off("the game went online for multiplayer");
     static int keep = -1;
     if (keep < 0) keep = env_on("GOWA_SAM_SSL");
     const uint32_t flags = (uint32_t)ctx->gpr[4] + 0x796;

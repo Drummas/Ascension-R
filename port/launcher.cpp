@@ -140,9 +140,10 @@ static const char* const k_swait[] = { "off", "short", "full" };
 static const char* const k_swait_n[] = { "Off: never, a gap for a moment instead", "Short: a frame waits 33 ms at most",
                                          "Full: up to two seconds" };
 static const char* const k_swait_s[] = { "Off", "Short", "Full" };
-static const char* const k_cap[] = { "off", "20", "30" };
-static const char* const k_cap_n[] = { "Off", "20 fps, even pace", "30 fps, even pace" };
-static const char* const k_cap_s[] = { "Off", "20 fps", "30 fps" };
+static const char* const k_cap[] = { "off", "20", "30", "120", "144", "unlocked" };
+static const char* const k_cap_n[] = { "Off: the game's own 60", "20 fps, even pace", "30 fps, even pace",
+                                       "120 fps (experimental)", "144 fps (experimental)", "Unlocked (experimental)" };
+static const char* const k_cap_s[] = { "Off", "20 fps", "30 fps", "120 fps", "144 fps", "Unlocked" };
 static const char* const k_scale[] = { "bilinear", "sharp", "fsr1", "fsr3" };
 static const char* const k_scale_n[] = { "Bilinear", "Sharp bilinear", "AMD FSR 1", "AMD FSR" };
 static const char* const k_scale_s[] = { "Bilinear", "Sharp", "FSR 1", "FSR" };
@@ -212,7 +213,10 @@ static Opt s_opt[] = {
     { T_DISPLAY, "display", "vsync", "on", "VSync", 1, SW,
       "Wait for the display's refresh: no tearing." },
     { T_DISPLAY, "display", "frame_cap", "off", "Frame rate cap", 0, LIST(k_cap, k_cap_n), k_cap_s,
-      "An even pace instead of the highest rate the PC reaches. With frame generation, off follows the monitor." },
+      "20 and 30: an even pace instead of the highest rate the PC reaches. 120, 144 and Unlocked (experimental): the "
+      "game runs past its 60 at its own speed, as far as the PC and, with VSync, the monitor take it; frame generation "
+      "is off with them, and the game goes back to 60 once it goes online for multiplayer. With frame generation, off "
+      "follows the monitor." },
     { T_DISPLAY, "display", "show_fps", "title", "Frame rate display", 0, LIST(k_fps, k_fps_n), k_fps_s,
       "On screen shows FPS, frame time, the CPU's, GPU's, PPU's, SPU's and RSX's load and a graph of the last "
       "frames' times, in the top right corner." },
@@ -377,6 +381,7 @@ static void popt_init(void)
     s_npopt = 0;
     const int n = gowa_title_patch_count();
     for (int i = 0; i < n && s_npopt < MAX_POPT; i++) {
+        if (!strcmp(gowa_title_patch_id(i), "unlock_fps")) continue;   /* the Display tab's Frame rate cap switches it */
         Opt& o = s_popt[s_npopt++];
         o = Opt();
         o.tab = T_PATCHES; o.section = "patches"; o.key = gowa_title_patch_id(i);
@@ -3376,9 +3381,11 @@ static void summary(wchar_t* out, size_t n)
     const Opt* a = opt_find("graphics", "antialiasing");
     const Opt* c = opt_find("display", "frame_cap");
     const Opt* g = opt_find("graphics", "frame_generation");
+    const bool high = c && (ps3_settings_ieq(c->cur, "unlocked") || atof(c->cur) > 60.5);   /* frame generation goes off */
     swprintf(out, n, L"%ls  \x00B7  %ls  \x00B7  %ls  \x00B7  %ls",
              W(opt_short(opt_find("display", "mode"))), W(opt_short(opt_find("graphics", "scaling"))),
              a && ps3_settings_ieq(a->cur, "smaa") ? L"SMAA" : L"no AA",
+             high ? W(opt_short(c)) :
              g && ps3_settings_ieq(g->cur, "on") ? L"frame generation" : g && ps3_settings_ieq(g->cur, "anr") ? L"ANR FG" :
              c && !ps3_settings_ieq(c->cur, "off") ? W(opt_short(c)) : L"no cap");
 }

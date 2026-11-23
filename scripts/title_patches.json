@@ -67,32 +67,26 @@
    "id": "unlock_fps",
    "name": "Unlock FPS (experimental)",
    "guard": "g_gowa_patch_unlock_fps",
-   "note": "Lets the title run past 60 frames a second at its own speed (docs/notes/2026-11-23-unlock-fps.md). It steps its world by the real time of each frame, counted in periods of 1/rate (rate 59.94, the global 0x83B45C, set once by func_002D01E8): func_002D0258 clamps that count to 1-4 periods, so a frame under 16.7 ms still moved it by 16.7 ms, and above 60 fps it ran fast. With the rate 1000 a period is 1 ms: the clamp's floor is 1 ms, and its ceiling stays 66.7 ms. The rate global keeps 59.94 for its other readers (gameplay code that scales by it), while the time count, the frame sync and the video player read 1000.0. RPCS3's \"Unlock FPS\" v2.0 for 1.04 as the map (its 1.12 v1.0, which handed 1000 to every reader, was taken out of its list); each site read back from this ELF. Beyond it: func_002D0258's two fixed steps, one period when 0x9424D8 forces it and mode 4's two, are kept at 16.7 and 33.4 ms (their constants are that function's alone). The frame clock (main.cpp) then lets flips come sooner than a vblank period: [display] fps_limit, 120 by default.",
+   "note": "Lets the title run past 60 frames a second at its own speed (docs/notes/2026-11-23-unlock-fps.md). It steps its world by the real time of each frame, counted in periods of 1/rate (rate 59.94, the global 0x83B45C): func_002D0258 clamps that count to 1-4 periods, so a frame under 16.7 ms still moved it by 16.7 ms, and above 60 fps it ran fast. The patch lowers the floor to 1 ms (0.06 periods) and keeps the rest: the rate, its global and the time count func_002CA76C stay as they were (two loaders take a fifth of its period as their work a frame: with 1 ms periods, step 1's design, the loads took seconds longer). The video player moves its clock by the frame's step instead of one period. The 2026-11-17 study and RPCS3's \"Unlock FPS\" v2.0 for 1.04 were the map; each site read back from this ELF. The frame clock (main.cpp) then lets flips come sooner than a vblank period: the launcher's Frame rate cap, 120, 144 or Unlocked.",
    "ppu": [
-    {"addr": "0x002D01F8", "orig": "0xD024B45C", "new": "0x60000000",
-     "note": "func_002D01E8, the rate set (once, at init): stfs f1,0xb45c(r4) -> nop, so the global keeps the data edit's 59.94"},
-    {"addr": "0x002CA79C", "orig": "0xC043B45C", "new": "0xC043948C",
-     "note": "func_002CA76C, the time count: lfs f2,0xb45c(r3) -> lfs f2,0x948c(r3), the TOC word 0x83948C, 1000.0"},
-    {"addr": "0x002D02E4", "orig": "0xC025B45C", "new": "0xC025948C",
-     "note": "func_002D0258, the frame sync: lfs f1,0xb45c(r5) -> 1000.0"},
-    {"addr": "0x002D038C", "orig": "0xC023B45C", "new": "0xC023948C",
-     "note": "func_002D0258: its second read of the rate, lfs f1,0xb45c(r3) -> 1000.0"},
-    {"addr": "0x003F6798", "orig": "0xC3E4B45C", "new": "0xC3E4948C",
-     "note": "func_003F5748, the video player: lfs f31,0xb45c(r4) -> 1000.0, so a video keeps its speed"}
+    {"addr": "0x002D0398", "orig": "0xEC9D1028", "new": "0xEC811028",
+     "note": "func_002D0258, the frame sync: fsubs f4,f29,f2 -> fsubs f4,f1,f2, the floor is f1 (the rate, 59.94) instead of the scale f29"},
+    {"addr": "0x002D039C", "orig": "0xFC44176E", "new": "0xFC44106E",
+     "note": "func_002D0258: fsel f2,f4,f29,f2 -> fsel f2,f4,f1,f2, with the scale 1000 (data below) a floor of 0.06 periods, 1 ms"},
+    {"addr": "0x002D03B0", "orig": "0xFFE3F8AE", "new": "0xFFE01090",
+     "note": "func_002D0258: fsel f31,f3,f2,f31 -> fmr f31,f2, the measured step loses its second floor, rate / int rate (0.999 periods); a step not measured keeps it"},
+    {"addr": "0x003F678C", "orig": "0x3C800084", "new": "0x3C800094",
+     "note": "func_003F5748, the video player: addis r4,0,0x84 -> 0x94 (r4 is set again before any other read of it)"},
+    {"addr": "0x003F6798", "orig": "0xC3E4B45C", "new": "0xC3E424A4",
+     "note": "func_003F5748: lfs f31,0xb45c(r4), the rate -> lfs f31,0x24a4(r4), the frame's step in seconds (0x9424A4, func_002D0258's)"},
+    {"addr": "0x003F67A0", "orig": "0xFFE1F824", "new": "0x60000000",
+     "note": "func_003F5748: fdiv f31,f1,f31 (1/rate) -> nop, so the video clock moves by the frame's step; the audio's time still sets it when one comes"}
    ],
    "data": [
-    {"addr": "0x003A52B4", "orig": "426FC28F", "new": "447A0000",
-     "note": "the rate table's 59.94 -> 1000.0: the rate set gives 1 ms periods (int rate 1000)"},
-    {"addr": "0x002D024C", "orig": "43C80000", "new": "45D05800",
-     "note": "func_002D0258's ceiling 400 (4 periods, 66.7 ms) -> 6667 (66.67 ms of 1 ms periods): the same longest step"},
-    {"addr": "0x002D0250", "orig": "3F800000", "new": "41857780",
-     "note": "func_002D0258's 1.0, the one period 0x9424D8 forces -> 16.6834 (1000/59.94): still 16.7 ms"},
-    {"addr": "0x002D0254", "orig": "40000000", "new": "42057780",
-     "note": "func_002D0258's 2.0, mode 4's fixed step -> 33.3667 (2000/59.94): still 33.4 ms"},
-    {"addr": "0x0083B45C", "orig": "BF800000", "new": "426FC28F",
-     "note": "the rate global: 59.94 from the start, as the rate set would have made it (its store is a nop now)"},
-    {"addr": "0x0083948C", "orig": "447A0000", "new": "447A0000",
-     "note": "checked only: the TOC word the four loads read, 0x447A0000, a link-time constant that is 1000.0 as a float"}
+    {"addr": "0x002D0248", "orig": "42C80000", "new": "447A0000",
+     "note": "func_002D0258's scale and floor 100 (one period) -> 1000: the step is counted in thousandths of a period, so the floor the edits above give, the rate 59.94, is 0.06 periods"},
+    {"addr": "0x002D024C", "orig": "43C80000", "new": "457A0000",
+     "note": "func_002D0258's ceiling 400 -> 4000: still 4 periods, 66.7 ms"}
    ]
   }
  ]
