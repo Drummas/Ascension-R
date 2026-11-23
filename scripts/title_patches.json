@@ -16,7 +16,7 @@
   },
   {
    "id": "mlaa_path_off",
-   "name": "MLAA path off (AMD FSR)",
+   "name": "MLAA path off (FSR, DLSS)",
    "guard": "g_gowa_patch_mlaa_path_off",
    "note": "Switched on by main.cpp with AMD FSR or frame generation, which need it: with MLAA the title pipelines its frame, and at its final composite the depth is the next frame's. Without MLAA it draws bloom and the motion blur right after the flip and the next frame's fog pass writes over them, so neither reaches the picture (docs/notes/2026-11-03-fsr3.md, section 3). The title's SPU anti-aliasing: five taskset tasks a frame over a copy of the frame. This port never shows their output (its frame stays on the GPU), so they only cost time. The word at 0x83D004 is the title's own MLAA switch, read in 18 places from its init to every frame (func_0041C344 arms the MLAA counter with it); at 0 the title takes its own paths without MLAA.",
    "ppu": [

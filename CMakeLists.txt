@@ -98,6 +98,13 @@ option(PORT_ANR "ANR frame generation, beta: graphics.frame_generation = anr" ON
 if(PORT_ANR)
     set(PS3RECOMP_ANR ON CACHE BOOL "ANR frame generation, beta: graphics.frame_generation = anr" FORCE)
 endif()
+# PORT_DLSS: graphics.scaling = dlss, NVIDIA DLSS Super Resolution and DLAA on RTX cards (ps3recomp's PS3RECOMP_DLSS). The
+# build fetches NVIDIA's NGX headers and library into the build folder; the launcher fetches nvngx_dlss.dll for a player
+# who picks it. Nothing of NVIDIA's is kept in this repository.
+option(PORT_DLSS "NVIDIA DLSS Super Resolution: graphics.scaling = dlss" ON)
+if(PORT_DLSS)
+    set(PS3RECOMP_DLSS ON CACHE BOOL "NVIDIA DLSS Super Resolution: graphics.scaling = dlss" FORCE)
+endif()
 # The game has no SDATA and its one EDAT needs a key we do not have, so the build
 # leaves the decryption out: no keys in the exe and nothing written beside the
 # game's files.
@@ -282,6 +289,7 @@ add_executable(${PROJECT_NAME}
     port/launcher.cpp
     port/update_check.cpp
     port/anr_get.cpp
+    port/dlss_get.cpp
     port/update_feed.cpp
     port/report.cpp
     port/game_find.cpp

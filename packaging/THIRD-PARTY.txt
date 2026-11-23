@@ -13,6 +13,7 @@ Silkscreen font                 SIL OFL 1.1    Silkscreen.txt
 stb_image 2.30                  public domain
 stb_image_write 1.16            public domain
 stb_truetype 1.26               public domain
+NVIDIA NGX (DLSS SDK 310.9.16)  NVIDIA RTX SDKs license, not MIT: no reverse engineering   NVIDIA-DLSS.txt
 
 
 BESIDE IT
@@ -33,6 +34,11 @@ dxcompiler.dll, dxil.dll
 
 msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll
     Microsoft Visual C++ runtime, from Visual Studio's redistributable files. Copyright (c) Microsoft Corporation.
+
+dlss\nvngx_dlss.dll (not in this download)
+    NVIDIA DLSS 310.9.16, the release build, which the launcher downloads from NVIDIA's own DLSS repository on GitHub
+    when you pick NVIDIA DLSS. NVIDIA's, under the NVIDIA RTX SDKs license; the notices of the code in it:
+    NVIDIA-DLSS.txt.
 
 The Microsoft files are here only so that this program can run. Use them only as part of it, and do not change them or
 pass them on apart from it.

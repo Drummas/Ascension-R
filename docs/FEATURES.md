@@ -217,6 +217,28 @@ Disable MLAA in the Patches tab (on by default) has the PS3's SPU anti-aliasing,
 no work, as RPCS3's Disable SPU MLAA does: the title keeps its frame order with MLAA, so the bloom reaches the picture,
 at the frame rate of the order without it ([note](notes/2026-11-23-bloom-spu-mlaa.md)).
 
+## NVIDIA DLSS (beta)
+
+**Scaling: NVIDIA DLSS (RTX cards)** (`graphics.scaling = dlss`) has DLSS Super Resolution rebuild scene frames in AMD
+FSR's place, from the same jitter, depth and motion, on GeForce RTX and other NVIDIA RTX cards. Not yet tried on one: the
+[note](notes/2026-11-23-dlss.md) has what was checked here and what a tester looks at.
+
+- The build fetches NVIDIA's NGX SDK (DLSS SDK 310.9.16) into the build folder; nothing of NVIDIA's is in this repository
+  or the download. Picked without the DLL, the launcher asks, and with the player's yes downloads `nvngx_dlss.dll`
+  310.9.16 (59 MB) from NVIDIA's own DLSS repository on GitHub, checks its size, SHA-256 and NVIDIA's signature, and puts
+  it in `dlss\` beside the exe (`--dlss-get` from a command line).
+- The mode follows the Internal resolution against the window: of DLAA, Quality, Balanced, Performance and Ultra
+  Performance, the one whose range of render sizes takes the game's and whose own scale is nearest: 1080p internal in a
+  1080p window is DLAA, and in a 1440p or 4K one should be Quality or Performance (the log lists each mode's range). **DLSS preset** (`graphics.dlss_preset`): `auto` leaves
+  each mode the DLL's own (K for DLAA, Quality and Balanced, M for Performance, L for Ultra Performance); `k`, `l`, `m` or `j` asks
+  every mode for that one.
+- Where it cannot run the game uses AMD FSR and the log says why: not an NVIDIA card, no NGX in the driver, a driver too
+  old for DLSS, no DLL, no mode for the sizes, or three failed frames in a row. MLAA's frame order goes as with FSR
+  (`mlaa_path_off`), and FSR sharpening does not apply. The stats panel shows `DLSS 310.9.16 Quality`.
+- The log has NGX's own lines (`[ngx]`) and each mode's sizes (`[dlss]`). `D3D12_DLSS_JITTER=x,y` and `D3D12_DLSS_MV=x,y`
+  multiply what DLSS is told of the jitter and the motion (`-1` turns one round), for a tester to try where the picture
+  shakes or smears.
+
 ## Controllers
 
 XInput reads Xbox controllers and the PC pads that work like them, as before. With `SDL3.dll` beside the exe, SDL 3

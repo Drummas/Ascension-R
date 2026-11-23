@@ -1876,7 +1876,8 @@ def cmd_package(args):
                     (os.path.join(ROOT, "third_party", "silkscreen", "OFL.txt"), "Silkscreen.txt"),
                     (os.path.join(ff, "COPYING.LGPLv2.1"), "FFmpeg-LGPL-2.1.txt"),
                     (os.path.join(sdl3, "LICENSE.txt"), "SDL3.txt"),
-                    (os.path.join(ff, "FFmpeg-build.txt"), "FFmpeg-build.txt")):
+                    (os.path.join(ff, "FFmpeg-build.txt"), "FFmpeg-build.txt"),
+                    (os.path.join(ROOT, "packaging", "NVIDIA-DLSS.txt"), "NVIDIA-DLSS.txt")):
         shutil.copyfile(src, os.path.join(lic, to))
     with open(os.path.join(lic, "AMD-FSR1.txt"), "w", encoding="utf-8") as f:
         f.write(fsr1_license())

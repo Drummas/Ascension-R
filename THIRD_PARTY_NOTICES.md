@@ -45,6 +45,18 @@ Frame generation's ANR FG choice loads Apex Neural Rendering's `nvngx_dlssg.dll`
 releases when the player agrees, or takes from a zip the player has. It comes with no licence, so nothing of it is in
 this repository or the download. The port declares the DLSS-G interface it calls in `ps3recomp/libs/video/rsx_ngx.h` itself.
 
+## NVIDIA DLSS SDK (not in this repository)
+
+The NVIDIA DLSS choice of Scaling uses NVIDIA's NGX SDK from the
+[DLSS SDK 310.9.16](https://github.com/NVIDIA/DLSS): its headers and the static library that finds the driver's NGX.
+They are NVIDIA's, under the [NVIDIA RTX SDKs license](https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt)
+(`LicenseRef-NvidiaProprietary`), so the build fetches them from that commit into the build folder, checked by their
+SHA-256 (`ps3recomp/CMakeLists.txt`), and nothing of them is kept here. The exe built with them has NVIDIA's object code
+in it, which is not under the MIT license; the release says so in `licenses/NVIDIA-DLSS.txt`
+([packaging/NVIDIA-DLSS.txt](packaging/NVIDIA-DLSS.txt)), with the notices NVIDIA asks for of the third-party code in
+the DLSS DLL. That DLL, `nvngx_dlss.dll`, is not shipped either: the launcher downloads NVIDIA's release build from the
+same repository when the player picks NVIDIA DLSS, and checks its SHA-256 and NVIDIA's signature.
+
 ## AMD FidelityFX Super Resolution 1
 
 The runtime carries `ffx_a.h` and `ffx_fsr1.h`, unchanged, from

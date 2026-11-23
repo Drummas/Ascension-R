@@ -1387,6 +1387,7 @@ extern "C" void gowa_port_defaults(void);
 extern "C" int  gowa_launcher(void);   /* 1 = play, 0 = quit */
 extern "C" int  gowa_anr_zip(const char* zip, char* why, size_t n);   /* --anr-zip: 0 = in place */
 extern "C" int  gowa_anr_get(char* why, size_t n);                      /* --anr-get: 0 = set up */
+extern "C" int  gowa_dlss_get(char* why, size_t n);                     /* --dlss-get: 0 = set up */
 extern "C" int  gowa_prepare_cli(const char* game, const char* rpcs3, const char* rap, const char* settings);   /* game_prepare.cpp */
 extern "C" int  gowa_find_game_cli(const char* under);   /* game_find.cpp */
 /* patches.cpp: the title patches switched on in [patches], applied once the
@@ -1760,6 +1761,8 @@ int main(int argc, char** argv)
      * graphics.anr_dll ("anr" beside the exe), and quit (the launcher's Choose a zip, launcher.cpp).
      * --anr-get: the newest ANR FG release fetched from Apex Compute's GitHub releases and set up so,
      * and quit (the launcher's Download and set up, anr_get.cpp).
+     * --dlss-get: NVIDIA's DLSS DLL fetched from NVIDIA's own DLSS repository on GitHub into the dlss
+     * folder beside the exe, and quit (the launcher's Download and set up, dlss_get.cpp).
      * --end-process <pid> <code>: end that process and quit (end_by_another_process). */
 #ifdef _WIN32
     if (argc == 4 && !strcmp(argv[1], "--end-process")) return end_process_cli(argv[2], argv[3]);
@@ -1779,7 +1782,7 @@ int main(int argc, char** argv)
     const char* settings = NULL;
     char settings_buf[1100];
     const char* sets[32];
-    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0, prebuild = 0, anr_get = 0;
+    int nsets = 0, no_launcher = 0, precompile = 0, report = 0, report_saves = 0, prebuild = 0, anr_get = 0, dlss_get = 0;
     const char* prepare = NULL, *prep_rpcs3 = NULL, *prep_rap = NULL, *find_under = NULL, *anr_zip = NULL;
     int find_game = 0;   /* --find-game [folder]: what Auto detect, or Browse to the folder, finds (game_find.cpp) */
     for (int i = 1; i < argc; i++) {
@@ -1792,6 +1795,7 @@ int main(int argc, char** argv)
         else if (!strcmp(argv[i], "--with-saves"))                     report_saves = 1;
         else if (!strcmp(argv[i], "--anr-zip") && i + 1 < argc)        anr_zip = argv[++i];
         else if (!strcmp(argv[i], "--anr-get"))                        anr_get = 1;
+        else if (!strcmp(argv[i], "--dlss-get"))                       dlss_get = 1;
         else if (!strcmp(argv[i], "--prepare-game") && i + 1 < argc)   prepare = argv[++i];
         else if (!strcmp(argv[i], "--rpcs3") && i + 1 < argc)          prep_rpcs3 = argv[++i];
         else if (!strcmp(argv[i], "--rap") && i + 1 < argc)            prep_rap = argv[++i];
@@ -1808,9 +1812,9 @@ int main(int argc, char** argv)
 #ifdef _WIN32
     /* A folder portable.txt marks, on its first start: the files of %LOCALAPPDATA%\Ascension-R copied here at the
      * player's word, before its settings are read and its log opened (portable_copy.cpp). */
-    if (settings == settings_buf && !no_launcher && !precompile && !report && !anr_zip && !anr_get)
+    if (settings == settings_buf && !no_launcher && !precompile && !report && !anr_zip && !anr_get && !dlss_get)
         portable_offer(settings, portable_note, sizeof portable_note);
-    if (!precompile && !report && !anr_zip && !anr_get) {
+    if (!precompile && !report && !anr_zip && !anr_get && !dlss_get) {
         session_log(settings);
         s_prev_crash = SetUnhandledExceptionFilter(crash_report);
     }
@@ -1833,6 +1837,15 @@ int main(int argc, char** argv)
         if (!dot || !eq || dot > eq) { printf("[settings] --set %s: expected section.key=value\n", sets[i]); continue; }
         *dot = 0; *eq = 0;
         ps3_settings_override(sk, dot + 1, eq + 1);
+    }
+    if (dlss_get) {
+        char why[600];
+        if (gowa_dlss_get(why, sizeof why)) {
+            printf("[dlss] not set up: %s\n", why);
+            return 1;
+        }
+        printf("[dlss] NVIDIA DLSS %s is set up, signed by NVIDIA\n", why);
+        return 0;
     }
     if (anr_get) {
         char why[600];
@@ -1942,13 +1955,14 @@ int main(int argc, char** argv)
             ps3_settings_override("graphics", "frame_generation", "off");
         }
     }
-    /* AMD FSR (scaling fsr3) and frame generation take the title's frame order without MLAA, whose depth at the final
+    /* AMD FSR (scaling fsr3), NVIDIA DLSS (dlss) and frame generation take the title's frame order without MLAA, whose depth at the final
      * composite is the frame's own (frame_clock); in it bloom and the motion blur are drawn and then written over, so
      * they go with it. The patch has no row: these switch it on, GOWA_PATCH_MLAA_PATH_OFF or --set as ever. */
     {
         const char* sc = ps3_settings_str("graphics", "scaling", NULL, "bilinear");
         const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
-        const bool fsr = (sc && ps3_settings_ieq(sc, "fsr3")) || (fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr")));
+        const bool fsr = (sc && (ps3_settings_ieq(sc, "fsr3") || ps3_settings_ieq(sc, "dlss"))) ||
+                         (fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr")));
         env_default("GOWA_PATCH_MLAA_PATH_OFF", fsr ? "1" : "0");
     }
     gowa_title_patches_apply();   /* [patches]: the ones switched on (patches.cpp) */

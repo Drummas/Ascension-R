@@ -48,6 +48,7 @@
 #include "trophies.h"         /* the Trophies tab */
 #include "mods.h"             /* the Mods tab */
 #include "anr_get.h"          /* ANR FG from its own releases, when the player says so */
+#include "dlss_get.h"         /* NVIDIA's DLSS DLL from NVIDIA's own repository, when the player says so */
 extern "C" void rsx_d3d12_backend_open_on(int x, int y);   /* rsx_d3d12_backend.h: the game's window opens there */
 extern "C" int  rsx_d3d12_prebuilt_current(const char* cache);   /* rsx_d3d12_backend.h: the pixel shaders' file */
 
@@ -144,9 +145,13 @@ static const char* const k_cap[] = { "off", "20", "30", "120", "144", "unlocked"
 static const char* const k_cap_n[] = { "Off: the game's own 60", "20 fps, even pace", "30 fps, even pace",
                                        "120 fps (experimental)", "144 fps (experimental)", "Unlocked (experimental)" };
 static const char* const k_cap_s[] = { "Off", "20 fps", "30 fps", "120 fps", "144 fps", "Unlocked" };
-static const char* const k_scale[] = { "bilinear", "sharp", "fsr1", "fsr3" };
-static const char* const k_scale_n[] = { "Bilinear", "Sharp bilinear", "AMD FSR 1", "AMD FSR" };
-static const char* const k_scale_s[] = { "Bilinear", "Sharp", "FSR 1", "FSR" };
+static const char* const k_scale[] = { "bilinear", "sharp", "fsr1", "fsr3", "dlss" };
+static const char* const k_scale_n[] = { "Bilinear", "Sharp bilinear", "AMD FSR 1", "AMD FSR", "NVIDIA DLSS (RTX cards)" };
+static const char* const k_scale_s[] = { "Bilinear", "Sharp", "FSR 1", "FSR", "DLSS" };
+/* graphics.dlss_preset: auto leaves each DLSS mode the DLL's own preset; a letter asks every mode for it (rsx_dlss.cpp). */
+static const char* const k_dlssp[] = { "auto", "k", "l", "m", "j" };
+static const char* const k_dlssp_n[] = { "Auto: the DLL's own for each mode", "K", "L", "M", "J" };
+static const char* const k_dlssp_s[] = { "Auto", "K", "L", "M", "J" };
 /* graphics.fsr_version: auto lets the FSR API take the newest the card has; a version pins it (rsx_fsr3.cpp). */
 static const char* const k_fsrv[] = { "auto", "3.1" };
 static const char* const k_fsrv_n[] = { "Auto: the newest the graphics card takes", "FSR 3.1" };
@@ -232,11 +237,16 @@ static Opt s_opt[] = {
       "AMD FSR and frame generation go no higher than the window." },
     { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
       "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
-      "in place of SMAA, and FSR 1 takes over where there is no scene." },
+      "in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model "
+      "on RTX cards (beta), its mode set by the internal resolution against the window (DLAA when they match); "
+      "its DLL comes from NVIDIA's own GitHub when you pick it." },
     { T_GRAPHICS, "graphics", "fsr_version", "auto", "FSR version", 0, LIST(k_fsrv, k_fsrv_n), k_fsrv_s,
       "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: "
       "driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little "
       "sharper and is lighter on the GPU." },
+    { T_GRAPHICS, "graphics", "dlss_preset", "auto", "DLSS preset", 0, LIST(k_dlssp, k_dlssp_n), k_dlssp_s,
+      "Only with NVIDIA DLSS. Auto lets the DLL choose for each mode (K for DLAA, Quality and Balanced, M for Performance, L for "
+      "Ultra Performance). L and M are sharper with less ghosting but cost more, best on RTX 40 and newer." },
     { T_GRAPHICS, "graphics", "sharpening", "high", "FSR sharpening", 0, LIST(k_sharp, k_sharp_n), k_sharp_s,
       "The sharpening pass of FSR (RCAS). Only with FSR scaling." },
     { T_GRAPHICS, "graphics", "vibrance", "off", "Colour vibrance", 0, LIST(k_grade, k_grade_n), k_grade_n,
@@ -716,7 +726,7 @@ static struct {
 } s_prep;
 
 /* Build all shaders now (pb_start, below clear_shaders): the pixel shaders' build as a process of its own. */
-enum { WM_PREBUILD = WM_APP + 31, WM_ANR = WM_APP + 32 };
+enum { WM_PREBUILD = WM_APP + 31, WM_ANR = WM_APP + 32, WM_DLSS = WM_APP + 34 };
 static struct {
     HANDLE proc, out, job, reader;
     volatile LONG running, done, total;
@@ -1288,6 +1298,59 @@ static void anr_dl_end(void)
         snprintf(b, sizeof b, "ANR FG: %s", s_anr_dl.result);
         toast_bad(b);
     }
+}
+
+/* NVIDIA's DLSS DLL fetched for the player (dlss_get.cpp), on a thread of its own, its end posted to the window
+ * (WM_DLSS). */
+static struct {
+    HANDLE thread;
+    GameProgress p;
+    volatile LONG running;
+    char result[400];   /* "" done, else why not: for the toast */
+} s_dlss_dl;
+
+static DWORD WINAPI dlss_dl_thread(void*)
+{
+    const std::string why = dlss_fetch(&s_dlss_dl.p);
+    snprintf(s_dlss_dl.result, sizeof s_dlss_dl.result, "%s", why.c_str());
+    InterlockedExchange(&s_dlss_dl.running, 0);
+    PostMessageA(s_main, WM_DLSS, 1, 0);
+    return 0;
+}
+
+static void dlss_dl_start(void)
+{
+    if (s_dlss_dl.running) return;
+    if (s_dlss_dl.thread) { CloseHandle(s_dlss_dl.thread); s_dlss_dl.thread = NULL; }
+    memset((void*)&s_dlss_dl.p, 0, sizeof s_dlss_dl.p);
+    s_dlss_dl.result[0] = 0;
+    InterlockedExchange(&s_dlss_dl.running, 1);
+    s_dlss_dl.thread = CreateThread(NULL, 0, dlss_dl_thread, NULL, 0, NULL);
+    if (!s_dlss_dl.thread) { InterlockedExchange(&s_dlss_dl.running, 0); toast_bad("NVIDIA DLSS: the download could not start"); return; }
+    toast("Downloading NVIDIA DLSS: the Play tab shows how far");
+}
+
+static void dlss_dl_end(void)
+{
+    if (s_dlss_dl.thread) { WaitForSingleObject(s_dlss_dl.thread, 2000); CloseHandle(s_dlss_dl.thread); s_dlss_dl.thread = NULL; }
+    char b[480];
+    if (!s_dlss_dl.result[0]) {
+        snprintf(b, sizeof b, "NVIDIA DLSS %s is set up, signed by NVIDIA", k_dlss_dll_version);
+        toast(b);
+    } else {
+        snprintf(b, sizeof b, "NVIDIA DLSS: %s", s_dlss_dl.result);
+        toast_bad(b);
+    }
+}
+
+/* The card the game will use is NVIDIA's, or the launcher does not know which it is. */
+static bool gpu_maybe_nvidia(void)
+{
+    const char* g = gpu_chosen();
+    if (!g || !*g) return true;
+    for (const char* p = g; *p; p++)
+        if (!_strnicmp(p, "NVIDIA", 6)) return true;
+    return false;
 }
 
 /* The AMD FSR upscalers the last sessions used (report.cpp reads their logs), for the ready check's line: the newest
@@ -1946,7 +2009,7 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500, H_TXT = 7700,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP, H_DLSS_GET, H_DLSS_STOP,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
@@ -2634,6 +2697,7 @@ static void draw_play(void)
         const Opt* sc = opt_find("graphics", "scaling");
         const Opt* fg = opt_find("graphics", "frame_generation");
         const bool fsr = sc && ps3_settings_ieq(sc->cur, "fsr3");
+        const bool dlss = sc && ps3_settings_ieq(sc->cur, "dlss");
         const bool anr = fg && ps3_settings_ieq(fg->cur, "anr");
         const bool fgon = anr || (fg && ps3_settings_ieq(fg->cur, "on"));
         wchar_t anr_tail[48];
@@ -2653,6 +2717,23 @@ static void draw_play(void)
         } else if (anr && !anr_present()) {
             check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
             w_button(L"Get ANR", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
+        } else if (dlss && !gpu_maybe_nvidia()) {
+            check_line(lx, y, lw, 0, L"DLSS needs an RTX card: AMD FSR instead");
+        } else if (dlss && s_dlss_dl.running) {
+            const long long total = s_dlss_dl.p.total, done = s_dlss_dl.p.done;
+            if (total > 0)
+                swprintf(b, 200, L"Downloading DLSS %hs: %lld%%", k_dlss_dll_version, done * 100 / total);
+            else
+                swprintf(b, 200, L"Downloading DLSS %hs", k_dlss_dll_version);
+            check_line(lx, y, lw - 106, 2, b);
+            draw_progress(lx + 26, y + 28, lw - 26 - 106, total > 0 ? (float)done / (float)total : -1.0f, 0, 8.0f);
+            w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_STOP, B_PLAIN);
+        } else if (dlss && !dlss_present()) {
+            check_line(lx, y, lw - 106, 0, L"DLSS's DLL is not here yet");
+            w_button(L"Get DLSS", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_GET, B_PLAIN);
+        } else if (dlss) {
+            swprintf(b, 200, L"Upscaling: NVIDIA DLSS (beta)%ls", tail);
+            check_line(lx, y, lw, 1, b);
         } else if (!fsr) {
             swprintf(b, 200, L"Scaling: %ls%ls", W(sc ? opt_name(*sc) : "Bilinear"), tail);
             check_line(lx, y, lw, 2, b);
@@ -4452,6 +4533,16 @@ extern "C" int gowa_anr_get(char* why, size_t n)
     return r.empty() ? 0 : 1;
 }
 
+/* --dlss-get (main.cpp): dlss_fetch without the window, the player having asked on the command line. 0 = set up;
+ * else why not in why. */
+extern "C" int gowa_dlss_get(char* why, size_t n)
+{
+    GameProgress p = {};
+    const std::string r = dlss_fetch(&p);
+    snprintf(why, n, "%s", r.empty() ? k_dlss_dll_version : r.c_str());
+    return r.empty() ? 0 : 1;
+}
+
 /* --anr-zip <zip> (main.cpp): anr_install without the window, for a script or a player who would rather. zip in UTF-8
  * (the exe's code page). 0 = done, else why not in why. */
 extern "C" int gowa_anr_zip(const char* zip, char* why, size_t n)
@@ -4513,12 +4604,50 @@ static void anr_offer(void)
     else if (pressed == 101) anr_zip_pick();
 }
 
-/* What follows a choice: ANR FG chosen without its files asks whether to fetch them. */
+/* NVIDIA DLSS chosen without its DLL, or Get DLSS on the ready check: asks before anything is fetched. Scaling stays
+ * DLSS either way (until the DLL is there the game uses AMD FSR). */
+static void dlss_offer(void)
+{
+    if (s_dlss_dl.running) return;
+    wchar_t what[900];
+    swprintf(what, 900,
+             L"NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards. Its "
+             L"DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\n"
+             L"Ascension-R can download nvngx_dlss.dll %hs (59 MB) from NVIDIA's own DLSS repository on GitHub "
+             L"(github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put "
+             L"it in the dlss folder beside the program. Nothing else is sent or installed.",
+             k_dlss_dll_version);
+    int pressed = 0;
+    const task_dialog_fn td = task_dialog();
+    if (td) {
+        TASKDIALOG_BUTTON b[2] = { { 100, L"Download and set up" }, { 102, L"Not now" } };
+        TASKDIALOGCONFIG c = {};
+        c.cbSize = sizeof c;
+        c.hwndParent = s_main;
+        c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+        c.pszWindowTitle = L"NVIDIA DLSS (beta)";
+        c.pszMainIcon = TD_INFORMATION_ICON;
+        c.pszMainInstruction = L"Download NVIDIA DLSS?";
+        c.pszContent = what;
+        c.cButtons = 2;
+        c.pButtons = b;
+        c.nDefaultButton = 100;
+        if (FAILED(td(&c, &pressed, NULL, NULL))) return;
+    } else {
+        pressed = MessageBoxW(s_main, what, L"Download NVIDIA DLSS?", MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
+    }
+    if (pressed == 100) dlss_dl_start();
+}
+
+/* What follows a choice: ANR FG or NVIDIA DLSS chosen without its files asks whether to fetch them. */
 static void opt_changed(const Opt& o)
 {
     if (!strcmp(o.section, "online")) online_sync();
     if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "anr") && !anr_present() && !s_anr_dl.running)
         anr_offer();
+    if (!strcmp(o.key, "scaling") && ps3_settings_ieq(o.cur, "dlss") && gpu_maybe_nvidia() && !dlss_present() &&
+        !s_dlss_dl.running)
+        dlss_offer();
 }
 
 static void act(int id)
@@ -4590,6 +4719,8 @@ static void act(int id)
         case H_PREBUILD: pb_start(); break;
         case H_ANR_ZIP: anr_offer(); break;
         case H_ANR_STOP: game_progress_stop(&s_anr_dl.p); break;
+        case H_DLSS_GET: dlss_offer(); break;
+        case H_DLSS_STOP: game_progress_stop(&s_dlss_dl.p); break;
         case H_MODS_OPEN: mods_open(); break;
         case H_GAME_BROWSE: game_browse(); break;
         case H_PICK_RPCS3:
@@ -4889,6 +5020,10 @@ static LRESULT CALLBACK main_proc(HWND h, UINT m, WPARAM w, LPARAM l)
         return 0;
     case WM_ANR:
         if (w == 1) anr_dl_end();
+        redraw();
+        return 0;
+    case WM_DLSS:
+        if (w == 1) dlss_dl_end();
         redraw();
         return 0;
     case WM_TIMER: {
