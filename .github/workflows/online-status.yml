@@ -1,13 +1,18 @@
 # How many Ascension-R players are online on Auto, for the website: every 20 minutes scripts/mp_status.py looks the
 # players up on the BitTorrent DHT, as a player's node does, and status.json goes on the status branch, a single commit
-# put there again each time, which the website reads. It holds counts alone: no address and no name. A lookup no DHT
-# node answered leaves the last count as it was (docs/notes/2026-11-23-online-status.md).
+# put there again each time, which the website reads. It holds counts alone: no address and no name. A lookup too few
+# DHT nodes answered leaves the last count as it was (docs/notes/2026-11-23-online-status.md).
 name: Online status
 
 on:
   schedule:
     - cron: '7,27,47 * * * *'
   workflow_dispatch:
+    inputs:
+      verbose:
+        description: "The lookup's own lines too (they name the runner's address)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -27,7 +32,9 @@ jobs:
           persist-credentials: false
 
       - name: Look the players up on the DHT
-        run: python3 scripts/mp_status.py --out status.json
+        env:
+          VERBOSE: ${{ inputs.verbose && '-v' || '' }}
+        run: python3 scripts/mp_status.py --out status.json $VERBOSE
 
       - name: Put status.json on the status branch
         env:
@@ -35,7 +42,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           if ! python3 -c "import json, sys; sys.exit(0 if json.load(open('status.json'))['ok'] else 1)"; then
-            echo "No DHT node answered: the last count stays."
+            echo "Too few DHT nodes answered for a count: the last one stays."
             exit 0
           fi
           mkdir publish

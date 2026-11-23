@@ -2,8 +2,8 @@
 """scripts/mp_status.py, the website's count of the players online (docs/notes/2026-11-23-online-status.md).
 
 Its key is the one the nodes announce (mp_p2p.KEY). On a made-up DHT on 127.0.0.1 (tests/test_mp_dht.py's), three
-nodes announce under that key, two of them from one address, and one under another key: the count is two addresses,
-three announces. With no DHT node answering, the status says it could not count. The JSON holds counts alone.
+nodes announce under that key and one under another, all from 127.0.0.1: the count is one address, three announces. With fewer DHT nodes answering than a lookup ends on, or none, the status says it could not
+count. The JSON holds counts alone.
 
 Usage:
     python tests/test_mp_status.py
@@ -45,7 +45,16 @@ class Status(unittest.TestCase):
         # Every client is 127.0.0.1: three announces from one address.
         self.assertEqual(s, {"format": 1, "checked": "2026-11-23T08:20:05Z", "ok": True, "players": 1,
                              "announced": 3, "dht_nodes": s["dht_nodes"]})
-        self.assertGreater(s["dht_nodes"], 0)
+        self.assertGreaterEqual(s["dht_nodes"], mp_status.MIN_ANSWERED)
+
+    def test_too_few_dht_nodes(self):
+        async def run():
+            net = await dht_t.network(3)
+            c = await dht_t.client(boot=(net[0].addr,))
+            await c.dht.lookup(mp_status.KEY, announce_port=40001, implied=False)
+            return await mp_status.check(boot=(net[0].addr,), private=True, time_limit=10.0, now=WHEN)
+        s = asyncio.run(run())
+        self.assertEqual((s["ok"], s["players"], s["announced"], s["dht_nodes"]), (False, None, None, 3))
 
     def test_no_dht_node_answers(self):
         quiet = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

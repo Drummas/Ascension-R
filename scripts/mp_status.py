@@ -26,6 +26,9 @@ import mp_dht  # noqa: E402
 # so this file needs nothing but mp_dht.py).
 KEY = mp_dht.key("ascension-r/multiplayer/1")
 FORMAT = 1      # of the JSON this writes
+# DHT nodes that must answer for a count: a lookup ends on the K closest to the key, which hold the announces. Fewer
+# answers (the first run on GitHub's machines had 2) never got near the key: its 0 says nothing.
+MIN_ANSWERED = mp_dht.K
 
 
 class _Socket(asyncio.DatagramProtocol):
@@ -40,8 +43,8 @@ class _Socket(asyncio.DatagramProtocol):
 
 
 async def check(boot=mp_dht.BOOTSTRAP, private=False, time_limit=25.0, log=lambda text: None, now=None):
-    """The status: ok when some DHT node answered, players (addresses) and announced (address and port pairs) then,
-    None otherwise; checked, the time in UTC; dht_nodes, how many DHT nodes answered."""
+    """The status: ok when MIN_ANSWERED DHT nodes answered, players (addresses) and announced (address and port
+    pairs) then, None otherwise; checked, the time in UTC; dht_nodes, how many DHT nodes answered."""
     loop = asyncio.get_running_loop()
     t, sock = await loop.create_datagram_endpoint(_Socket, local_addr=("0.0.0.0" if not private else "127.0.0.1", 0))
     try:
@@ -51,7 +54,7 @@ async def check(boot=mp_dht.BOOTSTRAP, private=False, time_limit=25.0, log=lambd
     finally:
         t.close()
     when = (now or datetime.datetime.now(datetime.timezone.utc)).replace(microsecond=0)
-    ok = answered > 0
+    ok = answered >= MIN_ANSWERED
     return {"format": FORMAT, "checked": when.strftime("%Y-%m-%dT%H:%M:%SZ"), "ok": ok,
             "players": len({ip for ip, _ in peers}) if ok else None, "announced": len(peers) if ok else None,
             "dht_nodes": answered}
