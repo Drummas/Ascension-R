@@ -257,7 +257,7 @@ static Opt s_opt[] = {
       "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. "
       "On the whole picture, the game's HUD and menus too." },
     { T_GRAPHICS, "graphics", "contrast", "off", "Contrast", 0, LIST(k_grade, k_grade_n), k_grade_n,
-      "A gentle curve: darks a little darker, lights a little lighter, black and white kept." },
+      "Lit surfaces and highlights stand out more; deep shadows keep their detail, black and white kept." },
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 0, LIST(k_fg, k_fg_n), k_fg_s,
       "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
       "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
