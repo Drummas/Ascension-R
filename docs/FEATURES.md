@@ -235,7 +235,9 @@ FSR's place, from the same jitter, depth and motion, on GeForce RTX and other NV
 - Where it cannot run the game uses AMD FSR and the log says why: not an NVIDIA card, no NGX in the driver, a driver too
   old for DLSS, no DLL, no mode for the sizes, or three failed frames in a row. MLAA's frame order goes as with FSR
   (`mlaa_path_off`), and FSR sharpening does not apply. The stats panel shows `DLSS 310.9.16 Quality`.
-- The log has NGX's own lines (`[ngx]`) and each mode's sizes (`[dlss]`). `D3D12_DLSS_JITTER=x,y` and `D3D12_DLSS_MV=x,y`
+- The log has each mode's sizes (`[dlss]`), and NGX's own lines (`[ngx]`) with `D3D12_DLSS_LOG=on`. The first RTX
+  reports and what came of them: [note](notes/2026-11-24-dlss-test1.md); since then the upscaler's jitter stays off
+  the HUD and off menus, with AMD FSR too. `D3D12_DLSS_JITTER=x,y` and `D3D12_DLSS_MV=x,y`
   multiply what DLSS is told of the jitter and the motion (`-1` turns one round), for a tester to try where the picture
   shakes or smears.
 

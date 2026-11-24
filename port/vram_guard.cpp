@@ -59,6 +59,37 @@ extern "C" void gowa_vram_texture(ppu_context* ctx, uint32_t)
     ctx->gpr[3] = 0;
 }
 
+/* The VRAM manager (func_003A0780), once a frame: it moves and compacts blocks only when the RSX has released label
+ * 0x4E with the frame counter at 0x9B227C, and otherwise leaves the frame alone (docs/notes/2026-11-12-temple-textures.md).
+ * Issue #39: with Unlock FPS the pool ran short as a cinematic loaded, with 32-38 MB of holes and no move queued, as if
+ * it had left most frames alone. Counted: its calls (gowa_vram_manager, on entry) and the ones that went on to its pass
+ * (gowa_vram_manager_works, at 0x003A0888), in windows of 600 calls. On this PC it made its pass in half of them at 60
+ * frames a second and in half to all of them unlocked, so the guess does not hold here. A shortage's line says the last
+ * window's; a window with the pass in fewer than a quarter is said, once a minute at most; GOWA_VRAM_MANAGER_LOG=1 says
+ * every window. On the game's main thread alone. */
+static int s_mgr_calls, s_mgr_works;            /* this window's */
+static int s_mgr_last_calls, s_mgr_last_works;  /* the last whole window's */
+
+extern "C" void gowa_vram_manager(ppu_context*, uint32_t)
+{
+    if (++s_mgr_calls < 600) return;
+    s_mgr_last_calls = s_mgr_calls;
+    s_mgr_last_works = s_mgr_works;
+    s_mgr_calls = s_mgr_works = 0;
+    static int all = -1;
+    if (all < 0) { const char* e = getenv("GOWA_VRAM_MANAGER_LOG"); all = e && *e == '1'; }
+    static ULONGLONG said;
+    const ULONGLONG now = GetTickCount64();
+    if (all || (s_mgr_last_works * 4 < s_mgr_last_calls && (!said || now - said >= 60000))) {
+        said = now;
+        fprintf(stderr, "[vram] the manager did its pass in %d of its last %d frames; in the others the RSX had not "
+                        "released label 0x4E yet\n", s_mgr_last_works, s_mgr_last_calls);
+        fflush(stderr);
+    }
+}
+
+extern "C" void gowa_vram_manager_works(ppu_context*, uint32_t) { s_mgr_works++; }
+
 /* An allocation about to fail, said with the pool as it stands (#30: once in a playthrough a texture got no block, and
  * the game wrote its fields to address 0, which on a PS3 ends the game). The pool is a stack: a block is cut off
  * below its top ([0x9B1DC0], an offset), 128-byte aligned, and an allocation fails when the top is lower than that.
@@ -94,9 +125,9 @@ static void vram_alloc_short(ppu_context* ctx, uint32_t size)
     const uint64_t span = hi > lo ? hi - lo : 0, holes = span > live ? span - live : 0;
     fprintf(stderr, "[vram] the pool is short: 0x%X bytes asked for from 0x%08X, its top at 0x%X (all the room below it); "
                     "%u live blocks of %u in the table, %.1f MB, the largest %.1f MB, from 0x%X to 0x%X with %.1f MB of holes "
-                    "between them; %u moves queued (%ld so far)\n", size, (uint32_t)ctx->lr, top, blocks, count,
-            (double)live / 1048576.0, (double)largest / 1048576.0, lo, hi, (double)holes / 1048576.0,
-            vm_read32(MOVES), (long)n);
+                    "between them; %u moves queued (%ld so far); the manager's pass in %d of its last %d frames\n", size,
+            (uint32_t)ctx->lr, top, blocks, count, (double)live / 1048576.0, (double)largest / 1048576.0, lo, hi,
+            (double)holes / 1048576.0, vm_read32(MOVES), (long)n, s_mgr_last_works, s_mgr_last_calls);
     fflush(stderr);
 }
 
