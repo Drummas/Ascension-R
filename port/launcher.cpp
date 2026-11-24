@@ -251,9 +251,9 @@ static Opt s_opt[] = {
       "resolution; where the game's shadows are soft the change is small. 4x takes about 120 MB more video memory. "
       "Takes effect at the next start." },
     { T_GRAPHICS, "graphics", "effects_resolution", "game", "Effects resolution", 0, LIST(k_fxres, k_fxres_n), k_fxres_s,
-      "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: a "
-      "smoother glow with less shimmer at 1440p and 4K. Only with an internal resolution above 720p. Takes effect at "
-      "the next start." },
+      "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: "
+      "smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal "
+      "resolution above 720p. Takes effect at the next start." },
     { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
       "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
       "in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model "

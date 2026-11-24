@@ -40,9 +40,9 @@ was measured. In the arena the visible change is small: the game's shadows there
 
 ## 2. Bloom, blur and depth of field at the internal resolution
 
-**Done 2026-11-24** as `graphics.effects_resolution`, the float luminance chain kept at the game's size: see
-[the note](2026-11-24-shadow-effects-resolution.md). The glow is a little softer and adds 1-3% less light on bright
-surfaces.
+**Done 2026-11-24** as `graphics.effects_resolution`, the regions the game measures its exposure in kept at the game's
+size (twins): see [the note](2026-11-24-shadow-effects-resolution.md). The frame's brightness matches the game's; at the
+arena the depth of field is what changes (the bloom adds nothing there).
 
 The same rule leaves the half- and quarter-size targets of the post chain (`0x02662000`, `0x024A0000`, `0x029F0000`
 and the like in a frame capture) at the game's size, so bloom and blur are upscaled from 640x360 at any resolution.

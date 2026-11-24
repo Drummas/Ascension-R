@@ -105,8 +105,8 @@ to 4, or `native` for the window's size. Targets the size of the display are dra
 back is brought down to it. **Shadow resolution** (`graphics.shadow_resolution` = 1, 2 or 4) draws the shadow maps that
 many times larger, at any internal resolution: finer shadow edges, less stair-stepping. **Effects resolution**
 (`graphics.effects_resolution` = game or internal) draws the targets of bloom, blur and depth of field, a half to a
-sixteenth of the display, at the internal resolution too, by the same factors; the float luminance chain the exposure
-is measured on stays at the game's size. Both are off by default; the
+sixteenth of the display, at the internal resolution too, by the same factors; the passes the game measures its
+exposure with stay at the game's size, so the frame's brightness is the game's. Both are off by default; the
 [note](notes/2026-11-24-shadow-effects-resolution.md) has what was measured. Shadow resolution at 720p compiles part of
 the shaders again in its first session, as a new internal resolution does. AMD FSR and frame generation go no higher
 than the window, and the log says so. Otherwise a render larger than the window is scaled down to it. The first session
