@@ -67,6 +67,8 @@ extern "C" void gowa_vram_texture(ppu_context* ctx, uint32_t)
 static const uint32_t POOL_TOP = 0x009B1DC0, BLOCKS = 0x009AF51C, BLOCK_COUNT = 0x009B1DBC, MOVES = 0x009B2834,
                       MOVED = 0x009AF4BC, BUDGET = 0x0083CD2C;
 
+static uint32_t s_old_age = 240;   /* the textures' age limit at 0x83CD44 as last set (old_age_frame, below) */
+
 static int pool_there()
 {
     static const int there = is_there(MOVED, 0x009B2E40 - MOVED) && is_there(BUDGET, 4);   /* once */
@@ -205,6 +207,10 @@ static void counts_say(char* out, size_t n, const PoolCounts& d)
              d.trim_bytes / 1048576.0, (unsigned long long)d.grows, d.grow_bytes / 1048576.0);
 }
 
+/* 1 while a load's window is open: main.cpp's frame clock holds Unlock FPS to 60 frames a second meanwhile (the
+ * Unlock FPS section below says why). */
+extern "C" { volatile LONG g_gowa_level_loading = 0; }
+
 static struct {
     int on, has_level, files, at_budget, low_frame;
     char name[40];
@@ -228,9 +234,10 @@ static void load_say(void)
     const PoolCounts d = counts_since(s_load.at0);
     counts_say(counts, sizeof counts, d);
     fprintf(stderr, "[vram] load of %s.WAD%s, %.1f s, %llu frames: the pool before it %s; at its lowest (frame %d) %s; "
-                    "after it %s; %s; at most %.1f MB moved in a frame, %d at its %.0f MB budget\n", s_load.name, more,
-            (GetTickCount64() - s_load.t0) / 1000.0, (unsigned long long)d.frames, part[0], s_load.low_frame, part[1],
-            part[2], counts, s_load.moved_max / 1048576.0, s_load.at_budget, vm_read32(BUDGET) / 1048576.0);
+                    "after it %s; %s; at most %.1f MB moved in a frame, %d at its %.0f MB budget; textures old after %u "
+                    "frames\n", s_load.name, more, (GetTickCount64() - s_load.t0) / 1000.0, (unsigned long long)d.frames,
+            part[0], s_load.low_frame, part[1], part[2], counts, s_load.moved_max / 1048576.0, s_load.at_budget,
+            vm_read32(BUDGET) / 1048576.0, s_old_age);
     fflush(stderr);
 }
 
@@ -258,8 +265,8 @@ static void stats_frame(ULONGLONG now)
     counts_say(counts, sizeof counts, d);
     const double secs = (now - last) / 1000.0;
     fprintf(stderr, "[vram] %.1f s: %llu frames (%.0f a second); %s; the pool room %.1f MB, %.1f MB in %u blocks, %.1f MB "
-                    "of holes\n", secs, (unsigned long long)d.frames, d.frames / secs, counts, s.top / 1048576.0,
-            s.live / 1048576.0, s.blocks, s.holes / 1048576.0);
+                    "of holes; textures old after %u frames\n", secs, (unsigned long long)d.frames, d.frames / secs, counts,
+            s.top / 1048576.0, s.live / 1048576.0, s.blocks, s.holes / 1048576.0, s_old_age);
     fflush(stderr);
     last = now;
     at = s_tot;
@@ -286,6 +293,7 @@ static void load_frame(void)
         if (!s_load.on) {
             memset(&s_load, 0, sizeof s_load);
             s_load.on = 1;
+            InterlockedExchange(&g_gowa_level_loading, 1);
             s_load.t0 = now;
             pool_state(&s_load.before);
             s_load.low = s_load.before;
@@ -306,12 +314,96 @@ static void load_frame(void)
         pool_state(&s_load.after);
         load_say();
         s_load.on = 0;
+        InterlockedExchange(&g_gowa_level_loading, 0);
+    }
+}
+
+/* Unlock FPS and the pool (issue #39). The reporter's game stopped as levels loaded, every time with the frame rate cap
+ * Unlocked and never with it off (DLSS or FSR, 720p to 4K): the pool ran short, full at HECA100 (191.4 MB live) or
+ * with 33 MB of holes not packed yet at the Megaera cinematic, and the game wrote to address 0. What in the load
+ * differs at a high frame rate is not known yet: on this PC the bench's route runs its level at ~52 frames a second
+ * either way and never reaches those loads, and neither a loaders' budget three or six times as large (theirs is a
+ * fifth of a 60 Hz period of every frame) nor textures counting as old after 73 frames changed its pool. So:
+ *
+ * - While a level loads (a load's window, below: from its archives opening to 4 s after the last), the frame clock
+ *   holds Unlock FPS to 60 frames a second (g_gowa_level_loading, main.cpp's frame clock): the loads run as with the
+ *   cap off, which has not stopped.
+ * - The streaming pass trims a texture that counts as old, its stamp the limit at 0x83CD44 (240) frames behind the
+ *   frame counter at 0x9B9988: 4 s at 60, 1.4 s at 177, 0.24 s in a menu at 1000. With Unlock FPS the limit is set
+ *   each frame to the frames of 4 s (the frame's step, 0x9424A4, times the rate, 0x83B45C, smoothed over ~16 frames),
+ *   never under 240; the title's 240 again when the guard goes off (online). The title only reads it.
+ *   GOWA_TEXTURE_AGE=<frames> sets it whatever the rate, for a test. */
+extern "C" int g_gowa_patch_unlock_fps;   /* patches.cpp */
+static const uint32_t FRAME_STEP = 0x009424A4, RATE = 0x0083B45C, OLD_AGE = 0x0083CD44, TITLE_OLD_AGE = 240;
+
+static int unlocked(void) { return *(volatile int*)&g_gowa_patch_unlock_fps != 0; }
+
+static float guest_float(uint32_t addr)
+{
+    const uint32_t u = vm_read32(addr);
+    float f;
+    memcpy(&f, &u, 4);
+    return f;
+}
+
+/* The frame's length in periods of 1/rate: 1 at 59.94 frames a second, 0.34 at 177; 0 when it cannot be read. */
+static double frame_periods(void)
+{
+    const double step = guest_float(FRAME_STEP), rate = guest_float(RATE);
+    if (!(step > 0.0 && step < 1.0) || !(rate > 1.0 && rate < 1000.0)) return 0.0;
+    return step * rate;
+}
+
+static void old_age_frame(void)
+{
+    static double smooth;
+    static int test_age = -1;   /* GOWA_TEXTURE_AGE=<frames>, a test: the limit whatever the rate */
+    if (test_age < 0) {
+        const char* e = getenv("GOWA_TEXTURE_AGE");
+        test_age = e && *e ? atoi(e) : 0;
+        if (test_age > 0) {
+            fprintf(stderr, "[vram] GOWA_TEXTURE_AGE: a texture counts as old after %d frames, a test\n", test_age);
+            fflush(stderr);
+        }
+    }
+    if (test_age > 0) {
+        if (s_old_age != (uint32_t)test_age) {
+            vm_write32(OLD_AGE, (uint32_t)test_age);
+            s_old_age = (uint32_t)test_age;
+        }
+        return;
+    }
+    if (!unlocked()) {
+        if (s_old_age != TITLE_OLD_AGE) {
+            vm_write32(OLD_AGE, TITLE_OLD_AGE);
+            s_old_age = TITLE_OLD_AGE;
+        }
+        smooth = 0.0;
+        return;
+    }
+    const double p = frame_periods();
+    if (!(p > 0.0)) return;
+    smooth = smooth > 0.0 ? smooth + (p - smooth) / 16.0 : p;
+    const double k = smooth >= 1.0 ? 1.0 : smooth < 1.0 / 16 ? 1.0 / 16 : smooth;
+    const uint32_t age = (uint32_t)(TITLE_OLD_AGE / k + 0.5);
+    if (age != s_old_age) {
+        vm_write32(OLD_AGE, age);
+        static int said;
+        if (!said++) {
+            fprintf(stderr, "[vram] Unlock FPS: a texture counts as old after %u frames, 4 s at %.0f frames a second\n",
+                    age, 59.94 / smooth);
+            fflush(stderr);
+        }
+        s_old_age = age;
     }
 }
 
 extern "C" void gowa_vram_manager(ppu_context*, uint32_t)
 {
-    if (pool_there()) load_frame();
+    if (pool_there()) {
+        old_age_frame();
+        load_frame();
+    }
     s_mgr_passed = 0;
     if (++s_mgr_calls < 600) return;
     s_mgr_last_calls = s_mgr_calls;
@@ -531,15 +623,15 @@ extern "C" void gowa_vram_cut(ppu_context* ctx, uint32_t)
         const uint32_t st = vm_read32(0x009B2298) + (uint32_t)((d / 128) * 16);   /* srawi 7 + addze: toward zero */
         if (is_there(st, 16)) {
             stamp = vm_read32(st + 8);
-            if (stamp) vm_write32(st + 8, stamp + 240);
+            if (stamp) vm_write32(st + 8, stamp + s_old_age);   /* the pass's limit: 240, more with Unlock FPS */
         }
     }
     static volatile LONG said;
     const LONG n = InterlockedIncrement(&said);
     if (n <= 8 || !(n & (n - 1))) {
         fprintf(stderr, "[vram] texture 0x%08X: a trim of 0x%X bytes from a block of 0x%X that holds only its mips from "
-                        "0x%X made 0x%X; its stamp 0x%X put 240 frames on (%ld so far)\n", tex, cut, size, lead, fixed,
-                stamp, (long)n);
+                        "0x%X made 0x%X; its stamp 0x%X put %u frames on (%ld so far)\n", tex, cut, size, lead, fixed,
+                stamp, s_old_age, (long)n);
         fflush(stderr);
     }
 }

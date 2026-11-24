@@ -137,6 +137,10 @@ real length, the movie's clock at 1.000 s a second, and the first level's load 1
 loads a little each frame. A 144 Hz monitor and the game past the first level have not been tried
 ([note](notes/2026-11-23-unlock-fps.md)).
 
+While a level loads the frame rate is held to 60, and textures count as unused after 4 s at any frame rate: unlocked,
+a tester's game ran out of video memory as levels loaded (at the start of the game and at the Megaera cinematic) and
+stopped, which it never did with the cap off ([note](notes/2026-11-24-unlock-fps-pool.md), issue #39).
+
 ## Frame rate on screen
 
 Frame rate display in the launcher's Display tab (`display.show_fps`): in the title bar (the default), off, or on screen,

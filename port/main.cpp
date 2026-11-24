@@ -292,6 +292,7 @@ extern "C" int gowa_title_patch_off(const char* id);  /* patches.cpp */
  * own instructions and constants back, and the frame clock back to the vblank period, until the game is started again.
  * A match runs at the 60 every other player has. */
 static volatile LONG g_unlock_fps_gone = 0;
+extern "C" volatile LONG g_gowa_level_loading;   /* vram_guard.cpp: a level's load window is open */
 extern "C" void gowa_unlock_fps_off(const char* why)
 {
     if (!gowa_title_patch_off("unlock_fps")) return;
@@ -424,6 +425,7 @@ static DWORD WINAPI frame_clock(LPVOID)
      * flip_min_us. Nothing drains while it waits, so the frame presented when it
      * is released is still exactly that frame. */
     int held = 0;
+    bool said_load_held = false;
 
     for (;;) {
         /* The title publishes a frame's commands at its flip and then waits
@@ -442,8 +444,16 @@ static DWORD WINAPI frame_clock(LPVOID)
             unlocked = false;
             flip_min_us = 1001000ull / 60ull;
         }
-        if (held && !frame_cap && flip_min_us) {
-            const ULONGLONG due = last_flip_us + flip_min_us, t = clock_us();
+        /* While a level loads, Unlock FPS is held to one vblank period (vram_guard.cpp, issue #39: the game ran out
+         * of video memory as levels loaded unlocked, never with the cap off). */
+        const bool load_held = unlocked && g_gowa_level_loading && flip_min_us < 1001000ull / 60ull;
+        const ULONGLONG pace_us = load_held ? 1001000ull / 60ull : flip_min_us;
+        if (load_held && !said_load_held) {
+            said_load_held = true;
+            fprintf(stderr, "[gowa] unlock fps: held to 60 frames a second while a level loads\n");
+        }
+        if (held && !frame_cap && pace_us) {
+            const ULONGLONG due = last_flip_us + pace_us, t = clock_us();
             if (t < due) {
                 if (due - t <= 2000) {
                     while (clock_us() < due) YieldProcessor();
@@ -465,7 +475,7 @@ static DWORD WINAPI frame_clock(LPVOID)
              * flip inside the period of one the drain had just completed.
              * Completing on the beat alone (GOWA_FLIP_ON_BEAT=1) keeps a period
              * between flips by itself. */
-            const bool cap_ok = (!frame_cap && !flip_on_reach) || clock_us() - last_flip_us >= flip_min_us;
+            const bool cap_ok = (!frame_cap && !flip_on_reach) || clock_us() - last_flip_us >= pace_us;
             if (cap_ok) cellGcmTickFlip();
             /* Present a pending flip BEFORE draining any further. The flip
              * fires at a get==put frame boundary on the guest thread, so the
@@ -523,7 +533,7 @@ static DWORD WINAPI frame_clock(LPVOID)
                 cellGcm_rsx_process_fifo();
                 held = cellGcm_take_flip_pending();
             }
-            if (held && clock_us() - last_flip_us >= flip_min_us) {
+            if (held && clock_us() - last_flip_us >= pace_us) {
                 held = 0;
                 last_flip_us = clock_us();
                 cellGcmTickFlip();
