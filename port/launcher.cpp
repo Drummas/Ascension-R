@@ -168,11 +168,12 @@ static const char* const k_shres_s[] = { "Game's", "2x", "4x" };
 static const char* const k_fxres[] = { "game", "internal" };
 static const char* const k_fxres_n[] = { "As the game draws them", "The internal resolution" };
 static const char* const k_fxres_s[] = { "Game's", "Internal" };
-/* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR); dlss is NVIDIA
- * DLSS Frame Generation through Streamline (beta, ps3recomp's rsx_sl.cpp). */
-static const char* const k_fg[] = { "off", "on", "anr", "dlss" };
-static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)", "NVIDIA DLSS (beta, RTX 40 and newer)" };
-static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)", "DLSS (beta)" };
+/* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR). dlss, NVIDIA
+ * DLSS Frame Generation through Streamline (ps3recomp's rsx_sl.cpp), is turned off (main.cpp; D3D12_DLSSG_TEST=1
+ * for tests) and has no choice here; the code that fetches and checks its DLL stays for then. */
+static const char* const k_fg[] = { "off", "on", "anr" };
+static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)" };
+static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)" };
 /* graphics.reflex: NVIDIA Reflex through Streamline (ps3recomp's rsx_sl.cpp), on NVIDIA GPUs. */
 static const char* const k_reflex[] = { "off", "on", "boost" };
 static const char* const k_reflex_n[] = { "Off", "On", "On + Boost" };
@@ -276,13 +277,11 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 0, LIST(k_fg, k_fg_n), k_fg_s,
       "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
       "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
-      "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases. "
-      "NVIDIA DLSS (beta) is NVIDIA's own on GeForce RTX 40 and newer, with NVIDIA Reflex; its DLL comes from NVIDIA's "
-      "own GitHub when you pick it." },
+      "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases." },
     { T_GRAPHICS, "graphics", "reflex", "off", "NVIDIA Reflex", 0, LIST(k_reflex, k_reflex_n), k_reflex_n,
       "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer "
-      "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. NVIDIA DLSS frame "
-      "generation turns it on by itself; not with AMD FSR's or ANR's. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
+      "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame "
+      "generation. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
@@ -5340,6 +5339,16 @@ extern "C" int gowa_launcher(void)
     popt_init();
     for (int i = 0; i < s_npopt; i++)
         opt_set(s_popt[i], ps3_settings_str(s_popt[i].section, s_popt[i].key, NULL, s_popt[i].def));
+    /* NVIDIA DLSS frame generation is turned off (see k_fg): a file from a test build that chose it gets frame
+     * generation off, written back. */
+    {
+        Opt* fg = opt_find("graphics", "frame_generation");
+        if (fg && ps3_settings_ieq(fg->cur, "dlss")) {
+            opt_set(*fg, "off");
+            ps3_settings_set("graphics", "frame_generation", "off");
+            ps3_settings_save(NULL);
+        }
+    }
     ready_check();
 
     /* COM for WIC, given back before the game starts (its audio takes it multithreaded). */

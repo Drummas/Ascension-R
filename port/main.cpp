@@ -1951,6 +1951,17 @@ int main(int argc, char** argv)
         fprintf(stderr, "ERROR: could not load %s\n", elf);
         return 1;
     }
+    /* NVIDIA DLSS frame generation (frame_generation = dlss) is turned off. It ran on an RTX 5060 (#39), but held at 36
+     * real frames a second on a 144 Hz display it was no better than Unlock FPS. A file from a test build that still
+     * asks for it gets frame generation off; D3D12_DLSSG_TEST=1 keeps it, to test it again. */
+    {
+        const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
+        const char* keep = getenv("D3D12_DLSSG_TEST");
+        if (fg && ps3_settings_ieq(fg, "dlss") && !(keep && *keep == '1')) {
+            fprintf(stderr, "[gowa] frame generation off: NVIDIA DLSS frame generation is turned off in this version\n");
+            ps3_settings_override("graphics", "frame_generation", "off");
+        }
+    }
     /* [display] frame_cap = 120, 144 or unlocked (the launcher's Frame rate cap, experimental): the title patch
      * unlock_fps, and the frame clock's pace for it (frame_clock). Frame generation is off with it: it would hold the
      * game at half the display's refresh, 60 at most. The game going online for multiplayer takes the patch back

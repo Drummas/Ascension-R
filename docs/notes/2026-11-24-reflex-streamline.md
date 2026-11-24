@@ -66,3 +66,28 @@ Checked here (RX 6700 XT) with `D3D12_REFLEX_ANY_GPU=1 D3D12_DLSSG_DRYRUN=1`, wh
 constants each frame with nothing generated: Streamline took 120 frames of them without a warning; the plugin itself
 said "not supported on current hardware", as it should. Without the switches, an AMD GPU: Streamline not loaded, frame
 generation off, the game as before. Nothing on an RTX 40 or 50 yet.
+
+## 2026-11-25: on an RTX 5060, then turned off
+
+A tester in #39 (RTX 5060, Ryzen 5 5600X, 1080p at 144 Hz, VSync on, cap Off) ran the test build `dlss-test-3` with
+DLSS scaling and DLSS frame generation (`report-20261124-145426`), and with FSR scaling and AMD FSR's frame
+generation (`report-20261124-150319`). The log of the first:
+
+- The Streamline DLLs verified as signed by NVIDIA, `DLSS frame generation: loaded`, Reflex on by itself (low latency
+  available, PC latency stats on), `running, 2 frames shown per frame, up to 5 generated, VSync with it supported`;
+  no state check failed.
+- The game held at 36 flips a second (144 Hz / 4), so 72 on screen.
+- Off and on again at each movie and load, with short runs on at the edges of them (6 frames at 913-919, 20 at
+  2706-2726): NVIDIA's frame generation indicator came and went with them. The log names the first 6 changes only.
+- Two Streamline warnings, both harmless: the back buffer's extent not given (it takes the whole 1920x1080), and a
+  clone's alignment overridden.
+
+The tester's word: DLSS frame generation is far cleaner than AMD FSR's (no broken UI, less ghosting and noise), one
+small broken frame in Megaera's introduction around Kratos, audio in time; but not much better than Unlock FPS, which
+plays at the real 60 and more where frame generation holds the game at 36.
+
+So `frame_generation = dlss` is turned off: the launcher no longer offers it and changes a file that has it to off,
+and `main.cpp` takes it as off (`[gowa] frame generation off: NVIDIA DLSS frame generation is turned off in this
+version`). The code stays: `D3D12_DLSSG_TEST=1` keeps `dlss` for a test, with the DLL fetch and checks as they were.
+Reflex (`graphics.reflex`) and DLSS scaling stay. What would make it worth having: frame generation over a real 60 or
+72 (Unlock FPS with it), and an on/off that waits for its inputs to be steady before it starts.
