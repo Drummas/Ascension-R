@@ -66,6 +66,9 @@ extern "C" void gowa_vram_texture(ppu_context* ctx, uint32_t)
  * ([0x9AF4BC], zeroed as each pass starts) and its budget for a frame ([0x83CD2C]). */
 static const uint32_t POOL_TOP = 0x009B1DC0, BLOCKS = 0x009AF51C, BLOCK_COUNT = 0x009B1DBC, MOVES = 0x009B2834,
                       MOVED = 0x009AF4BC, BUDGET = 0x0083CD2C;
+/* The streamed textures' budget and what they use of it, the pool's size, and what the level asked for its own data
+ * (the reserve, below gowa_vram_manager_works). */
+static const uint32_t TEX_BUDGET = 0x009B1DE0, TEX_IN_USE = 0x009B1DDC, POOL_SIZE = 0x009B1DC4, LEVEL_OWN = 0x009B1DD4;
 
 static uint32_t s_old_age = 240;   /* the textures' age limit at 0x83CD44 as last set (old_age_frame, below) */
 
@@ -235,9 +238,10 @@ static void load_say(void)
     counts_say(counts, sizeof counts, d);
     fprintf(stderr, "[vram] load of %s.WAD%s, %.1f s, %llu frames: the pool before it %s; at its lowest (frame %d) %s; "
                     "after it %s; %s; at most %.1f MB moved in a frame, %d at its %.0f MB budget; textures old after %u "
-                    "frames\n", s_load.name, more, (GetTickCount64() - s_load.t0) / 1000.0, (unsigned long long)d.frames,
-            part[0], s_load.low_frame, part[1], part[2], counts, s_load.moved_max / 1048576.0, s_load.at_budget,
-            vm_read32(BUDGET) / 1048576.0, s_old_age);
+                    "frames; textures %.1f MB of their %.1f MB, the level's own %.1f MB\n", s_load.name, more,
+            (GetTickCount64() - s_load.t0) / 1000.0, (unsigned long long)d.frames, part[0], s_load.low_frame, part[1],
+            part[2], counts, s_load.moved_max / 1048576.0, s_load.at_budget, vm_read32(BUDGET) / 1048576.0, s_old_age,
+            vm_read32(TEX_IN_USE) / 1048576.0, vm_read32(TEX_BUDGET) / 1048576.0, vm_read32(LEVEL_OWN) / 1048576.0);
     fflush(stderr);
 }
 
@@ -265,8 +269,10 @@ static void stats_frame(ULONGLONG now)
     counts_say(counts, sizeof counts, d);
     const double secs = (now - last) / 1000.0;
     fprintf(stderr, "[vram] %.1f s: %llu frames (%.0f a second); %s; the pool room %.1f MB, %.1f MB in %u blocks, %.1f MB "
-                    "of holes; textures old after %u frames\n", secs, (unsigned long long)d.frames, d.frames / secs, counts,
-            s.top / 1048576.0, s.live / 1048576.0, s.blocks, s.holes / 1048576.0, s_old_age);
+                    "of holes; textures old after %u frames; textures %.1f MB of their %.1f MB, the level's own %.1f MB\n",
+            secs, (unsigned long long)d.frames, d.frames / secs, counts, s.top / 1048576.0, s.live / 1048576.0, s.blocks,
+            s.holes / 1048576.0, s_old_age, vm_read32(TEX_IN_USE) / 1048576.0, vm_read32(TEX_BUDGET) / 1048576.0,
+            vm_read32(LEVEL_OWN) / 1048576.0);
     fflush(stderr);
     last = now;
     at = s_tot;
@@ -425,6 +431,70 @@ extern "C" void gowa_vram_manager_works(ppu_context*, uint32_t)
 {
     s_mgr_works++;
     s_mgr_passed = 1;
+}
+
+/* A reserve in the pool for the levels' loads (issues #39 and #42). The streamed textures get a budget ([0x9B1DE0]):
+ * the pool's size ([0x9B1DC4]) less what the level asks for its own data ([0x9B1DD4]) or what it measures, the larger
+ * (func_0039EE4C, which trims textures down to a smaller budget; or func_0039EF2C as the pool starts, which writes it
+ * as size less [0x9B1DD4]). The textures fill their budget, so the pool is as good as full, and at the start of the
+ * game the first blade's level (HECA100) came in with no room left: 188-192 MB live in the 192 MB pool, an allocation
+ * failed and the game wrote to address 0 and stopped. At 32:9 with the frame rate cap off (#42), and at 16:9 with it
+ * Unlocked (#39); at 16:9 at 60 it went through. The budget is made smaller by a reserve, 16 MB
+ * (GOWA_VRAM_RESERVE_MB, 0 = none), never under 24 MB, so the textures leave it to the levels' data: a texture may lose
+ * its top level of detail a little sooner in a full scene. In use ([0x9B1DDC]) and the budget are in the load lines. */
+static const uint32_t BUDGET_FLOOR = 24u << 20;
+
+static uint32_t vram_reserve(void)
+{
+    static int mb = -1;
+    if (mb < 0) {
+        const char* e = getenv("GOWA_VRAM_RESERVE_MB");
+        mb = e && *e ? atoi(e) : 16;
+        if (mb < 0) mb = 0;
+        if (mb > 96) mb = 96;
+    }
+    return (uint32_t)mb << 20;
+}
+
+static uint32_t budget_less_reserve(uint32_t budget)
+{
+    const uint32_t r = vram_reserve();
+    if (!r || budget <= BUDGET_FLOOR) return budget;
+    return budget - r >= BUDGET_FLOOR && budget > r ? budget - r : BUDGET_FLOOR;
+}
+
+static void budget_said(const char* where, uint32_t was, uint32_t is)
+{
+    static volatile LONG said;
+    const LONG n = InterlockedIncrement(&said);
+    if (n > 4 && (n & (n - 1))) return;
+    fprintf(stderr, "[vram] reserve (%s): the streamed textures' budget %.1f MB less %.0f MB = %.1f MB; the pool %.1f MB, "
+                    "the level's own %.1f MB, textures in use %.1f MB (%ld so far)\n", where, was / 1048576.0,
+            vram_reserve() / 1048576.0, is / 1048576.0, vm_read32(POOL_SIZE) / 1048576.0,
+            vm_read32(LEVEL_OWN) / 1048576.0, vm_read32(TEX_IN_USE) / 1048576.0, (long)n);
+    fflush(stderr);
+}
+
+/* func_0039EE4C at 0x0039EED4: r29 the new budget, before it is set against the old one and textures are trimmed. */
+extern "C" void gowa_vram_budget(ppu_context* ctx, uint32_t)
+{
+    const uint32_t was = (uint32_t)ctx->gpr[29], is = budget_less_reserve(was);
+    if (is == was) return;
+    ctx->gpr[29] = is;
+    budget_said("a level's", was, is);
+}
+
+/* func_0039EF2C at its end (0x0039F05C): the budget it wrote itself, size less [0x9B1DD4], gets the reserve too. The
+ * other way out, through func_0039EE4C, has it already. */
+extern "C" void gowa_vram_budget_init(ppu_context*, uint32_t)
+{
+    if (!pool_there() || !is_there(TEX_BUDGET, 4)) return;
+    const uint32_t size = vm_read32(POOL_SIZE), own = vm_read32(LEVEL_OWN), budget = vm_read32(TEX_BUDGET);
+    if (own > size || budget != size - own) return;
+    const uint32_t is = budget_less_reserve(budget);
+    if (is == budget) return;
+    vm_write32(TEX_BUDGET, is);
+    budget_said("the pool's start", budget, is);
 }
 
 /* What fills the pool, said at its first shortage: the live blocks by size, those of a texture, and the eight largest

@@ -139,7 +139,9 @@ loads a little each frame. A 144 Hz monitor and the game past the first level ha
 
 While a level loads the frame rate is held to 60, and textures count as unused after 4 s at any frame rate: unlocked,
 a tester's game ran out of video memory as levels loaded (at the start of the game and at the Megaera cinematic) and
-stopped, which it never did with the cap off ([note](notes/2026-11-24-unlock-fps-pool.md), issue #39).
+stopped, which it never did with the cap off ([note](notes/2026-11-24-unlock-fps-pool.md), issue #39). The same
+happened at 60 frames a second at 32:9 (#42): the streamed textures now leave 16 MB of the game's video memory to the
+levels' loads, at any frame rate.
 
 ## Frame rate on screen
 

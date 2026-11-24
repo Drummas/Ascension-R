@@ -1,4 +1,4 @@
-# Unlock FPS and the VRAM pool: the hangs as levels load (2026-11-24)
+# The VRAM pool: the hangs as levels load, Unlock FPS and 32:9 (2026-11-24)
 
 Issue #39's tester (Ryzen 5 5600X, RTX 5060) had the game stop as levels loaded with DLSS test builds 1 and 2. Test
 build 2's counters and their own A/B settled what does it, not yet how.
@@ -60,3 +60,33 @@ neither the hangs nor what at a high frame rate leads to them could be made here
   unlocked, not shown to change the pool here.
 - **The per-load line**, in every log: the tester's reports will say how close each load came, unlocked and off, at
   the two places this PC cannot reach.
+
+## Issue #42: the same at 60, at 32:9
+
+0.3.0, no Unlock FPS, the cap off, VSync on, 60 frames a second, `display.ultrawide` at 3840x1080 (32:9), an RTX 5080:
+the game stopped in the first fight every time, as HECA100 loaded, with the pool full (188.3 MB live, 3.9 MB of
+holes) and the same write to address 0. So the frame rate is not the cause: at that load the pool is at its 192 MB,
+and what adds to it (a 32:9 view, or the unlocked frame rate) tips it over. A 32:9 window here (1920x540 windowed)
+ran the bench's level at ~40 frames a second with the same 180.5 MB live: the streamed textures fill their budget
+whatever the view, and the level's own data comes on top.
+
+The streamed textures' budget is the pool's size less what the level asks for its own data ([0x9B1DC4] less
+[0x9B1DD4], or what func_003018D0 measures if more): func_0039EE4C sets it and trims the textures down to it, and
+func_0039EF2C writes it as the pool starts. Measured: the pool 192.2 MB, the level's own 62-87 MB, the budget
+105-130 MB, and the textures at their budget (130.1 of 130.2 MB in the bench's level).
+
+## A reserve for the loads
+
+The budget is made 16 MB smaller (`gowa_vram_budget` at 0x0039EED4, `gowa_vram_budget_init` at 0x0039F05C; never under
+24 MB; `GOWA_VRAM_RESERVE_MB`, 0 = none; ABI 11). The bench's level, cap off, one run each:
+
+| | No reserve | 16 MB |
+|---|---|---|
+| Textures, of their budget | 130.1 of 130.2 MB | 114.2 of 114.2 MB |
+| Live at most | 180.5 MB | 164.5 MB |
+| Seconds under 10 MB of room | 7 | 4 |
+| Least room | 0.0 MB | 0.1 MB |
+
+The full pool of HECA100 (#42, and #39's new game) gets those 16 MB. The dips to no room with tens of MB of holes not
+packed yet stay, fewer, as the game packs the pool only once it runs low; a load's burst at such a moment (#39 at the
+Megaera cinematic) has more room around it but is not ruled out.
