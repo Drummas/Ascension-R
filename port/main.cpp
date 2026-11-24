@@ -1773,8 +1773,9 @@ int main(int argc, char** argv)
      * graphics.anr_dll ("anr" beside the exe), and quit (the launcher's Choose a zip, launcher.cpp).
      * --anr-get: the newest ANR FG release fetched from Apex Compute's GitHub releases and set up so,
      * and quit (the launcher's Download and set up, anr_get.cpp).
-     * --dlss-get: NVIDIA's DLSS DLL fetched from NVIDIA's own DLSS repository on GitHub into the dlss
-     * folder beside the exe, and quit (the launcher's Download and set up, dlss_get.cpp).
+     * --dlss-get: NVIDIA's DLSS DLLs (scaling and frame generation) fetched from NVIDIA's own DLSS
+     * repository on GitHub into the dlss folder beside the exe, and quit (the launcher's Download and set
+     * up, dlss_get.cpp).
      * --end-process <pid> <code>: end that process and quit (end_by_another_process). */
 #ifdef _WIN32
     if (argc == 4 && !strcmp(argv[1], "--end-process")) return end_process_cli(argv[2], argv[3]);
@@ -1963,7 +1964,8 @@ int main(int argc, char** argv)
          * frame that took longer than a refresh hold the next one until the refresh after, and the game sat at 60. */
         if (gowa_title_patch_wanted("unlock_fps")) env_default("D3D12_SWAP_BUFFERS", "3");
         const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
-        if (gowa_title_patch_wanted("unlock_fps") && fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr"))) {
+        if (gowa_title_patch_wanted("unlock_fps") && fg &&
+            (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr") || ps3_settings_ieq(fg, "dlss"))) {
             fprintf(stderr, "[gowa] frame generation off: Unlock FPS sets the pace\n");
             ps3_settings_override("graphics", "frame_generation", "off");
         }
@@ -1975,7 +1977,7 @@ int main(int argc, char** argv)
         const char* sc = ps3_settings_str("graphics", "scaling", NULL, "bilinear");
         const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
         const bool fsr = (sc && (ps3_settings_ieq(sc, "fsr3") || ps3_settings_ieq(sc, "dlss"))) ||
-                         (fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr")));
+                         (fg && (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr") || ps3_settings_ieq(fg, "dlss")));
         env_default("GOWA_PATCH_MLAA_PATH_OFF", fsr ? "1" : "0");
     }
     gowa_title_patches_apply();   /* [patches]: the ones switched on (patches.cpp) */

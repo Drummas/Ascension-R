@@ -30,9 +30,10 @@ amd_fidelityfx_loader_dx12.dll, amd_fidelityfx_framegeneration_dx12.dll, amd_fid
 SDL3.dll
     SDL @SDL3_VERSION@, the official build, under the zlib license: SDL3.txt. It reads the controllers XInput does not.
 
-sl.interposer.dll, sl.common.dll, sl.reflex.dll, sl.pcl.dll
-    NVIDIA Streamline @STREAMLINE_VERSION@, NVIDIA's signed binaries, under the MIT License: NVIDIA-Streamline.txt. They
-    are loaded only for NVIDIA Reflex on an NVIDIA GPU.
+sl.interposer.dll, sl.common.dll, sl.reflex.dll, sl.pcl.dll, sl.dlss_g.dll
+    NVIDIA Streamline @STREAMLINE_VERSION@, NVIDIA's signed binaries, under the MIT License: NVIDIA-Streamline.txt; the
+    notices of the code in them: NVIDIA-Streamline-third-party.txt. They are loaded only for NVIDIA Reflex and NVIDIA
+    DLSS frame generation on an NVIDIA GPU.
 
 dxcompiler.dll, dxil.dll
     DirectX Shader Compiler, from the Windows SDK's redistributable files. Copyright (c) Microsoft Corporation.
@@ -40,10 +41,10 @@ dxcompiler.dll, dxil.dll
 msvcp140.dll, vcruntime140.dll, vcruntime140_1.dll
     Microsoft Visual C++ runtime, from Visual Studio's redistributable files. Copyright (c) Microsoft Corporation.
 
-dlss\nvngx_dlss.dll (not in this download)
-    NVIDIA DLSS 310.9.16, the release build, which the launcher downloads from NVIDIA's own DLSS repository on GitHub
-    when you pick NVIDIA DLSS. NVIDIA's, under the NVIDIA RTX SDKs license; the notices of the code in it:
-    NVIDIA-DLSS.txt.
+dlss\nvngx_dlss.dll, dlss\nvngx_dlssg.dll (not in this download)
+    NVIDIA DLSS 310.9.16 and its frame generation, the release builds, which the launcher downloads from NVIDIA's own
+    DLSS repository on GitHub when you pick NVIDIA DLSS scaling or frame generation. NVIDIA's, under the NVIDIA RTX
+    SDKs license; the notices of the code in them: NVIDIA-DLSS.txt.
 
 The Microsoft files are here only so that this program can run. Use them only as part of it, and do not change them or
 pass them on apart from it.

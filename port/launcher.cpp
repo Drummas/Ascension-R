@@ -161,10 +161,11 @@ static const char* const k_gpu_n[] = { "Discrete", "Integrated" };
 static const char* const k_rscale[] = { "1", "1.5", "2", "3", "native" };
 static const char* const k_rscale_n[] = { "720p, as the game draws it", "1080p", "1440p", "2160p", "The window's size" };
 static const char* const k_rscale_s[] = { "720p", "1080p", "1440p", "4K", "Window" };
-/* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR). */
-static const char* const k_fg[] = { "off", "on", "anr" };
-static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)" };
-static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)" };
+/* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR); dlss is NVIDIA
+ * DLSS Frame Generation through Streamline (beta, ps3recomp's rsx_sl.cpp). */
+static const char* const k_fg[] = { "off", "on", "anr", "dlss" };
+static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)", "NVIDIA DLSS (beta, RTX 40 and newer)" };
+static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)", "DLSS (beta)" };
 /* graphics.reflex: NVIDIA Reflex through Streamline (ps3recomp's rsx_sl.cpp), on NVIDIA GPUs. */
 static const char* const k_reflex[] = { "off", "on", "boost" };
 static const char* const k_reflex_n[] = { "Off", "On", "On + Boost" };
@@ -260,11 +261,13 @@ static Opt s_opt[] = {
     { T_GRAPHICS, "graphics", "frame_generation", "off", "Frame generation", 0, LIST(k_fg, k_fg_n), k_fg_s,
       "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
       "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
-      "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases." },
+      "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases. "
+      "NVIDIA DLSS (beta) is NVIDIA's own on GeForce RTX 40 and newer, with NVIDIA Reflex; its DLL comes from NVIDIA's "
+      "own GitHub when you pick it." },
     { T_GRAPHICS, "graphics", "reflex", "off", "NVIDIA Reflex", 0, LIST(k_reflex, k_reflex_n), k_reflex_n,
       "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer "
-      "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame "
-      "generation. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
+      "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. NVIDIA DLSS frame "
+      "generation turns it on by itself; not with AMD FSR's or ANR's. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
@@ -1318,24 +1321,26 @@ static struct {
     HANDLE thread;
     GameProgress p;
     volatile LONG running;
+    int which;          /* DLSS_SR, DLSS_FG */
     char result[400];   /* "" done, else why not: for the toast */
 } s_dlss_dl;
 
 static DWORD WINAPI dlss_dl_thread(void*)
 {
-    const std::string why = dlss_fetch(&s_dlss_dl.p);
+    const std::string why = dlss_fetch(&s_dlss_dl.p, s_dlss_dl.which);
     snprintf(s_dlss_dl.result, sizeof s_dlss_dl.result, "%s", why.c_str());
     InterlockedExchange(&s_dlss_dl.running, 0);
     PostMessageA(s_main, WM_DLSS, 1, 0);
     return 0;
 }
 
-static void dlss_dl_start(void)
+static void dlss_dl_start(int which)
 {
     if (s_dlss_dl.running) return;
     if (s_dlss_dl.thread) { CloseHandle(s_dlss_dl.thread); s_dlss_dl.thread = NULL; }
     memset((void*)&s_dlss_dl.p, 0, sizeof s_dlss_dl.p);
     s_dlss_dl.result[0] = 0;
+    s_dlss_dl.which = which;
     InterlockedExchange(&s_dlss_dl.running, 1);
     s_dlss_dl.thread = CreateThread(NULL, 0, dlss_dl_thread, NULL, 0, NULL);
     if (!s_dlss_dl.thread) { InterlockedExchange(&s_dlss_dl.running, 0); toast_bad("NVIDIA DLSS: the download could not start"); return; }
@@ -2715,13 +2720,17 @@ static void draw_play(void)
         const bool fsr = sc && ps3_settings_ieq(sc->cur, "fsr3");
         const bool dlss = sc && ps3_settings_ieq(sc->cur, "dlss");
         const bool anr = fg && ps3_settings_ieq(fg->cur, "anr");
+        const bool dlssg = fg && ps3_settings_ieq(fg->cur, "dlss");
         const bool fgon = anr || (fg && ps3_settings_ieq(fg->cur, "on"));
+        /* NVIDIA's DLLs the settings take, and those not here yet. */
+        const int dneed = (dlss ? DLSS_SR : 0) | (dlssg ? DLSS_FG : 0);
+        const int dmiss = dlss_missing(dneed);
         wchar_t anr_tail[48];
         const std::string label = anr && !s_anr_dl.running ? anr_label() : std::string();
         swprintf(anr_tail, 48, L" + ANR FG%hs%hs", label.empty() ? "" : " ", label.c_str());
         const Opt* rx = opt_find("graphics", "reflex");
         const bool reflex = rx && rx->tab >= 0 && !ps3_settings_ieq(rx->cur, "off");
-        const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : reflex ? L" + Reflex" : L"";
+        const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : dlssg ? L" + DLSS frames" : reflex ? L" + Reflex" : L"";
         wchar_t b[200];
         if (anr && s_anr_dl.running) {
             const long long total = s_anr_dl.p.total, done = s_anr_dl.p.done;
@@ -2735,9 +2744,10 @@ static void draw_play(void)
         } else if (anr && !anr_present()) {
             check_line(lx, y, lw - 106, 0, L"ANR FG's files are not here yet");
             w_button(L"Get ANR", R(lx + lw - 96, y - 2, 96, 30), H_ANR_ZIP, B_PLAIN);
-        } else if (dlss && !gpu_maybe_rtx()) {
-            check_line(lx, y, lw, 0, L"DLSS needs an RTX card: AMD FSR instead");
-        } else if (dlss && s_dlss_dl.running) {
+        } else if (dneed && !gpu_maybe_rtx()) {
+            check_line(lx, y, lw, 0, dlss ? L"DLSS needs an RTX card: AMD FSR instead"
+                                          : L"DLSS frame generation needs an RTX 40 or newer: off");
+        } else if (dneed && s_dlss_dl.running) {
             const long long total = s_dlss_dl.p.total, done = s_dlss_dl.p.done;
             if (total > 0)
                 swprintf(b, 200, L"Downloading DLSS %hs: %lld%%", k_dlss_dll_version, done * 100 / total);
@@ -2746,8 +2756,9 @@ static void draw_play(void)
             check_line(lx, y, lw - 106, 2, b);
             draw_progress(lx + 26, y + 28, lw - 26 - 106, total > 0 ? (float)done / (float)total : -1.0f, 0, 8.0f);
             w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_STOP, B_PLAIN);
-        } else if (dlss && !dlss_present()) {
-            check_line(lx, y, lw - 106, 0, L"DLSS's DLL is not here yet");
+        } else if (dmiss) {
+            check_line(lx, y, lw - 106, 0, dmiss == DLSS_FG ? L"DLSS frame generation's DLL is not here yet"
+                                                            : L"DLSS's DLL is not here yet");
             w_button(L"Get DLSS", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_GET, B_PLAIN);
         } else if (dlss) {
             swprintf(b, 200, L"Upscaling: NVIDIA DLSS (beta)%ls", tail);
@@ -4556,7 +4567,7 @@ extern "C" int gowa_anr_get(char* why, size_t n)
 extern "C" int gowa_dlss_get(char* why, size_t n)
 {
     GameProgress p = {};
-    const std::string r = dlss_fetch(&p);
+    const std::string r = dlss_fetch(&p, DLSS_SR | DLSS_FG);
     snprintf(why, n, "%s", r.empty() ? k_dlss_dll_version : r.c_str());
     return r.empty() ? 0 : 1;
 }
@@ -4622,19 +4633,35 @@ static void anr_offer(void)
     else if (pressed == 101) anr_zip_pick();
 }
 
-/* NVIDIA DLSS chosen without its DLL, or Get DLSS on the ready check: asks before anything is fetched. Scaling stays
- * DLSS either way (until the DLL is there the game uses AMD FSR). */
-static void dlss_offer(void)
+/* NVIDIA's DLLs the settings take (DLSS_*), those not here yet: DLSS scaling, DLSS frame generation. */
+static int dlss_wanted(void)
 {
-    if (s_dlss_dl.running) return;
-    wchar_t what[900];
-    swprintf(what, 900,
-             L"NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards. Its "
-             L"DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\n"
-             L"Ascension-R can download nvngx_dlss.dll %hs (59 MB) from NVIDIA's own DLSS repository on GitHub "
-             L"(github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put "
-             L"it in the dlss folder beside the program. Nothing else is sent or installed.",
-             k_dlss_dll_version);
+    const Opt* sc = opt_find("graphics", "scaling");
+    const Opt* fg = opt_find("graphics", "frame_generation");
+    return dlss_missing((sc && ps3_settings_ieq(sc->cur, "dlss") ? DLSS_SR : 0) |
+                        (fg && ps3_settings_ieq(fg->cur, "dlss") ? DLSS_FG : 0));
+}
+
+/* NVIDIA DLSS (scaling or frame generation) chosen without its DLL, or Get DLSS on the ready check: asks before
+ * anything is fetched. The setting stays either way (until the DLL is there the game uses AMD FSR for the scaling, and
+ * no frame generation). */
+static void dlss_offer(int which)
+{
+    if (s_dlss_dl.running || !which) return;
+    wchar_t what[1200], files[160];
+    swprintf(files, 160, L"%ls%ls%ls %hs (%d MB)", which & DLSS_SR ? L"nvngx_dlss.dll" : L"",
+             which == (DLSS_SR | DLSS_FG) ? L" and " : L"", which & DLSS_FG ? L"nvngx_dlssg.dll" : L"",
+             k_dlss_dll_version, dlss_download_mb(which));
+    swprintf(what, 1200,
+             L"%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\n"
+             L"Ascension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check "
+             L"it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the "
+             L"program. Nothing else is sent or installed.",
+             which == DLSS_FG ? L"NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on "
+                                L"GeForce RTX 40 and newer cards."
+                              : L"NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX "
+                                L"cards.",
+             files);
     int pressed = 0;
     const task_dialog_fn td = task_dialog();
     if (td) {
@@ -4654,7 +4681,7 @@ static void dlss_offer(void)
     } else {
         pressed = MessageBoxW(s_main, what, L"Download NVIDIA DLSS?", MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
     }
-    if (pressed == 100) dlss_dl_start();
+    if (pressed == 100) dlss_dl_start(which);
 }
 
 /* What follows a choice: ANR FG or NVIDIA DLSS chosen without its files asks whether to fetch them. */
@@ -4665,7 +4692,10 @@ static void opt_changed(const Opt& o)
         anr_offer();
     if (!strcmp(o.key, "scaling") && ps3_settings_ieq(o.cur, "dlss") && gpu_maybe_rtx() && !dlss_present() &&
         !s_dlss_dl.running)
-        dlss_offer();
+        dlss_offer(DLSS_SR);
+    if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "dlss") && gpu_maybe_rtx() && !dlssg_present() &&
+        !s_dlss_dl.running)
+        dlss_offer(DLSS_FG);
 }
 
 static void act(int id)
@@ -4737,7 +4767,7 @@ static void act(int id)
         case H_PREBUILD: pb_start(); break;
         case H_ANR_ZIP: anr_offer(); break;
         case H_ANR_STOP: game_progress_stop(&s_anr_dl.p); break;
-        case H_DLSS_GET: dlss_offer(); break;
+        case H_DLSS_GET: dlss_offer(dlss_wanted()); break;
         case H_DLSS_STOP: game_progress_stop(&s_dlss_dl.p); break;
         case H_MODS_OPEN: mods_open(); break;
         case H_GAME_BROWSE: game_browse(); break;

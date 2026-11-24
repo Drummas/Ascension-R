@@ -6,10 +6,11 @@ Ascension-R.exe has NVIDIA's NGX SDK in it: the static library and headers of th
 (https://github.com/NVIDIA/DLSS/blob/main/LICENSE.txt) and are not under Ascension-R's MIT license: you may not
 reverse engineer, decompile or disassemble them, or remove NVIDIA's notices from them.
 
-dlss\nvngx_dlss.dll is not in this download. When you pick NVIDIA DLSS, the launcher downloads it from NVIDIA's own
-DLSS repository on GitHub (the release build of DLSS SDK 310.9.16), checks its SHA-256 and NVIDIA's signature and puts
-it there. It is NVIDIA's, under the same license. NVIDIA asks that the notices of the third-party code in it be
-included, which follow as NVIDIA's DLSS Programming Guide gives them (its section 9.5).
+dlss\nvngx_dlss.dll and dlss\nvngx_dlssg.dll are not in this download. When you pick NVIDIA DLSS scaling or frame
+generation, the launcher downloads the one it takes from NVIDIA's own DLSS repository on GitHub (the release builds of
+DLSS SDK 310.9.16), checks its SHA-256 and NVIDIA's signature and puts it there. They are NVIDIA's, under the same
+license. NVIDIA asks that the notices of the third-party code in them be included, which follow as NVIDIA's DLSS
+Programming Guide gives them (its section 9.5).
 
 
 9.5.1 Trademarks

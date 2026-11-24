@@ -334,9 +334,12 @@ DXC_DLLS = ("dxcompiler.dll", "dxil.dll")
 VC_DLLS = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
 FSR_DLLS = ("amd_fidelityfx_loader_dx12.dll", "amd_fidelityfx_framegeneration_dx12.dll",
             "amd_fidelityfx_upscaler_dx12.dll")
-# NVIDIA Streamline, for NVIDIA Reflex (graphics.reflex, ps3recomp's libs/video/rsx_sl.cpp): the NVIDIA-signed DLLs of
-# NVIDIA-RTX/Streamline's streamline-sdk-<version>.zip, bin/x64, unpacked under ../streamline-sdk/v<version> (or
-# local.json's "streamline_dir", the folder with the DLLs), each checked by its SHA-256. MIT License.
+# NVIDIA Streamline, for NVIDIA Reflex and DLSS frame generation (graphics.reflex, graphics.frame_generation = dlss,
+# ps3recomp's libs/video/rsx_sl.cpp): the NVIDIA-signed DLLs of NVIDIA-RTX/Streamline's streamline-sdk-<version>.zip,
+# bin/x64, unpacked under ../streamline-sdk/v<version> (or local.json's "streamline_dir", the folder with the DLLs),
+# each checked by its SHA-256. MIT License, with the notices of the code in them (ps3recomp's
+# third_party/streamline/3rd-party-licenses.md). DLSS-G's model, nvngx_dlssg.dll, is not among them: the launcher
+# fetches it (port/dlss_get.cpp).
 STREAMLINE_VERSION = "2.14.16"
 STREAMLINE_ZIP_SHA256 = "32041e51db0cab709a271b72a352281b690c2abbd669a827809401a5dd23956b"
 STREAMLINE_DLLS = {
@@ -344,6 +347,7 @@ STREAMLINE_DLLS = {
     "sl.common.dll": "38eea3b4209afc455636ea372b5933d65fcc13becec6c84d101dcfc4d8648f75",
     "sl.reflex.dll": "443577e869352436ff7ec8f4d9c90418d3e95368436ce219261e0f4f07a38122",
     "sl.pcl.dll": "5698c38e722318681f215c9fe68e45b9bedd51378acc699d8eee26e961e57770",
+    "sl.dlss_g.dll": "3ed9538df724993bea8a050195a6a78b9c8c8a566d5b05ade477aab3c390e90f",
 }
 # SDL3, for the controllers XInput does not read (cellPad): libsdl-org/SDL's SDL3-devel-<version>-VC.zip, unpacked
 # (local.json's "sdl3_dir", or ../sdl3/<version>/SDL3-<version>). The build takes its headers only; SDL3.dll goes
@@ -1922,6 +1926,7 @@ def cmd_package(args):
                     (os.path.join(third, "smaa", "LICENSE.txt"), "SMAA.txt"),
                     (os.path.join(third, "zstd", "LICENSE"), "Zstandard.txt"),
                     (os.path.join(third, "streamline", "license.txt"), "NVIDIA-Streamline.txt"),
+                    (os.path.join(third, "streamline", "3rd-party-licenses.md"), "NVIDIA-Streamline-third-party.txt"),
                     (os.path.join(ROOT, "third_party", "zlib", "LICENSE"), "zlib.txt"),
                     (os.path.join(ROOT, "third_party", "silkscreen", "OFL.txt"), "Silkscreen.txt"),
                     (os.path.join(ff, "COPYING.LGPLv2.1"), "FFmpeg-LGPL-2.1.txt"),

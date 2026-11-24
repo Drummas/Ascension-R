@@ -83,7 +83,7 @@ extern "C" void gowa_title_patches_apply(void)
          * picture; without it FSR stays off (main.cpp). */
         const char* fg = ps3_settings_str("graphics", "frame_generation", "D3D12_FRAME_GENERATION", "off");
         if (!strcmp(p->id, "disable_motion_blur") && gowa_title_patch_wanted("mlaa_path_off") &&
-            (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr") ||
+            (ps3_settings_ieq(fg, "on") || ps3_settings_ieq(fg, "anr") || ps3_settings_ieq(fg, "dlss") ||
              ps3_settings_ieq(ps3_settings_str("graphics", "scaling", NULL, "bilinear"), "fsr3")) &&
             ps3_settings_bool("graphics", "frame_generation_objects", "D3D12_FG_OBJECTS", 1)) {
             fprintf(stderr, "[patches] %s: left off for FSR's motion\n", p->name);

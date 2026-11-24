@@ -42,3 +42,27 @@ On the test laptop (GTX 1650 Ti, Optimus: the game must run on the GeForce):
   the pace and lower the latency where the GPU does (a higher internal resolution).
 - NVIDIA's overlay (Alt+R in the NVIDIA app) shows PC latency once PCL's markers come through.
 - DLSS with Reflex on: Streamline and the port's own NGX side by side.
+
+## Step 2b: DLSS Frame Generation (2x)
+
+- `graphics.frame_generation = dlss`: the launcher's NVIDIA DLSS (beta, RTX 40 and newer). Streamline starts with the
+  DLSS-G plugin as well (`sl.dlss_g.dll`, shipped with the others), and Reflex on with it whatever `graphics.reflex`
+  says. Where `slIsFeatureSupported` says no (not RTX 40+, driver, hardware-accelerated GPU scheduling off) the plugin is
+  unloaded again before the swap chain is made, and the game runs without frame generation.
+- DLSS-G's model, `nvngx_dlssg.dll` 310.9.16, is NVIDIA's under the RTX SDKs license and not shipped: the launcher offers
+  to fetch it from NVIDIA/DLSS at the commit of v310.9.16 (the same file the Streamline 2.14.16 zip carries: git blob
+  71b8070c, SHA-256 8d59d49b), checks its size, SHA-256 and NVIDIA's signature and puts it in `dlss\`, which is given to
+  Streamline as a second folder to look in.
+- Its inputs are FSR frame generation's: the depth and motion targets of FSR's inputs' pass (R32_FLOAT 0 near, R16G16_FLOAT
+  in UV units, camera and objects; `rsx_fsr3_prepare_once`), the picture without its HUD at the back buffer's size, all
+  tagged until the present. Its constants come from the title's world-to-clip matrix (`rsx_fsr3_pose_get`): the
+  clip-to-previous-clip pair from this frame's and the last one's, the projection from near, far and the field of view,
+  the camera's position and axes. All under the frame index its present markers carry.
+- On for a 3D scene, off (inputs untagged) for menus, logos and movies; off before a swap chain resize. Its state is
+  read after 120 frames and every 600: a failure turns it off for good, its reason logged.
+- The pace as with FSR's: the game held at half the display's refresh.
+
+Checked here (RX 6700 XT) with `D3D12_REFLEX_ANY_GPU=1 D3D12_DLSSG_DRYRUN=1`, which gives Streamline the inputs and
+constants each frame with nothing generated: Streamline took 120 frames of them without a warning; the plugin itself
+said "not supported on current hardware", as it should. Without the switches, an AMD GPU: Streamline not loaded, frame
+generation off, the game as before. Nothing on an RTX 40 or 50 yet.
