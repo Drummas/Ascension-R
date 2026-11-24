@@ -171,14 +171,48 @@ static int files_take(char* first, char* level)
     return n;
 }
 
+/* Counted all session on the game's main thread: its frames (the manager's calls), the manager's passes and the bytes
+ * they moved, the pool's allocations, the streaming pass's trims (func_0039EA58: a texture that counts as old, its
+ * stamp [0x83CD44] = 240 frames behind the frame counter at 0x9B9988, loses its top mips off its block's front and
+ * leaves a hole there) and the texture mover's grows (func_003A0000: a streamed texture into a larger block, a new
+ * block and a move). A frame count is no time: unlocked at 144 frames a second 240 frames is 1.7 s, where the title
+ * waited 4 s at 60. A load's line, and GOWA_VRAM_STATS=<seconds>'s, say what they did. */
+struct PoolCounts {
+    uint64_t frames, passes, moved, allocs, alloc_bytes, trims, trim_bytes, grows, grow_bytes;
+};
+static PoolCounts s_tot;
+
+static PoolCounts counts_since(const PoolCounts& a)
+{
+    PoolCounts d;
+    d.frames = s_tot.frames - a.frames;
+    d.passes = s_tot.passes - a.passes;
+    d.moved = s_tot.moved - a.moved;
+    d.allocs = s_tot.allocs - a.allocs;
+    d.alloc_bytes = s_tot.alloc_bytes - a.alloc_bytes;
+    d.trims = s_tot.trims - a.trims;
+    d.trim_bytes = s_tot.trim_bytes - a.trim_bytes;
+    d.grows = s_tot.grows - a.grows;
+    d.grow_bytes = s_tot.grow_bytes - a.grow_bytes;
+    return d;
+}
+
+static void counts_say(char* out, size_t n, const PoolCounts& d)
+{
+    snprintf(out, n, "the manager's pass in %llu frames, %.1f MB moved; %llu allocations (%.1f MB), %llu trims "
+                     "(%.1f MB), %llu grows (%.1f MB)", (unsigned long long)d.passes, d.moved / 1048576.0,
+             (unsigned long long)d.allocs, d.alloc_bytes / 1048576.0, (unsigned long long)d.trims,
+             d.trim_bytes / 1048576.0, (unsigned long long)d.grows, d.grow_bytes / 1048576.0);
+}
+
 static struct {
-    int on, has_level, files, frames, passes, at_budget, low_frame;
+    int on, has_level, files, at_budget, low_frame;
     char name[40];
     ULONGLONG t0, last_file;
     PoolState before, low, after;
+    PoolCounts at0;                  /* s_tot as it opened */
     int64_t low_left, walked_left;   /* the least room an allocation left (below 0: one that did not fit) */
     uint32_t moved_max;
-    uint64_t moved;
 } s_load;
 
 static void load_say(void)
@@ -189,26 +223,62 @@ static void load_say(void)
         snprintf(part[i], sizeof part[i], "%s %.1f MB, %.1f MB in %u blocks, %.1f MB of holes",
                  i == 1 ? "room left" : "room", (i == 1 ? (double)s_load.low_left : (double)st[i]->top) / 1048576.0,
                  st[i]->live / 1048576.0, st[i]->blocks, st[i]->holes / 1048576.0);
-    char more[32] = "";
+    char more[32] = "", counts[256];
     if (s_load.files > 1) snprintf(more, sizeof more, " and %d more", s_load.files - 1);
-    fprintf(stderr, "[vram] load of %s.WAD%s, %.1f s, %d frames: the pool before it %s; at its lowest (frame %d) %s; "
-                    "after it %s; the manager's pass in %d frames, %.1f MB moved, at most %.1f MB in one, %d at its "
-                    "%.0f MB budget\n", s_load.name, more, (GetTickCount64() - s_load.t0) / 1000.0, s_load.frames,
-            part[0], s_load.low_frame, part[1], part[2], s_load.passes, s_load.moved / 1048576.0,
-            s_load.moved_max / 1048576.0, s_load.at_budget, vm_read32(BUDGET) / 1048576.0);
+    const PoolCounts d = counts_since(s_load.at0);
+    counts_say(counts, sizeof counts, d);
+    fprintf(stderr, "[vram] load of %s.WAD%s, %.1f s, %llu frames: the pool before it %s; at its lowest (frame %d) %s; "
+                    "after it %s; %s; at most %.1f MB moved in a frame, %d at its %.0f MB budget\n", s_load.name, more,
+            (GetTickCount64() - s_load.t0) / 1000.0, (unsigned long long)d.frames, part[0], s_load.low_frame, part[1],
+            part[2], counts, s_load.moved_max / 1048576.0, s_load.at_budget, vm_read32(BUDGET) / 1048576.0);
     fflush(stderr);
 }
 
-/* At the manager's call, once a frame: the bytes its last pass moved, a load's files, and its end. */
+/* GOWA_VRAM_STATS=<seconds>: every so many seconds, what the counts did and the pool as it stands. */
+static void stats_frame(ULONGLONG now)
+{
+    static int every = -1;
+    if (every < 0) {
+        const char* e = getenv("GOWA_VRAM_STATS");
+        every = e ? atoi(e) : 0;
+    }
+    if (every <= 0) return;
+    static ULONGLONG last;
+    static PoolCounts at;
+    if (!last) {
+        last = now;
+        at = s_tot;
+        return;
+    }
+    if (now - last < (ULONGLONG)every * 1000u) return;
+    const PoolCounts d = counts_since(at);
+    PoolState s;
+    pool_state(&s);
+    char counts[256];
+    counts_say(counts, sizeof counts, d);
+    const double secs = (now - last) / 1000.0;
+    fprintf(stderr, "[vram] %.1f s: %llu frames (%.0f a second); %s; the pool room %.1f MB, %.1f MB in %u blocks, %.1f MB "
+                    "of holes\n", secs, (unsigned long long)d.frames, d.frames / secs, counts, s.top / 1048576.0,
+            s.live / 1048576.0, s.blocks, s.holes / 1048576.0);
+    fflush(stderr);
+    last = now;
+    at = s_tot;
+}
+
+/* At the manager's call, once a frame: the frame and its last pass counted, a load's files, and its end. */
 static void load_frame(void)
 {
-    if (s_load.on && s_mgr_passed) {
+    s_tot.frames++;
+    if (s_mgr_passed) {
         const uint32_t moved = vm_read32(MOVED), budget = vm_read32(BUDGET);
-        s_load.passes++;
-        s_load.moved += moved;
-        if (moved > s_load.moved_max) s_load.moved_max = moved;
-        if (budget && moved >= budget) s_load.at_budget++;
+        s_tot.passes++;
+        s_tot.moved += moved;
+        if (s_load.on) {
+            if (moved > s_load.moved_max) s_load.moved_max = moved;
+            if (budget && moved >= budget) s_load.at_budget++;
+        }
     }
+    stats_frame(GetTickCount64());
     char first[40], level[40];
     const int n = files_take(first, level);
     const ULONGLONG now = GetTickCount64();
@@ -220,6 +290,7 @@ static void load_frame(void)
             pool_state(&s_load.before);
             s_load.low = s_load.before;
             s_load.low_left = s_load.walked_left = (int32_t)s_load.before.top;
+            s_load.at0 = s_tot;
         }
         if (level[0] && !s_load.has_level) {
             snprintf(s_load.name, sizeof s_load.name, "%s", level);
@@ -231,7 +302,6 @@ static void load_frame(void)
         s_load.last_file = now;
     }
     if (!s_load.on) return;
-    s_load.frames++;
     if (now - s_load.last_file >= 4000 || now - s_load.t0 >= 60000) {
         pool_state(&s_load.after);
         load_say();
@@ -323,9 +393,11 @@ static void vram_alloc_short(ppu_context* ctx, uint32_t size)
     if (!pool_there()) return;
     const uint32_t top = vm_read32(POOL_TOP), need = (size + 0x7Fu) & ~0x7Fu;
     const int64_t left = (int64_t)(int32_t)top - (int64_t)need;
+    s_tot.allocs++;
+    s_tot.alloc_bytes += need;
     if (s_load.on && left < s_load.low_left) {
         s_load.low_left = left;
-        s_load.low_frame = s_load.frames;
+        s_load.low_frame = (int)(s_tot.frames - s_load.at0.frames);
         if (s_load.walked_left - left >= 0x40000 || left < 0) {
             pool_state(&s_load.low);
             s_load.walked_left = left;
@@ -374,7 +446,11 @@ extern "C" void gowa_vram_alloc(ppu_context* ctx, uint32_t)
 extern "C" void gowa_vram_stream(ppu_context* ctx, uint32_t)
 {
     const uint32_t size = (uint32_t)ctx->gpr[6];
-    if (size < 0x10000000u) return;
+    if (size < 0x10000000u) {
+        s_tot.grows++;
+        s_tot.grow_bytes += size;
+        return;
+    }
     static int on = -1;
     if (on < 0) {
         const char* e = getenv("GOWA_VRAM_STREAM_GUARD");
@@ -438,12 +514,17 @@ extern "C" void gowa_vram_runs(ppu_context* ctx, uint32_t)
 extern "C" void gowa_vram_cut(ppu_context* ctx, uint32_t)
 {
     const uint32_t cut = (uint32_t)ctx->gpr[29], size = (uint32_t)ctx->gpr[4];
-    if (cut <= size) return;
+    s_tot.trims++;
+    if (cut <= size) {
+        s_tot.trim_bytes += cut;
+        return;
+    }
     const uint32_t tex = (uint32_t)ctx->gpr[31], blk = (uint32_t)ctx->gpr[30];
     const uint32_t end = is_there(tex, 0x48) ? vm_read32(tex + 0x20) : 0;
     const uint32_t lead = end >= size ? end - size : 0;   /* where in the chain the block begins */
     const uint32_t fixed = cut >= lead && cut - lead <= size ? cut - lead : 0;
     ctx->gpr[29] = fixed;
+    s_tot.trim_bytes += fixed;
     uint32_t stamp = 0;
     if (is_there(0x009B2298, 8)) {
         const int32_t d = (int32_t)(blk - vm_read32(0x009B229C));
