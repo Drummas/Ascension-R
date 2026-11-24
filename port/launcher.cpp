@@ -161,6 +161,13 @@ static const char* const k_gpu_n[] = { "Discrete", "Integrated" };
 static const char* const k_rscale[] = { "1", "1.5", "2", "3", "native" };
 static const char* const k_rscale_n[] = { "720p, as the game draws it", "1080p", "1440p", "2160p", "The window's size" };
 static const char* const k_rscale_s[] = { "720p", "1080p", "1440p", "4K", "Window" };
+/* graphics.shadow_resolution and graphics.effects_resolution (ps3recomp's rs_dims). */
+static const char* const k_shres[] = { "1", "2", "4" };
+static const char* const k_shres_n[] = { "As the game draws them", "2x", "4x" };
+static const char* const k_shres_s[] = { "Game's", "2x", "4x" };
+static const char* const k_fxres[] = { "game", "internal" };
+static const char* const k_fxres_n[] = { "As the game draws them", "The internal resolution" };
+static const char* const k_fxres_s[] = { "Game's", "Internal" };
 /* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR); dlss is NVIDIA
  * DLSS Frame Generation through Streamline (beta, ps3recomp's rsx_sl.cpp). */
 static const char* const k_fg[] = { "off", "on", "anr", "dlss" };
@@ -237,8 +244,16 @@ static Opt s_opt[] = {
       "Scanlines and a neon glow in this window. The game is not changed." },
     { T_GRAPHICS, "graphics", "gpu", "discrete", "Graphics card", 0, LIST(k_gpu, k_gpu_n), k_gpu_n, NULL },   /* gpu_detect */
     { T_GRAPHICS, "graphics", "render_scale", "1", "Internal resolution", 0, LIST(k_rscale, k_rscale_n), k_rscale_s,
-      "What the scene is drawn at. Bloom, blur and shadow maps stay at the game's size. "
-      "AMD FSR and frame generation go no higher than the window." },
+      "What the scene is drawn at. Shadow resolution and Effects resolution below say how large shadows, bloom and "
+      "blur are drawn. AMD FSR and frame generation go no higher than the window." },
+    { T_GRAPHICS, "graphics", "shadow_resolution", "1", "Shadow resolution", 0, LIST(k_shres, k_shres_n), k_shres_s,
+      "Shadow maps drawn larger: finer shadow edges and less stair-stepping, most of all at a high internal "
+      "resolution; where the game's shadows are soft the change is small. 4x takes about 120 MB more video memory. "
+      "Takes effect at the next start." },
+    { T_GRAPHICS, "graphics", "effects_resolution", "game", "Effects resolution", 0, LIST(k_fxres, k_fxres_n), k_fxres_s,
+      "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: a "
+      "smoother glow with less shimmer at 1440p and 4K. Only with an internal resolution above 720p. Takes effect at "
+      "the next start." },
     { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
       "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
       "in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model "

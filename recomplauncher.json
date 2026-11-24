@@ -124,6 +124,25 @@
       "defaults": { "graphics/render_scale": "1" }
     },
     {
+      "id": "shadow_resolution", "label": "Shadow resolution", "group": "Picture",
+      "help": "Shadow maps drawn larger: finer shadow edges and less stair-stepping. 4x takes about 120 MB more video memory.",
+      "choices": [
+        { "label": "Game's", "set": { "graphics/shadow_resolution": "1" } },
+        { "label": "2x", "set": { "graphics/shadow_resolution": "2" } },
+        { "label": "4x", "set": { "graphics/shadow_resolution": "4" } }
+      ],
+      "defaults": { "graphics/shadow_resolution": "1" }
+    },
+    {
+      "id": "effects_resolution", "label": "Effects resolution", "group": "Picture",
+      "help": "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller. Only with an internal resolution above 720p.",
+      "choices": [
+        { "label": "Game's", "set": { "graphics/effects_resolution": "game" } },
+        { "label": "Internal", "set": { "graphics/effects_resolution": "internal" } }
+      ],
+      "defaults": { "graphics/effects_resolution": "game" }
+    },
+    {
       "id": "scaling", "label": "Scaling", "group": "Picture",
       "help": "How the picture is fitted to the window. AMD FSR builds detail from past frames and needs MLAA off.",
       "choices": [

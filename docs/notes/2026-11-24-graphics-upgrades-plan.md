@@ -12,8 +12,8 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 
 | # | what | what the player sees | size | needs the game's code read? |
 |---|---|---|---|---|
-| 1 | shadow maps at 2x or 4x | sharp shadows instead of blocky, blurred ones; most of all outdoors | medium | no |
-| 2 | bloom, blur and depth of field at the internal resolution | smooth glow and light, no shimmer on bright edges at high resolutions | medium | no |
+| 1 | shadow maps at 2x or 4x: **done** (Shadow resolution) | sharp shadows instead of blocky, blurred ones; most of all outdoors | medium | no |
+| 2 | bloom, blur and depth of field at the internal resolution: **done** (Effects resolution) | smooth glow and light, no shimmer on bright edges at high resolutions | medium | no |
 | 3 | ambient occlusion (GTAO or SSAO) | corners, gaps and where things meet the floor darken softly: a deeper, more solid scene | medium to large | no |
 | 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
 | 5 | field of view setting | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
@@ -22,6 +22,9 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 | 8 | HD texture pack tools: dump, upscale, back into the mods folder | sharper textures; the players' own, made from their own game | small to medium | no |
 
 ## 1. Shadow maps at a higher resolution
+
+**Done 2026-11-24** as `graphics.shadow_resolution`: see [the note](2026-11-24-shadow-effects-resolution.md) for what
+was measured. In the arena the visible change is small: the game's shadows there are soft.
 
 `graphics.render_scale` draws the scene's targets larger, but leaves the shadow maps at the size the game asks for
 (the launcher and `docs/FEATURES.md` say so). At 1440p and 4K a shadow's edge is then a few large texels.
@@ -36,6 +39,10 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
   size, as other targets do now.
 
 ## 2. Bloom, blur and depth of field at the internal resolution
+
+**Done 2026-11-24** as `graphics.effects_resolution`, the float luminance chain kept at the game's size: see
+[the note](2026-11-24-shadow-effects-resolution.md). The glow is a little softer and adds 1-3% less light on bright
+surfaces.
 
 The same rule leaves the half- and quarter-size targets of the post chain (`0x02662000`, `0x024A0000`, `0x029F0000`
 and the like in a frame capture) at the game's size, so bloom and blur are upscaled from 640x360 at any resolution.

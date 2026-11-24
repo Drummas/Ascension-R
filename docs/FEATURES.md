@@ -101,8 +101,14 @@ says which one the game runs on, by the names Windows gives them. The row is not
 ## Internal resolution
 
 Internal resolution in the launcher's Graphics tab (`graphics.render_scale`) draws the scene above 720p: a number from 1
-to 4, or `native` for the window's size. Targets the size of the display are drawn larger. Bloom, blur and shadow maps
-stay at the game's size, and what the game reads back is brought down to it. AMD FSR and frame generation go no higher
+to 4, or `native` for the window's size. Targets the size of the display are drawn larger, and what the game reads
+back is brought down to it. **Shadow resolution** (`graphics.shadow_resolution` = 1, 2 or 4) draws the shadow maps that
+many times larger, at any internal resolution: finer shadow edges, less stair-stepping. **Effects resolution**
+(`graphics.effects_resolution` = game or internal) draws the targets of bloom, blur and depth of field, a half to a
+sixteenth of the display, at the internal resolution too, by the same factors; the float luminance chain the exposure
+is measured on stays at the game's size. Both are off by default; the
+[note](notes/2026-11-24-shadow-effects-resolution.md) has what was measured. Shadow resolution at 720p compiles part of
+the shaders again in its first session, as a new internal resolution does. AMD FSR and frame generation go no higher
 than the window, and the log says so. Otherwise a render larger than the window is scaled down to it. The first session
 at a new scale compiles part of the shaders again. Disable Mesh Trimming in Game patches is meant for this, though on the
 route it made no visible difference at 2x. The [note](notes/2026-11-08-internal-resolution.md) has what was measured
