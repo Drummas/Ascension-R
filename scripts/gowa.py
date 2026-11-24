@@ -1742,7 +1742,8 @@ def audit_text(version, test, found, kit_id, secs, dll_sha):
         "This PC: no path of it, Windows user name, git name or e-mail in any file but the licenses.",
         "Imports: every program and library finds what it imports beside it or in System32.",
         "kit\\ is the Kit its kit-id.txt names, %s, before and after the build below." % kit_id,
-        "The Kit builds: its own Python ran kit-build on this tree's GOWA.elf in %.0f s. ascension_game.dll has SHA-256 "
+        "The Kit builds: its own Python ran kit-build on this tree's GOWA.elf, into a folder named with accented "
+        "letters, in %.0f s. ascension_game.dll has SHA-256 "
         "%s; no path or time goes into it, so a player's build of it should be this same file." % (secs, dll_sha)]
     lines = ["Ascension-R %s Kit: what was looked at before it was zipped (gowa.py package kit)%s"
              % (version, ", a TEST PACKAGE" if test else ""), "",
@@ -1755,11 +1756,16 @@ def audit_text(version, test, found, kit_id, secs, dll_sha):
 
 def kit_build_check(kit):
     """The Kit as it is packaged, run as the launcher runs it: its own Python, kit-build, this tree's GOWA.elf, into
-    logs/kit-check. Returns (seconds, the DLL, its map); the map, the same on every PC, reads the Kit's crash reports."""
+    logs/kit-check. Returns (seconds, the DLL, its map); the map, the same on every PC, reads the Kit's crash reports.
+
+    The build goes into a folder named with accented letters, as a player's does when their Windows user name has
+    them (it is in their AppData\\Local): two releases' Kits stopped there (issues #32 and #41) after this check had
+    passed in plain letters. It shows where the code page is not UTF-8, as on this PC (cp1252): the Kit's Python
+    writes text in the code page unless it is told otherwise."""
     import time
     root = os.path.join(ROOT, "logs", "kit-check")
     shutil.rmtree(root, ignore_errors=True)
-    out = os.path.join(root, "game-code")
+    out = os.path.join(root, "Usuário é", "game-code")
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("GOWA_", "PYTHON"))}
     env.update(GOWA_WORK=os.path.join(out, "work"), GOWA_ELF=need_elf())
     cmd = [os.path.join(kit, "python", "python.exe"), "-E", "-s", "-B", "-X", "utf8", os.path.join(kit, "scripts", "gowa.py"),
