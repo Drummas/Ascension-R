@@ -4,6 +4,7 @@
 IN ASCENSION-R.EXE
 
 ps3recomp                       MIT            ps3recomp.txt
+NVIDIA Streamline headers       MIT            NVIDIA-Streamline.txt
 AMD FSR API headers             MIT            AMD-FidelityFX-SDK.txt
 AMD FidelityFX FSR 1            MIT            AMD-FSR1.txt
 SMAA                            MIT            SMAA.txt
@@ -28,6 +29,10 @@ amd_fidelityfx_loader_dx12.dll, amd_fidelityfx_framegeneration_dx12.dll, amd_fid
 
 SDL3.dll
     SDL @SDL3_VERSION@, the official build, under the zlib license: SDL3.txt. It reads the controllers XInput does not.
+
+sl.interposer.dll, sl.common.dll, sl.reflex.dll, sl.pcl.dll
+    NVIDIA Streamline @STREAMLINE_VERSION@, NVIDIA's signed binaries, under the MIT License: NVIDIA-Streamline.txt. They
+    are loaded only for NVIDIA Reflex on an NVIDIA GPU.
 
 dxcompiler.dll, dxil.dll
     DirectX Shader Compiler, from the Windows SDK's redistributable files. Copyright (c) Microsoft Corporation.

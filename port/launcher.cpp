@@ -165,6 +165,9 @@ static const char* const k_rscale_s[] = { "720p", "1080p", "1440p", "4K", "Windo
 static const char* const k_fg[] = { "off", "on", "anr" };
 static const char* const k_fg_n[] = { "Off", "AMD FSR", "ANR FG (beta)" };
 static const char* const k_fg_s[] = { "Off", "AMD FSR", "ANR (beta)" };
+/* graphics.reflex: NVIDIA Reflex through Streamline (ps3recomp's rsx_sl.cpp), on NVIDIA GPUs. */
+static const char* const k_reflex[] = { "off", "on", "boost" };
+static const char* const k_reflex_n[] = { "Off", "On", "On + Boost" };
 static const char* const k_aa[] = { "off", "smaa" };
 static const char* const k_aa_n[] = { "Off", "SMAA 1x" };
 static const char* const k_aa_s[] = { "Off", "SMAA" };
@@ -258,6 +261,10 @@ static Opt s_opt[] = {
       "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), "
       "a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what "
       "moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases." },
+    { T_GRAPHICS, "graphics", "reflex", "off", "NVIDIA Reflex", 0, LIST(k_reflex, k_reflex_n), k_reflex_n,
+      "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer "
+      "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame "
+      "generation. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
     { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
@@ -1069,25 +1076,30 @@ static int gpu_first(IDXGIFactory6* f, DXGI_GPU_PREFERENCE pref, DXGI_ADAPTER_DE
 /* The GPU Windows calls fast and the one it calls low-power: what the renderer asks for
  * graphics.gpu, so the name shown is the one the game runs on. The same adapter twice is a PC with
  * one GPU, and the row is not shown. */
-static struct { char name[2][128]; char desc[360]; int n; } s_gpus;
+static struct { char name[2][128]; char desc[360]; int n; bool nvidia; } s_gpus;
 
 static void gpu_detect(void)
 {
     s_gpus.n = 0;
     s_gpus.name[0][0] = 0;
+    s_gpus.nvidia = false;
     IDXGIFactory6* f = NULL;
     if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&f))) && f) {
         DXGI_ADAPTER_DESC1 fast, low;
         if (gpu_first(f, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, &fast)) {
             WideCharToMultiByte(CP_UTF8, 0, fast.Description, -1, s_gpus.name[0], sizeof s_gpus.name[0], NULL, NULL);
             s_gpus.n = 1;
+            s_gpus.nvidia = fast.VendorId == 0x10DE;
             if (gpu_first(f, DXGI_GPU_PREFERENCE_MINIMUM_POWER, &low) && memcmp(&fast.AdapterLuid, &low.AdapterLuid, sizeof(LUID))) {
                 WideCharToMultiByte(CP_UTF8, 0, low.Description, -1, s_gpus.name[1], sizeof s_gpus.name[1], NULL, NULL);
                 s_gpus.n = 2;
+                s_gpus.nvidia = s_gpus.nvidia || low.VendorId == 0x10DE;
             }
         }
         f->Release();
     }
+    /* NVIDIA Reflex: only an NVIDIA GPU has it (a row set on stays in the file: the game says why it is off). */
+    if (!s_gpus.nvidia) opt_find("graphics", "reflex")->tab = -1;
     Opt* o = opt_find("graphics", "gpu");
     if (s_gpus.n == 2) {
         snprintf(s_gpus.desc, sizeof s_gpus.desc, "Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat.",
@@ -2707,7 +2719,9 @@ static void draw_play(void)
         wchar_t anr_tail[48];
         const std::string label = anr && !s_anr_dl.running ? anr_label() : std::string();
         swprintf(anr_tail, 48, L" + ANR FG%hs%hs", label.empty() ? "" : " ", label.c_str());
-        const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : L"";
+        const Opt* rx = opt_find("graphics", "reflex");
+        const bool reflex = rx && rx->tab >= 0 && !ps3_settings_ieq(rx->cur, "off");
+        const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : reflex ? L" + Reflex" : L"";
         wchar_t b[200];
         if (anr && s_anr_dl.running) {
             const long long total = s_anr_dl.p.total, done = s_anr_dl.p.done;

@@ -334,6 +334,17 @@ DXC_DLLS = ("dxcompiler.dll", "dxil.dll")
 VC_DLLS = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
 FSR_DLLS = ("amd_fidelityfx_loader_dx12.dll", "amd_fidelityfx_framegeneration_dx12.dll",
             "amd_fidelityfx_upscaler_dx12.dll")
+# NVIDIA Streamline, for NVIDIA Reflex (graphics.reflex, ps3recomp's libs/video/rsx_sl.cpp): the NVIDIA-signed DLLs of
+# NVIDIA-RTX/Streamline's streamline-sdk-<version>.zip, bin/x64, unpacked under ../streamline-sdk/v<version> (or
+# local.json's "streamline_dir", the folder with the DLLs), each checked by its SHA-256. MIT License.
+STREAMLINE_VERSION = "2.14.16"
+STREAMLINE_ZIP_SHA256 = "32041e51db0cab709a271b72a352281b690c2abbd669a827809401a5dd23956b"
+STREAMLINE_DLLS = {
+    "sl.interposer.dll": "b1d7395aebd7b9722841d64dcf7433680020b6a8e421f851c16d5ba0c2182edf",
+    "sl.common.dll": "38eea3b4209afc455636ea372b5933d65fcc13becec6c84d101dcfc4d8648f75",
+    "sl.reflex.dll": "443577e869352436ff7ec8f4d9c90418d3e95368436ce219261e0f4f07a38122",
+    "sl.pcl.dll": "5698c38e722318681f215c9fe68e45b9bedd51378acc699d8eee26e961e57770",
+}
 # SDL3, for the controllers XInput does not read (cellPad): libsdl-org/SDL's SDL3-devel-<version>-VC.zip, unpacked
 # (local.json's "sdl3_dir", or ../sdl3/<version>/SDL3-<version>). The build takes its headers only; SDL3.dll goes
 # beside the exe, which loads it at run time.
@@ -471,6 +482,16 @@ def find_fsr():
         cands += [os.path.join(base, d, "Kits", "FidelityFX", "signedbin") for d in sorted(os.listdir(base), reverse=True)]
     for c in cands:
         if c and all(os.path.isfile(os.path.join(c, f)) for f in FSR_DLLS):
+            return c
+    return None
+
+
+def find_streamline():
+    """The folder with Streamline's signed DLLs, each the one STREAMLINE_DLLS names by its SHA-256, or None."""
+    for c in (load_local().get("streamline_dir"),
+              os.path.join(os.path.dirname(ROOT), "streamline-sdk", "v" + STREAMLINE_VERSION, "bin", "x64")):
+        if c and all(os.path.isfile(os.path.join(c, f)) and sha256(os.path.join(c, f)) == h
+                     for f, h in STREAMLINE_DLLS.items()):
             return c
     return None
 
@@ -1414,6 +1435,7 @@ def cmd_build(args):
         write_settings(ffmpeg)
         copy_dxc()
         copy_fsr()
+        copy_streamline()
         copy_sdl3(sdl3)
         copy_vc_runtime(env)
         # beside the exe as in a release, for RecompLauncher's "Add a build" (its Developer tools)
@@ -1450,6 +1472,18 @@ def copy_fsr():
         say("note: no FSR SDK in ../fsr-sdk; no FSR 3")
         return
     for f in FSR_DLLS:
+        to = os.path.join(BUILD, f)
+        if not os.path.isfile(to) or os.path.getmtime(to) != os.path.getmtime(os.path.join(src, f)):
+            shutil.copy2(os.path.join(src, f), to)
+
+
+def copy_streamline():
+    """Streamline's DLLs beside the exe: NVIDIA Reflex needs them, the rest of the port does not."""
+    src = find_streamline()
+    if not src:
+        say("note: no Streamline %s in ../streamline-sdk; no NVIDIA Reflex" % STREAMLINE_VERSION)
+        return
+    for f in STREAMLINE_DLLS:
         to = os.path.join(BUILD, f)
         if not os.path.isfile(to) or os.path.getmtime(to) != os.path.getmtime(os.path.join(src, f)):
             shutil.copy2(os.path.join(src, f), to)
@@ -1586,6 +1620,9 @@ def release_problems(stage, env):
                                       check=True).stdout
                 for dep in sorted(set(re.findall(r"^\s+(\S+\.dll)\s*$", text, re.M | re.I))):
                     if os.path.isfile(os.path.join(folder, dep)) or dep.lower().startswith(("api-ms-win-", "ext-ms-")):
+                        continue
+                    # Streamline's Reflex for Vulkan, delay-loaded: a D3D12 program never loads it.
+                    if name.lower() == "sl.common.dll" and dep.lower() == "nvlowlatencyvk.dll":
                         continue
                     if NOT_SYSTEM.match(dep) or not os.path.isfile(os.path.join(system32, dep)):
                         bad.append("%s needs %s, which is not beside it" % (rel, dep))
@@ -1813,6 +1850,7 @@ def release_text(src, release, version, llvm=""):
     for key, value in KIT_TEXT.items():
         text = text.replace(key, value if release == "kit" else "")
     for key, value in (("@VERSION@", version), ("@FFMPEG_VERSION@", FFMPEG_VERSION), ("@SDL3_VERSION@", SDL3_VERSION),
+                       ("@STREAMLINE_VERSION@", STREAMLINE_VERSION),
                        ("@RELEASE@", RELEASES[release]["name"]),
                        ("@LICENSE@", RELEASES[release]["license"]), ("@KIT_PYTHON@", KIT_PYTHON), ("@KIT_LLVM@", llvm)):
         text = text.replace(key, value)
@@ -1851,6 +1889,10 @@ def cmd_package(args):
         die("no release FFmpeg; run `gowa.py ffmpeg`")
     if not dxc or not fsr:
         die("this takes the Windows SDK's Redist\\D3D\\x64 and an FSR SDK in ../fsr-sdk")
+    sl = find_streamline()
+    if not sl:
+        die("this takes Streamline %s's signed DLLs in ../streamline-sdk/v%s/bin/x64 (NVIDIA-RTX/Streamline's "
+            "streamline-sdk-v%s.zip, unpacked)" % (STREAMLINE_VERSION, STREAMLINE_VERSION, STREAMLINE_VERSION))
     sdl3 = find_sdl3()
     if not sdl3:
         die("this takes SDL3 %s in ../sdl3 (libsdl-org/SDL's SDL3-devel-%s-VC.zip, unpacked)" % (SDL3_VERSION, SDL3_VERSION))
@@ -1865,6 +1907,7 @@ def cmd_package(args):
     os.makedirs(lic)
     files = [(BUILD, f) for f in ("Ascension-R.exe",) + VC_DLLS] + [(fsr, f) for f in FSR_DLLS]
     files += [(dxc, f) for f in DXC_DLLS] + [(ff, d) for _, d in FFMPEG_DLLS] + [(os.path.join(sdl3, "lib", "x64"), "SDL3.dll")]
+    files += [(sl, f) for f in STREAMLINE_DLLS]
     for folder, f in files:
         shutil.copy2(os.path.join(folder, f), stage)
     # RecompLauncher sets the game up and shows its settings from this file, beside the program (recomplauncher.com/sdk)
@@ -1878,6 +1921,7 @@ def cmd_package(args):
                     (os.path.join(sdk, "docs", "license.md"), "AMD-FidelityFX-SDK.txt"),
                     (os.path.join(third, "smaa", "LICENSE.txt"), "SMAA.txt"),
                     (os.path.join(third, "zstd", "LICENSE"), "Zstandard.txt"),
+                    (os.path.join(third, "streamline", "license.txt"), "NVIDIA-Streamline.txt"),
                     (os.path.join(ROOT, "third_party", "zlib", "LICENSE"), "zlib.txt"),
                     (os.path.join(ROOT, "third_party", "silkscreen", "OFL.txt"), "Silkscreen.txt"),
                     (os.path.join(ff, "COPYING.LGPLv2.1"), "FFmpeg-LGPL-2.1.txt"),
@@ -1946,7 +1990,9 @@ def cmd_package(args):
             "FSR SDK   " + os.path.basename(sdk),
             "DXC       " + dxc,
             "FFmpeg    " + FFMPEG_VERSION,
-            "SDL3      %s, SDL3-devel-%s-VC.zip SHA-256 %s" % (SDL3_VERSION, SDL3_VERSION, SDL3_ZIP_SHA256)]
+            "SDL3      %s, SDL3-devel-%s-VC.zip SHA-256 %s" % (SDL3_VERSION, SDL3_VERSION, SDL3_ZIP_SHA256),
+            "Streamline %s, streamline-sdk-v%s.zip SHA-256 %s" % (STREAMLINE_VERSION, STREAMLINE_VERSION,
+                                                                 STREAMLINE_ZIP_SHA256)]
     if kit:
         info += ["kit       " + kit_id,
                  "Python    %s, python.org's embeddable package, zip SHA-256 %s" % (KIT_PYTHON, KIT_PYTHON_SHA256),
