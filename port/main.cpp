@@ -1695,6 +1695,8 @@ static void pgo_writer_start(void)
  * a message unless a script started the game, say which file, and it stops.
  * -----------------------------------------------------------------------*/
 extern "C" void (*g_ps3_open_failed_hook)(const char* guest_path, const char* host_path);   /* ppu_fs.cpp */
+extern "C" void (*g_ps3_open_hook)(const char* guest_path, int opened);                    /* ppu_fs.cpp */
+extern "C" void vram_guard_file_opened(const char* guest_path, int opened);                /* vram_guard.cpp */
 static int s_open_failed_says;
 
 static void game_open_failed(const char* gpath, const char* hpath)
@@ -1884,6 +1886,7 @@ int main(int argc, char** argv)
 #ifdef _WIN32
     s_open_failed_says = !no_launcher;
     g_ps3_open_failed_hook = game_open_failed;
+    g_ps3_open_hook = vram_guard_file_opened;   /* the VRAM pool through each level's load (issue #39) */
 #endif
     /* The settings window, unless a script asked for none, or the player
      * turned it off and is not holding Shift. */

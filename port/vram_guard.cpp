@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -59,19 +60,189 @@ extern "C" void gowa_vram_texture(ppu_context* ctx, uint32_t)
     ctx->gpr[3] = 0;
 }
 
+/* The pool's globals: its top ([0x9B1DC0], an offset: all the room below it), the table of block descriptors (0x9AF51C,
+ * its count at 0x9B1DBC; a descriptor's +8 the block's offset, +0xC its size, +0x18 its texture), the moves queued
+ * (0x9B2834, which the processor runs and empties at each frame's end), the bytes the manager's pass has moved
+ * ([0x9AF4BC], zeroed as each pass starts) and its budget for a frame ([0x83CD2C]). */
+static const uint32_t POOL_TOP = 0x009B1DC0, BLOCKS = 0x009AF51C, BLOCK_COUNT = 0x009B1DBC, MOVES = 0x009B2834,
+                      MOVED = 0x009AF4BC, BUDGET = 0x0083CD2C;
+
+static int pool_there()
+{
+    static const int there = is_there(MOVED, 0x009B2E40 - MOVED) && is_there(BUDGET, 4);   /* once */
+    return there;
+}
+
+/* The pool as it stands: its top, the live blocks, and the space between their lowest offset and their highest end
+ * that they do not cover (holes, which only the defragmenter's moves give back). */
+struct PoolState {
+    uint32_t top, blocks, count, lo, hi, largest;
+    uint64_t live, holes;
+};
+
+static void pool_state(PoolState* s)
+{
+    memset(s, 0, sizeof *s);
+    s->top = vm_read32(POOL_TOP);
+    s->count = vm_read32(BLOCK_COUNT);
+    uint32_t lo = 0xFFFFFFFFu;
+    uintptr_t rb = 0, re = 0;   /* the committed region the last descriptor was in: one query for most of them */
+    for (uint32_t i = 0; i < s->count && i < 4096; i++) {
+        const uint32_t d = vm_read32(BLOCKS + 4 * i);
+        if (!d) continue;
+        const uintptr_t p = (uintptr_t)(vm_base + d);
+        if (p < rb || p + 0x20 > re) {
+            MEMORY_BASIC_INFORMATION mi;
+            if (!VirtualQuery((const void*)p, &mi, sizeof mi) || mi.State != MEM_COMMIT) continue;
+            rb = (uintptr_t)mi.BaseAddress;
+            re = rb + mi.RegionSize;
+            if (p + 0x20 > re) continue;
+        }
+        const uint32_t off = vm_read32(d + 8), sz = vm_read32(d + 0xC);
+        if (sz >= 0x10000000u) continue;
+        s->blocks++;
+        s->live += sz;
+        if (off < lo) lo = off;
+        if (off + sz > s->hi) s->hi = off + sz;
+        if (sz > s->largest) s->largest = sz;
+    }
+    s->lo = s->blocks ? lo : 0;
+    const uint64_t span = s->hi > s->lo ? s->hi - s->lo : 0;
+    s->holes = span > s->live ? span - s->live : 0;
+}
+
 /* The VRAM manager (func_003A0780), once a frame: it moves and compacts blocks only when the RSX has released label
  * 0x4E with the frame counter at 0x9B227C, and otherwise leaves the frame alone (docs/notes/2026-11-12-temple-textures.md).
  * Issue #39: with Unlock FPS the pool ran short as a cinematic loaded, with 32-38 MB of holes and no move queued, as if
  * it had left most frames alone. Counted: its calls (gowa_vram_manager, on entry) and the ones that went on to its pass
  * (gowa_vram_manager_works, at 0x003A0888), in windows of 600 calls. On this PC it made its pass in half of them at 60
- * frames a second and in half to all of them unlocked, so the guess does not hold here. A shortage's line says the last
- * window's; a window with the pass in fewer than a quarter is said, once a minute at most; GOWA_VRAM_MANAGER_LOG=1 says
- * every window. On the game's main thread alone. */
+ * frames a second and in half to all of them unlocked, and at the reporter's next two shortages in 574 and 599 of 600:
+ * the guess does not hold. A shortage's line says the last window's; a window with the pass in fewer than a quarter is
+ * said, once a minute at most; GOWA_VRAM_MANAGER_LOG=1 says every window. On the game's main thread alone. */
 static int s_mgr_calls, s_mgr_works;            /* this window's */
 static int s_mgr_last_calls, s_mgr_last_works;  /* the last whole window's */
+static int s_mgr_passed;                        /* the last call went on to its pass */
+
+/* Issue #39, test build 2's reports: the pool ran short as a level loaded, once full (191.9 MB live, 0.3 MB of holes)
+ * and once with 32.8 MB of holes. Each load is followed now. The archives a level opens (under WAD/, said by the file
+ * system from whichever thread opens them) open a window on the game's main thread, which closes 4 s after the last
+ * of them (60 s at most) and says the pool before the load, at its lowest (the least room an allocation found, the
+ * blocks counted again each 256 KB lower) and after it, with the frames the manager made its pass in and the bytes
+ * those passes moved. So a load that went through shows how close it came, and one at an unlocked frame rate can be
+ * set beside one at 60. */
+static SRWLOCK s_files_lock = SRWLOCK_INIT;
+static struct { char last[40], first[40], level[40]; int n; } s_files;   /* since the main thread took them */
+static volatile LONG s_files_n;
+
+extern "C" void vram_guard_file_opened(const char* path, int opened)
+{
+    (void)opened;
+    if (!path || !strstr(path, "/WAD/")) return;
+    const char* b = strrchr(path, '/');
+    b = b ? b + 1 : path;
+    size_t n = strlen(b);
+    if (n > 6 && !_stricmp(b + n - 6, ".PATCH")) n -= 6;   /* the probe for a mod's patch, which comes first */
+    if (n <= 4 || n - 4 >= sizeof s_files.last || _strnicmp(b + n - 4, ".WAD", 4)) return;
+    char name[40];
+    memcpy(name, b, n - 4);
+    name[n - 4] = 0;
+    AcquireSRWLockExclusive(&s_files_lock);
+    if (strcmp(name, s_files.last)) {   /* the probe and the archive itself: one file */
+        snprintf(s_files.last, sizeof s_files.last, "%s", name);
+        if (!s_files.n) snprintf(s_files.first, sizeof s_files.first, "%s", name);
+        if (!s_files.level[0] && _strnicmp(name, "R_", 2))   /* R_: a resource's archive, not a level's */
+            snprintf(s_files.level, sizeof s_files.level, "%s", name);
+        InterlockedExchange(&s_files_n, ++s_files.n);
+    }
+    ReleaseSRWLockExclusive(&s_files_lock);
+}
+
+static int files_take(char* first, char* level)
+{
+    if (!InterlockedCompareExchange(&s_files_n, 0, 0)) return 0;
+    AcquireSRWLockExclusive(&s_files_lock);
+    const int n = s_files.n;
+    snprintf(first, 40, "%s", s_files.first);
+    snprintf(level, 40, "%s", s_files.level);
+    s_files.n = 0;
+    s_files.first[0] = s_files.level[0] = 0;
+    InterlockedExchange(&s_files_n, 0);
+    ReleaseSRWLockExclusive(&s_files_lock);
+    return n;
+}
+
+static struct {
+    int on, has_level, files, frames, passes, at_budget, low_frame;
+    char name[40];
+    ULONGLONG t0, last_file;
+    PoolState before, low, after;
+    int64_t low_left, walked_left;   /* the least room an allocation left (below 0: one that did not fit) */
+    uint32_t moved_max;
+    uint64_t moved;
+} s_load;
+
+static void load_say(void)
+{
+    const PoolState* st[3] = { &s_load.before, &s_load.low, &s_load.after };
+    char part[3][120];
+    for (int i = 0; i < 3; i++)
+        snprintf(part[i], sizeof part[i], "%s %.1f MB, %.1f MB in %u blocks, %.1f MB of holes",
+                 i == 1 ? "room left" : "room", (i == 1 ? (double)s_load.low_left : (double)st[i]->top) / 1048576.0,
+                 st[i]->live / 1048576.0, st[i]->blocks, st[i]->holes / 1048576.0);
+    char more[32] = "";
+    if (s_load.files > 1) snprintf(more, sizeof more, " and %d more", s_load.files - 1);
+    fprintf(stderr, "[vram] load of %s.WAD%s, %.1f s, %d frames: the pool before it %s; at its lowest (frame %d) %s; "
+                    "after it %s; the manager's pass in %d frames, %.1f MB moved, at most %.1f MB in one, %d at its "
+                    "%.0f MB budget\n", s_load.name, more, (GetTickCount64() - s_load.t0) / 1000.0, s_load.frames,
+            part[0], s_load.low_frame, part[1], part[2], s_load.passes, s_load.moved / 1048576.0,
+            s_load.moved_max / 1048576.0, s_load.at_budget, vm_read32(BUDGET) / 1048576.0);
+    fflush(stderr);
+}
+
+/* At the manager's call, once a frame: the bytes its last pass moved, a load's files, and its end. */
+static void load_frame(void)
+{
+    if (s_load.on && s_mgr_passed) {
+        const uint32_t moved = vm_read32(MOVED), budget = vm_read32(BUDGET);
+        s_load.passes++;
+        s_load.moved += moved;
+        if (moved > s_load.moved_max) s_load.moved_max = moved;
+        if (budget && moved >= budget) s_load.at_budget++;
+    }
+    char first[40], level[40];
+    const int n = files_take(first, level);
+    const ULONGLONG now = GetTickCount64();
+    if (n) {
+        if (!s_load.on) {
+            memset(&s_load, 0, sizeof s_load);
+            s_load.on = 1;
+            s_load.t0 = now;
+            pool_state(&s_load.before);
+            s_load.low = s_load.before;
+            s_load.low_left = s_load.walked_left = (int32_t)s_load.before.top;
+        }
+        if (level[0] && !s_load.has_level) {
+            snprintf(s_load.name, sizeof s_load.name, "%s", level);
+            s_load.has_level = 1;
+        } else if (!s_load.name[0]) {
+            snprintf(s_load.name, sizeof s_load.name, "%s", first);
+        }
+        s_load.files += n;
+        s_load.last_file = now;
+    }
+    if (!s_load.on) return;
+    s_load.frames++;
+    if (now - s_load.last_file >= 4000 || now - s_load.t0 >= 60000) {
+        pool_state(&s_load.after);
+        load_say();
+        s_load.on = 0;
+    }
+}
 
 extern "C" void gowa_vram_manager(ppu_context*, uint32_t)
 {
+    if (pool_there()) load_frame();
+    s_mgr_passed = 0;
     if (++s_mgr_calls < 600) return;
     s_mgr_last_calls = s_mgr_calls;
     s_mgr_last_works = s_mgr_works;
@@ -88,7 +259,54 @@ extern "C" void gowa_vram_manager(ppu_context*, uint32_t)
     }
 }
 
-extern "C" void gowa_vram_manager_works(ppu_context*, uint32_t) { s_mgr_works++; }
+extern "C" void gowa_vram_manager_works(ppu_context*, uint32_t)
+{
+    s_mgr_works++;
+    s_mgr_passed = 1;
+}
+
+/* What fills the pool, said at its first shortage: the live blocks by size, those of a texture, and the eight largest
+ * with their texture's data range ([texture + 0x1C], [+0x20]). */
+static void pool_profile(void)
+{
+    static const uint32_t floor_of[5] = { 0x400000u, 0x100000u, 0x40000u, 0x10000u, 0u };
+    static const char* const label[5] = { "4 MB and up", "1-4 MB", "256 KB-1 MB", "64-256 KB", "under 64 KB" };
+    struct Big { uint32_t d, off, size; };
+    Big big[8] = {};
+    uint32_t n[5] = { 0 }, tex_n = 0;
+    uint64_t bytes[5] = { 0 }, tex_bytes = 0;
+    const uint32_t count = vm_read32(BLOCK_COUNT);
+    for (uint32_t i = 0; i < count && i < 4096; i++) {
+        const uint32_t d = vm_read32(BLOCKS + 4 * i);
+        if (!d || !is_there(d, 0x20)) continue;
+        const uint32_t off = vm_read32(d + 8), sz = vm_read32(d + 0xC);
+        if (sz >= 0x10000000u) continue;
+        int c = 0;
+        while (sz < floor_of[c]) c++;
+        n[c]++;
+        bytes[c] += sz;
+        if (vm_read32(d + 0x18)) {
+            tex_n++;
+            tex_bytes += sz;
+        }
+        for (int k = 0; k < 8; k++)
+            if (sz > big[k].size) {
+                memmove(&big[k + 1], &big[k], (size_t)(7 - k) * sizeof big[0]);
+                big[k] = Big{ d, off, sz };
+                break;
+            }
+    }
+    fprintf(stderr, "[vram]   the live blocks by size:");
+    for (int c = 0; c < 5; c++) fprintf(stderr, "%s %s %u (%.1f MB)", c ? "," : "", label[c], n[c], bytes[c] / 1048576.0);
+    fprintf(stderr, "; %u of them a texture's (%.1f MB)\n", tex_n, tex_bytes / 1048576.0);
+    for (int k = 0; k < 8 && big[k].size; k++) {
+        const uint32_t t = vm_read32(big[k].d + 0x18);
+        fprintf(stderr, "[vram]   block 0x%08X: offset 0x%08X, %.2f MB, texture 0x%08X", big[k].d, big[k].off,
+                big[k].size / 1048576.0, t);
+        if (t && is_there(t, 0x24)) fprintf(stderr, " (its data 0x%X..0x%X)", vm_read32(t + 0x1C), vm_read32(t + 0x20));
+        fprintf(stderr, "\n");
+    }
+}
 
 /* An allocation about to fail, said with the pool as it stands (#30: once in a playthrough a texture got no block, and
  * the game wrote its fields to address 0, which on a PS3 ends the game). The pool is a stack: a block is cut off
@@ -97,37 +315,34 @@ extern "C" void gowa_vram_manager_works(ppu_context*, uint32_t) { s_mgr_works++;
  * says whether the pool is full or only not compacted yet: its top (all the room left below it), the live blocks
  * (the table of descriptor pointers at 0x9AF51C, its count at 0x9B1DBC; +8 a block's offset, +0xC its size), the
  * space between their lowest offset and their highest end that they do not cover, and the moves queued (0x9B2834).
- * The allocator may still reuse a block of the same key instead (its first loop): "may" fail. */
+ * The allocator may still reuse a block of the same key instead (its first loop): "may" fail. The first shortage also
+ * says what fills the pool (pool_profile). During a load, the room each allocation leaves counts toward the load's
+ * lowest (taken here, as the allocation starts: after it the top is that much lower). */
 static void vram_alloc_short(ppu_context* ctx, uint32_t size)
 {
-    static const uint32_t POOL_TOP = 0x009B1DC0, BLOCKS = 0x009AF51C, BLOCK_COUNT = 0x009B1DBC, MOVES = 0x009B2834;
-    static const int there = is_there(BLOCKS, 0x2E40 - 0x51C);   /* the manager's globals, to the queue's end: once */
-    if (!there) return;
+    if (!pool_there()) return;
     const uint32_t top = vm_read32(POOL_TOP), need = (size + 0x7Fu) & ~0x7Fu;
+    const int64_t left = (int64_t)(int32_t)top - (int64_t)need;
+    if (s_load.on && left < s_load.low_left) {
+        s_load.low_left = left;
+        s_load.low_frame = s_load.frames;
+        if (s_load.walked_left - left >= 0x40000 || left < 0) {
+            pool_state(&s_load.low);
+            s_load.walked_left = left;
+        }
+    }
     if ((int32_t)top >= (int32_t)need) return;
     static volatile LONG said;
     const LONG n = InterlockedIncrement(&said);
     if (n > 8 && (n & (n - 1))) return;
-    const uint32_t count = vm_read32(BLOCK_COUNT);
-    uint64_t live = 0;
-    uint32_t blocks = 0, lo = 0xFFFFFFFFu, hi = 0, largest = 0;
-    for (uint32_t i = 0; i < count && i < 4096; i++) {
-        const uint32_t d = vm_read32(BLOCKS + 4 * i);
-        if (!d || !is_there(d, 0x20)) continue;
-        const uint32_t off = vm_read32(d + 8), sz = vm_read32(d + 0xC);
-        if (sz >= 0x10000000u) continue;
-        blocks++;
-        live += sz;
-        if (off < lo) lo = off;
-        if (off + sz > hi) hi = off + sz;
-        if (sz > largest) largest = sz;
-    }
-    const uint64_t span = hi > lo ? hi - lo : 0, holes = span > live ? span - live : 0;
+    PoolState s;
+    pool_state(&s);
     fprintf(stderr, "[vram] the pool is short: 0x%X bytes asked for from 0x%08X, its top at 0x%X (all the room below it); "
                     "%u live blocks of %u in the table, %.1f MB, the largest %.1f MB, from 0x%X to 0x%X with %.1f MB of holes "
                     "between them; %u moves queued (%ld so far); the manager's pass in %d of its last %d frames\n", size,
-            (uint32_t)ctx->lr, top, blocks, count, (double)live / 1048576.0, (double)largest / 1048576.0, lo, hi,
-            (double)holes / 1048576.0, vm_read32(MOVES), (long)n, s_mgr_last_works, s_mgr_last_calls);
+            (uint32_t)ctx->lr, top, s.blocks, s.count, s.live / 1048576.0, s.largest / 1048576.0, s.lo, s.hi,
+            s.holes / 1048576.0, vm_read32(MOVES), (long)n, s_mgr_last_works, s_mgr_last_calls);
+    if (n == 1) pool_profile();
     fflush(stderr);
 }
 
