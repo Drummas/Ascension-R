@@ -57,9 +57,10 @@ problems further in.
 - **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below. It finds the game's folder by
   itself, and says when a newer release is out, with a link to it.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and AMD FSR scaling (FSR 4.1 on AMD Radeon RX 6000 and
-  newer, FSR 3.1 on other cards), frame generation by AMD FSR or, in beta, by ANR FG (see the FAQ), SMAA 1x and
-  anisotropic filtering.
-- **Display:** windowed or borderless, ultrawide, VSync, a frame rate cap, and the frame rate on screen.
+  newer, FSR 3.1 on other cards), NVIDIA DLSS on RTX cards in beta (see the FAQ), frame generation by AMD FSR or, in
+  beta, by ANR FG (see the FAQ), SMAA 1x and anisotropic filtering.
+- **Display:** windowed or borderless, ultrawide with its window sizes, VSync, a frame rate cap (20 or 30, or past 60:
+  120, 144 or Unlocked, experimental), and the frame rate on screen.
 - **Shaders:** a compressed cache, pipelines built before the title, every vertex shader built before the first start
   of each version, on an 8-bit screen with music of its own, and the pixel shaders of the game's files built ahead from
   the launcher (Build all shaders now).
@@ -67,7 +68,8 @@ problems further in.
 - **Cheats:** damage to and from Kratos, max red orbs, infinite magic and items, infinite rage and double jumps.
 - **Controls:** a controller or keyboard and mouse. Xbox and other XInput pads, and through SDL3 the DualShock 4, the
   DualSense, Switch controllers and many others; stick dead zone, confirm button, vibration and controller API settings.
-  Xbox button icons in place of the PlayStation ones come as an optional mod in the download (`optional mods`).
+  Xbox button icons in place of the PlayStation ones come as an optional mod in the download (`optional mods`), as
+  does skipping the opening intro.
 - **Multiplayer (beta):** the game's online modes, from the launcher's Multiplayer tab. Auto finds other Ascension-R
   players by itself, as torrent clients find their peers (the BitTorrent DHT and the local network), with no server;
   Host and Join let one PC host its friends. The router is asked to open the port (UPnP), and two players who cannot
@@ -245,6 +247,16 @@ Yes: put a mod's folder or its `.zip` into the `mods` folder beside `Ascension-R
 tab's **Open folder** makes it), and the Mods tab lists it, switched on. Mods made for RPCS3 as files over the game's
 (`dev_hdd0\game\<id>\USRDIR\...`) are taken as they are. A mod is files alone: nothing of it runs as a program.
 [docs/MODDING.md](docs/MODDING.md) is for those who make them.
+
+### Can I use NVIDIA DLSS?
+
+Yes, in beta, on an NVIDIA RTX card: choose **NVIDIA DLSS (RTX cards)** under the Graphics tab's **Scaling**. NVIDIA's DLL is not in
+the download: the launcher asks whether to download `nvngx_dlss.dll` (59 MB) from NVIDIA's own DLSS repository on GitHub,
+and with your yes checks its size, SHA-256 and NVIDIA's signature and puts it in `dlss\` beside `Ascension-R.exe`
+(`Ascension-R.exe --dlss-get` does the same from a command line). The mode follows the internal resolution against the
+window: DLAA when they match, Quality to Ultra Performance below it. A tester's RTX 5060 ran DLAA at 1440p and 720p up to
+4K without a failed frame. On other cards, or when DLSS cannot start, the game uses AMD FSR and the log says why
+([notes](docs/notes/2026-11-23-dlss.md)).
 
 ### Can I use ANR frame generation?
 

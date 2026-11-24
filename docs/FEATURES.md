@@ -226,8 +226,10 @@ at the frame rate of the order without it ([note](notes/2026-11-23-bloom-spu-mla
 ## NVIDIA DLSS (beta)
 
 **Scaling: NVIDIA DLSS (RTX cards)** (`graphics.scaling = dlss`) has DLSS Super Resolution rebuild scene frames in AMD
-FSR's place, from the same jitter, depth and motion, on GeForce RTX and other NVIDIA RTX cards. Not yet tried on one: the
-[note](notes/2026-11-23-dlss.md) has what was checked here and what a tester looks at.
+FSR's place, from the same jitter, depth and motion, on GeForce RTX and other NVIDIA RTX cards. A tester's RTX 5060
+(issue #39) ran DLAA at 1440p, Quality from 720p to 1080p and Auto from 720p up to 4K without a failed frame; the HUD,
+which shook with the upscaler's jitter (with AMD FSR too), keeps still since. The [note](notes/2026-11-23-dlss.md) has
+what was checked here.
 
 - The build fetches NVIDIA's NGX SDK (DLSS SDK 310.9.16) into the build folder; nothing of NVIDIA's is in this repository
   or the download. Picked without the DLL, the launcher asks, and with the player's yes downloads `nvngx_dlss.dll`
