@@ -122,6 +122,13 @@ struct Opt {
 };
 
 static const char* const k_onoff[] = { "off", "on" };
+/* display.hdr_peak and display.hdr_paper_white (ps3recomp's hdr_start), in nits. */
+static const char* const k_hdrpk[] = { "auto", "400", "600", "800", "1000", "1500", "2000" };
+static const char* const k_hdrpk_n[] = { "What the display reports", "400 nits", "600 nits", "800 nits", "1000 nits",
+                                         "1500 nits", "2000 nits" };
+static const char* const k_hdrpk_s[] = { "Auto", "400", "600", "800", "1000", "1500", "2000" };
+static const char* const k_hdrpw[] = { "100", "150", "200", "250", "300" };
+static const char* const k_hdrpw_n[] = { "100 nits", "150 nits", "200 nits", "250 nits", "300 nits" };
 static const char* const k_mode[] = { "windowed", "borderless" };
 static const char* const k_mode_n[] = { "Windowed", "Borderless fullscreen" };
 static const char* const k_mode_s[] = { "Windowed", "Borderless" };
@@ -245,6 +252,14 @@ static Opt s_opt[] = {
       "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start." },
     { T_DISPLAY, "display", "shader_hint", "on", "Shader build indicator", 1, SW,
       "A spinner in the bottom left corner while the game's new shaders are built, as RPCS3 shows." },
+    { T_DISPLAY, "display", "hdr", "off", "HDR", 1, SW,
+      "HDR10 on a display Windows has HDR on for (Settings, System, Display, Use HDR): the game's picture with its "
+      "highlights raised toward the peak below, the rest at paper white. Not with frame generation. Takes effect at "
+      "the next start." },
+    { T_DISPLAY, "display", "hdr_peak", "auto", "HDR peak brightness", 0, LIST(k_hdrpk, k_hdrpk_n), k_hdrpk_s,
+      "How bright the brightest highlights get: fire, the sky, lightning. Auto takes what the display reports." },
+    { T_DISPLAY, "display", "hdr_paper_white", "200", "HDR paper white", 0, LIST(k_hdrpw, k_hdrpw_n), k_hdrpw_n,
+      "How bright white is in the rest of the picture and the HUD. Raise it in a bright room." },
     { T_DISPLAY, "launcher", "effects", "on", "Retro effects", 1, SW,
       "Scanlines and a neon glow in this window. The game is not changed." },
     { T_GRAPHICS, "graphics", "gpu", "discrete", "Graphics card", 0, LIST(k_gpu, k_gpu_n), k_gpu_n, NULL },   /* gpu_detect */

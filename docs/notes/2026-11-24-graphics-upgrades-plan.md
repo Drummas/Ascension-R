@@ -15,7 +15,7 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 | 1 | shadow maps at 2x or 4x: **done** (Shadow resolution) | sharp shadows instead of blocky, blurred ones; most of all outdoors | medium | no |
 | 2 | bloom, blur and depth of field at the internal resolution: **done** (Effects resolution) | smooth glow and light, no shimmer on bright edges at high resolutions | medium | no |
 | 3 | ambient occlusion (GTAO or SSAO): **done** (Ambient occlusion) | corners, gaps and where things meet the floor darken softly: a deeper, more solid scene | medium to large | no |
-| 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
+| 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does): **done** (HDR) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
 | 5 | field of view setting | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
 | 6 | level of detail kept further away | far models and detail no longer drop early | large | yes: the LOD distances |
 | 7 | debanding (dither) at the output, and CAS sharpening for DLSS and bilinear | no banding in dark fog and skies; a crisper picture without FSR | small | no |
@@ -69,6 +69,10 @@ size, 0 near) and the camera's projection.
   some places may make it too dark there.
 
 ## 4. HDR output
+
+**Done 2026-11-25** as `display.hdr`, `display.hdr_peak`, `display.hdr_paper_white`: see
+[the note](2026-11-25-hdr-output.md). Checked by decoding the swap chain's PQ values (no HDR display here); off with
+frame generation for now, and the HUD's white is raised with the rest.
 
 - Swap chain in R10G10B10A2 with the HDR10 colour space (`DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020`), only when the
   display reports HDR.

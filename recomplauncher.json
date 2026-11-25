@@ -112,6 +112,15 @@
       "defaults": { "display/ultrawide": "off" }
     },
     {
+      "id": "hdr", "label": "HDR", "group": "Display",
+      "help": "HDR10 on a display Windows has HDR on for: the game's highlights raised toward the peak, the rest at paper white. Not with frame generation.",
+      "choices": [
+        { "label": "Off", "set": { "display/hdr": "off" } },
+        { "label": "On", "set": { "display/hdr": "on" } }
+      ],
+      "defaults": { "display/hdr": "off" }
+    },
+    {
       "id": "render_scale", "label": "Internal resolution", "group": "Picture",
       "help": "What the scene is drawn at. 720p is the PS3's own. AMD FSR and frame generation go no higher than the window.",
       "choices": [

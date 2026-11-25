@@ -169,6 +169,17 @@ hitch. The frame rate turns amber under 29 and red under 20, as the game holds 3
 stats` in `ascension-r.ini` shows the larger stats panel instead, for diagnosis: the loads, memory, the graphics card's
 and CPU's names, and Kratos's position.
 
+## HDR
+
+**HDR** in the launcher's Display tab (`display.hdr`) sends HDR10 to a display Windows has HDR on for (Settings,
+System, Display, Use HDR). The game's own picture is SDR: its highlights (fire, the sky, lightning, magic) are raised
+toward **HDR peak brightness** (`display.hdr_peak`: Auto takes what the display reports, or 400 to 2000 nits) and the
+rest sits at **HDR paper white** (`display.hdr_paper_white`, 100 to 300 nits, 200 by default; raise it in a bright
+room). The HUD and menus are part of the same picture, so their white is raised too, as with Windows' Auto HDR; lower
+the peak if they are too bright. Not with frame generation. Screenshots stay SDR. The log says on every start whether
+Windows has HDR on for the display and the peak it reports. The [note](notes/2026-11-25-hdr-output.md) has how it is
+made and what was checked.
+
 ## Colour vibrance and contrast
 
 Two rows in the launcher's Graphics tab (#26), Off to Max, both off by default: the game's own muted, golden look stays
