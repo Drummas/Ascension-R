@@ -8,13 +8,15 @@
  * launcher.show = off skips it; holding Shift while the game starts brings it
  * back.
  *
- * The window is drawn with Direct2D and DirectWrite, 8-bit and neon: a sidebar
+ * The window is drawn with Direct2D and DirectWrite: a sidebar
  * of tabs (Play, Graphics, Display, Controls, Game patches, Cheats, Mods, Trophies, Multiplayer, System), a
  * header with the precompile screen's scene moving in it (loading_screen.cpp,
  * all of it this port's own), cards of settings as segmented buttons, switches
- * and lists, and a bar with Play. Its fonts are Silkscreen, from the exe
- * (app.rc), and Windows' Bahnschrift. Retro effects (Display tab) is its glow
- * and scanlines.
+ * and lists, and a bar with Play. Window style (Display tab, launcher.style) is
+ * Clean by default: Windows' Bahnschrift throughout, Windows' vector icons,
+ * smooth rounded shapes, sharp at every Windows scale. Retro is the first look,
+ * 8-bit and neon: Silkscreen from the exe (app.rc) for the headings, pixel
+ * icons, bevels, and Retro effects (its glow and scanlines) as set.
  * The keyboard keys are set on a sheet over the window (Controls, Edit keys).
  * GOWA_LAUNCHER_SHOT=<folder> draws every tab into PNG files there and quits,
  * to look at the window without opening it; GOWA_LAUNCHER_SHOT_DPI sets their
@@ -148,6 +150,9 @@ static const char* const k_swait[] = { "off", "short", "full" };
 static const char* const k_swait_n[] = { "Off: never, a gap for a moment instead", "Short: a frame waits 33 ms at most",
                                          "Full: up to two seconds" };
 static const char* const k_swait_s[] = { "Off", "Short", "Full" };
+static const char* const k_style[] = { "clean", "retro" };
+static const char* const k_style_n[] = { "Clean", "Retro: pixel font and 8-bit bevels" };
+static const char* const k_style_s[] = { "Clean", "Retro" };
 static const char* const k_cap[] = { "off", "20", "30", "120", "144", "unlocked" };
 static const char* const k_cap_n[] = { "Off: the game's own 60", "20 fps, even pace", "30 fps, even pace",
                                        "120 fps (experimental)", "144 fps (experimental)", "Unlocked (experimental)" };
@@ -178,7 +183,6 @@ static const char* const k_fxres_s[] = { "Game's", "Internal" };
 /* graphics.fov (ultrawide.cpp): the play camera's view, a factor of the game's. */
 static const char* const k_fov[] = { "0.8", "0.9", "1", "1.1", "1.2", "1.3", "1.4" };
 static const char* const k_fov_n[] = { "80%", "90%", "The game's", "110%", "120%", "130%", "140%" };
-static const char* const k_fov_s[] = { "80%", "90%", "Game's", "110%", "120%", "130%", "140%" };
 /* graphics.ambient_occlusion (ps3recomp's ao_draw). */
 static const char* const k_ao[] = { "off", "on", "high" };
 static const char* const k_ao_n[] = { "Off", "On", "High quality" };
@@ -266,8 +270,11 @@ static Opt s_opt[] = {
       "How bright the brightest highlights get: fire, the sky, lightning. Auto takes what the display reports." },
     { T_DISPLAY, "display", "hdr_paper_white", "200", "HDR paper white", 0, LIST(k_hdrpw, k_hdrpw_n), k_hdrpw_n,
       "How bright white is in the rest of the picture and the HUD. Raise it in a bright room." },
+    { T_DISPLAY, "launcher", "style", "clean", "Window style", 0, LIST(k_style, k_style_n), k_style_s,
+      "How this window looks: Clean, smooth at every Windows scale, or Retro, a pixel font and 8-bit bevels. The game "
+      "is not changed." },
     { T_DISPLAY, "launcher", "effects", "on", "Retro effects", 1, SW,
-      "Scanlines and a neon glow in this window. The game is not changed." },
+      "Scanlines and a neon glow in this window, with the Retro window style. The game is not changed." },
     { T_GRAPHICS, "graphics", "gpu", "discrete", "Graphics card", 0, LIST(k_gpu, k_gpu_n), k_gpu_n, NULL },   /* gpu_detect */
     { T_GRAPHICS, "graphics", "render_scale", "1", "Internal resolution", 0, LIST(k_rscale, k_rscale_n), k_rscale_s,
       "What the scene is drawn at. Shadow resolution and Effects resolution below say how large shadows, bloom and "
@@ -280,7 +287,7 @@ static Opt s_opt[] = {
       "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: "
       "smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal "
       "resolution above 720p. Takes effect at the next start." },
-    { T_GRAPHICS, "graphics", "fov", "1", "Field of view", 0, LIST(k_fov, k_fov_n), k_fov_s,
+    { T_GRAPHICS, "graphics", "fov", "1", "Field of view", 0, LIST(k_fov, k_fov_n), NULL,
       "How wide the view is in play, against the game's: wider shows more around Kratos, narrower brings the view in. "
       "The in-engine cinematics keep the game's own. Takes effect at the next start." },
     { T_GRAPHICS, "graphics", "ambient_occlusion", "off", "Ambient occlusion", 0, LIST(k_ao, k_ao_n), k_ao_s,
@@ -1565,6 +1572,24 @@ static const wchar_t* W(const char* s)
     return b;
 }
 
+/* launcher.style = clean (GOWA_LAUNCHER_STYLE over it): headings in the body's font, antialiased shapes with rounded
+ * corners, Windows' own vector icons, no scanlines or glow. retro: Silkscreen, 8-bit bevels, pixel icons, and Retro
+ * effects as set. The header's scene stays pixel art in both, drawn at whole device pixels. Read from the row as shown,
+ * so a choice changes the window at once (fonts_make). */
+static IDWriteTextFormat *s_tf_icon[4], *s_tf_name;   /* the clean style's icons (by size) and its name on Play */
+static int clean(void)
+{
+    static int env = -2;
+    static const Opt* o;
+    if (env == -2) {
+        const char* e = getenv("GOWA_LAUNCHER_STYLE");
+        env = e && *e ? !ps3_settings_ieq(e, "retro") : -1;
+        o = opt_find("launcher", "style");
+    }
+    if (env >= 0) return env;
+    return !o || !ps3_settings_ieq(o->cur, "retro");
+}
+
 /* Silkscreen, in the exe (app.rc), read from memory into a collection of its own. Without it (Windows 10 before
  * 1709, a resource missing) headings are in the body's font too. The body is Windows' own Bahnschrift, DIN-like
  * and easy to read at 14 and 15 (a pixel font there makes a 5 an S); Segoe UI before Windows 10 1709. */
@@ -1624,6 +1649,7 @@ static IDWriteTextFormat* tf(const wchar_t* family, float px, DWRITE_FONT_WEIGHT
     return f;
 }
 
+static int fonts_make(void);
 static int ui_init(void)
 {
     if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &s_d2d)) ||
@@ -1631,6 +1657,18 @@ static int ui_init(void)
         return 0;
     CoCreateInstance(CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&s_wic));
     fonts_load();
+    return fonts_make();
+}
+
+/* The text formats, for the style shown (s_font_style); made again when it changes. */
+static int s_font_style = -1;
+static int fonts_make(void)
+{
+    IDWriteTextFormat** old[] = { &s_tf_ui, &s_tf_ui_b, &s_tf_small, &s_tf_cap, &s_tf_head, &s_tf_btn, &s_tf_title,
+                                  &s_tf_play, &s_tf_desc, &s_tf_path };
+    for (size_t i = 0; i < sizeof old / sizeof old[0]; i++)
+        if (*old[i]) { (*old[i])->Release(); *old[i] = NULL; }
+    s_font_style = clean();
     /* Silkscreen's dots are an eighth of its size: at 8, 16 and 24 they are whole pixels at 100%, 150% and 200%. */
     const wchar_t *pix = s_f_pixel, *body = system_font(L"Bahnschrift") ? L"Bahnschrift" : L"Segoe UI";
     s_tf_ui = tf(body, 15.0f, DWRITE_FONT_WEIGHT_NORMAL);
@@ -1638,11 +1676,19 @@ static int ui_init(void)
     s_tf_small = tf(body, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
     s_tf_desc = tf(body, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
     s_tf_path = tf(body, 14.0f, DWRITE_FONT_WEIGHT_NORMAL);
-    s_tf_cap = tf(pix, s_fonts ? 8.0f : 11.0f, DWRITE_FONT_WEIGHT_BOLD);
-    s_tf_head = tf(pix, 16.0f, DWRITE_FONT_WEIGHT_BOLD);
-    s_tf_btn = tf(pix, 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
-    s_tf_title = tf(pix, 24.0f, DWRITE_FONT_WEIGHT_BOLD);
-    s_tf_play = tf(pix, 24.0f, DWRITE_FONT_WEIGHT_BOLD);
+    if (clean()) {   /* the headings in the body's font, heavier: no pixel font */
+        s_tf_cap = tf(body, 11.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        s_tf_head = tf(body, 19.0f, DWRITE_FONT_WEIGHT_BOLD);
+        s_tf_btn = tf(body, 15.0f, DWRITE_FONT_WEIGHT_SEMI_BOLD);
+        s_tf_title = tf(body, 26.0f, DWRITE_FONT_WEIGHT_BOLD);
+        s_tf_play = tf(body, 24.0f, DWRITE_FONT_WEIGHT_BOLD);
+    } else {
+        s_tf_cap = tf(pix, s_fonts ? 8.0f : 11.0f, DWRITE_FONT_WEIGHT_BOLD);
+        s_tf_head = tf(pix, 16.0f, DWRITE_FONT_WEIGHT_BOLD);
+        s_tf_btn = tf(pix, 16.0f, DWRITE_FONT_WEIGHT_NORMAL);
+        s_tf_title = tf(pix, 24.0f, DWRITE_FONT_WEIGHT_BOLD);
+        s_tf_play = tf(pix, 24.0f, DWRITE_FONT_WEIGHT_BOLD);
+    }
     if (!s_tf_ui || !s_tf_ui_b || !s_tf_small || !s_tf_cap || !s_tf_head || !s_tf_btn || !s_tf_title || !s_tf_play ||
         !s_tf_desc || !s_tf_path)
         return 0;
@@ -1680,6 +1726,7 @@ static float thick(float n) { return (float)dots(n) / s_px; }
 
 static int effects_on(void)
 {
+    if (clean()) return 0;   /* scanlines and glow are the retro style's */
     static const Opt* o = opt_find("launcher", "effects");
     return !o || opt_on(*o);
 }
@@ -1854,6 +1901,12 @@ static void frame(D2D1_RECT_F r, unsigned rgb, float a = 1.0f, float w = 2.0f)
     r = SR(r);
     const float t = thick(w);
     s_br->SetColor(col(rgb, a));
+    if (clean()) {
+        const float h = t * 0.5f;
+        s_d->DrawRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.left + h, r.top + h, r.right - h, r.bottom - h), 6.0f, 6.0f),
+                                  s_br, t);
+        return;
+    }
     s_d->FillRectangle(D2D1::RectF(r.left, r.top, r.right, r.top + t), s_br);
     s_d->FillRectangle(D2D1::RectF(r.left, r.bottom - t, r.right, r.bottom), s_br);
     s_d->FillRectangle(D2D1::RectF(r.left, r.top + t, r.left + t, r.bottom - t), s_br);
@@ -1868,6 +1921,15 @@ static void bevel(D2D1_RECT_F r, unsigned face, unsigned hi, unsigned lo, float 
         const unsigned c = hi; hi = lo; lo = c;
         const float a = a_hi; a_hi = a_lo; a_lo = a;
     }
+    if (clean()) {   /* a rounded block, its edge a device pixel of the lit colour */
+        const float px1 = 1.0f / s_px, h = px1 * 0.5f;
+        s_br->SetColor(col(face, 1.0f));
+        s_d->FillRoundedRectangle(D2D1::RoundedRect(r, 5.0f, 5.0f), s_br);
+        s_br->SetColor(col(pressed ? lo : hi, (pressed ? a_lo : a_hi) * 0.7f));
+        s_d->DrawRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.left + h, r.top + h, r.right - h, r.bottom - h), 5.0f, 5.0f),
+                                  s_br, px1);
+        return;
+    }
     fill(r, face);
     s_br->SetColor(col(hi, a_hi));
     s_d->FillRectangle(D2D1::RectF(r.left, r.top, r.right - t, r.top + t), s_br);
@@ -1880,7 +1942,8 @@ static void bevel(D2D1_RECT_F r, unsigned face, unsigned hi, unsigned lo, float 
 /* Silkscreen at a whole number of device pixels a dot is drawn unsmoothed: its dots stay square. */
 static int sharp(IDWriteTextFormat* f)
 {
-    if (!s_fonts || (f != s_tf_cap && f != s_tf_head && f != s_tf_btn && f != s_tf_title && f != s_tf_play)) return 0;
+    if (clean() || !s_fonts || (f != s_tf_cap && f != s_tf_head && f != s_tf_btn && f != s_tf_title && f != s_tf_play))
+        return 0;
     const float dot = f->GetFontSize() * s_px / 8.0f;
     return fabsf(dot - floorf(dot + 0.5f)) < 0.01f;
 }
@@ -2046,10 +2109,39 @@ static const char k_ic_up[16][17] = {   /* a newer release */
     ".......##.......", "................", "..############..", "..############..", "................",
     "................" };
 
+/* Each pixel icon's counterpart in Windows' icon font (Segoe Fluent Icons, Segoe MDL2 Assets), for the clean style. */
+static const wchar_t* icon_glyph(Icon rows)
+{
+    static const struct { Icon ic; const wchar_t* g; } k[] = {
+        { k_ic_play, L"\xE768" }, { k_ic_pic, L"\xE8B9" }, { k_ic_screen, L"\xE7F4" }, { k_ic_pad, L"\xE7FC" },
+        { k_ic_wrench, L"\xE90F" }, { k_ic_bolt, L"\xE945" }, { k_ic_chip, L"\xE770" }, { k_ic_net, L"\xE774" },
+        { k_ic_cup, L"\xE734" }, { k_ic_flag, L"\xE7C1" }, { k_ic_trash, L"\xE74D" }, { k_ic_mods, L"\xEA86" },
+        { k_ic_raise, L"\xE70E" }, { k_ic_folder, L"\xE8B7" }, { k_ic_check, L"\xE73E" }, { k_ic_warn, L"\xE7BA" },
+        { k_ic_info, L"\xE946" }, { k_ic_cross, L"\xE711" }, { k_ic_down, L"\xE70D" }, { k_ic_keys, L"\xE765" },
+        { k_ic_search, L"\xE721" }, { k_ic_up, L"\xE898" },
+    };
+    for (size_t i = 0; i < sizeof k / sizeof k[0]; i++)
+        if (k[i].ic == rows) return k[i].g;
+    return NULL;
+}
+
 /* An icon with its top left at (x, y), k DIPs a dot (16 x 16 DIPs at 1), its runs of dots filled unsmoothed (the
  * targets draw aliased). */
 static void icon(Icon rows, float x, float y, unsigned rgb, float a = 1.0f, float k = 1.0f)
 {
+    if (clean()) {   /* the same icon from Windows' icon font, 16 DIPs a k */
+        IDWriteTextFormat** fmt = s_tf_icon;
+        const int i = k <= 1.0f ? 0 : k <= 1.5f ? 1 : k <= 2.0f ? 2 : 3;
+        if (!fmt[i]) {
+            const wchar_t* fam = system_font(L"Segoe Fluent Icons") ? L"Segoe Fluent Icons" : L"Segoe MDL2 Assets";
+            fmt[i] = tf(fam, 15.0f * k, DWRITE_FONT_WEIGHT_NORMAL);
+        }
+        const wchar_t* g = icon_glyph(rows);
+        if (fmt[i] && g) {
+            text(g, fmt[i], D2D1::RectF(x, y, x + 16.0f * k, y + 16.0f * k), rgb, a, DWRITE_TEXT_ALIGNMENT_CENTER);
+            return;
+        }
+    }
     const float ox = snap(x), oy = snap(y);
     s_br->SetColor(col(rgb, a));
     for (int r = 0; r < 16; r++)
@@ -2178,7 +2270,7 @@ static void glow_draw(void)
     s_d = s_glow_src;
     s_d->BeginDraw();
     s_d->SetTransform(D2D1::Matrix3x2F::Identity());
-    s_d->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+    s_d->SetAntialiasMode(clean() ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
     s_d->Clear(D2D1::ColorF(0, 0, 0, 0));
     for (int i = 0; i < s_nglow; i++) {
         const Glow& g = s_glows[i];
@@ -2250,6 +2342,19 @@ static void w_switch(int on, float x, float y, int id)
 {
     const D2D1_RECT_F t = R(x, y, SW_W, SW_H);
     const unsigned c = on ? C_CYAN : hovered(id) ? C_DIM : C_OFF;
+    if (clean()) {   /* a pill with a round knob */
+        const D2D1_RECT_F r = SR(t);
+        const float rad = (r.bottom - r.top) * 0.5f, k = rad - 4.0f;
+        s_br->SetColor(col(on ? C_CYAN : C_BG, on ? 0.25f : 1.0f));
+        s_d->FillRoundedRectangle(D2D1::RoundedRect(r, rad, rad), s_br);
+        s_br->SetColor(col(c, 1.0f));
+        s_d->DrawRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.left + 1, r.top + 1, r.right - 1, r.bottom - 1), rad - 1,
+                                                    rad - 1), s_br, 2.0f);
+        const float cx = on ? r.right - rad : r.left + rad;
+        s_d->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, r.top + rad), k, k), s_br);
+        hit(R(x - 4, y - 4, SW_W + 8, SW_H + 8), id);
+        return;
+    }
     fill(t, C_BG);
     frame(t, c, 1.0f, 2.0f);
     fill(R(on ? x + SW_W - 21.0f : x + 5.0f, y + 5.0f, 16.0f, 16.0f), c);
@@ -2477,7 +2582,9 @@ static void draw_sidebar(void)
         s_d->DrawBitmap(s_bm_icon, D2D1::RectF(x, y, x + z.width, y + z.height), 1.0f,
                         D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
     }
-    if (s_bm_word) {
+    if (clean()) {
+        text(L"ASCENSION-R", s_tf_head, R(56, 14, SIDE_W - 66, 24), C_GOLD, 1.0f, DWRITE_TEXT_ALIGNMENT_LEADING);
+    } else if (s_bm_word) {
         const D2D1_RECT_F wr = word_rect(56.0f, 18.0f, 2.0f);
         s_d->DrawBitmap(s_bm_word, wr, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
         glow_bitmap(s_bm_word_glow, wr, 0.55f);
@@ -2615,7 +2722,10 @@ static void draw_play(void)
         frame(panel, C_NEON, 1.0f, 2.0f);
         glow_rect(panel, C_NEON, 0.75f, 2.0f);
         text(L"NATIVE PC PORT \x00B7 STATIC RECOMPILATION", s_tf_cap, R(px + 18, py + 14, pw - 36, 12), C_CYAN);
-        if (s_bm_word) {
+        if (clean()) {
+            if (!s_tf_name) s_tf_name = tf(system_font(L"Bahnschrift") ? L"Bahnschrift" : L"Segoe UI", 40.0f, DWRITE_FONT_WEIGHT_BOLD);
+            if (s_tf_name) text(L"ASCENSION-R", s_tf_name, R(px + 16, py + 30, pw - 32, 46), C_GOLD, 1.0f, DWRITE_TEXT_ALIGNMENT_LEADING);
+        } else if (s_bm_word) {
             const D2D1_RECT_F wr = word_rect(px + 14, py + 34, 4.0f);
             s_d->DrawBitmap(s_bm_word, wr, 1.0f, D2D1_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR);
             glow_bitmap(s_bm_word_glow, wr, 0.9f);
@@ -2857,9 +2967,11 @@ static void draw_play(void)
         Opt* o = opt_find(quick[q][0], quick[q][1]);
         if (!o) continue;
         float sw = seg_w(*o);
-        if (sw > rw - 150.0f) sw = rw - 150.0f;
+        const int fits = sw <= rw - 150.0f;
+        if (!fits) sw = rw - 150.0f < 240.0f ? rw - 150.0f : 240.0f;
         text(W(o->label), s_tf_ui, R(rx, ry, rw - sw - 10, SEG_H), C_TEXT);
-        w_segmented(*o, (int)(o - s_opt), rx + rw - sw, ry, sw);
+        if (fits) w_segmented(*o, (int)(o - s_opt), rx + rw - sw, ry, sw);
+        else w_dropdown(*o, (int)(o - s_opt), rx + rw - sw, ry, sw);
         ry += SEG_H + 14;
     }
     if (Opt* vs = opt_find("display", "vsync")) {
@@ -3668,10 +3780,11 @@ static void kb_draw(void)
 /* All but the scene, on s_d. */
 static void ui_draw(void)
 {
+    if (s_font_style != clean()) fonts_make();
     s_nhit = 0;
     s_nglow = 0;
     s_nhole = 0;
-    s_d->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
+    s_d->SetAntialiasMode(clean() ? D2D1_ANTIALIAS_MODE_PER_PRIMITIVE : D2D1_ANTIALIAS_MODE_ALIASED);
     if (s_tab == T_PLAY) draw_play();
     else draw_settings(s_tab);
     draw_sidebar();
@@ -5180,7 +5293,7 @@ static const int k_shots[][2] = {
     { T_CHEATS, S_TAB }, { T_MODS, S_TAB }, { T_TROPHIES, S_TAB }, { T_TROPHIES, S_END }, { T_SYSTEM, S_TAB },
     { T_DISPLAY, S_LIST },
     { T_SYSTEM, S_SEARCH }, { T_CHEATS, S_END },
-    { T_GRAPHICS, S_END }, { T_SYSTEM, S_END }, { T_PLAY, S_TOAST }, { T_SYSTEM, S_DECRYPT },
+    { T_GRAPHICS, S_END }, { T_DISPLAY, S_END }, { T_SYSTEM, S_END }, { T_PLAY, S_TOAST }, { T_SYSTEM, S_DECRYPT },
     { T_CONTROLS, S_KEYS }, { T_CONTROLS, S_KEYS_WAIT },
 #ifdef PORT_GAME_MODULE
     { T_PLAY, S_KIT_RUN }, { T_PLAY, S_KIT_NEED }, { T_SYSTEM, S_KIT_ROW },
@@ -5353,6 +5466,8 @@ static void ui_release(void)
     IDWriteTextFormat** f[] = { &s_tf_ui, &s_tf_ui_b, &s_tf_small, &s_tf_cap, &s_tf_head, &s_tf_btn, &s_tf_title,
                                 &s_tf_play, &s_tf_desc, &s_tf_path };
     for (size_t i = 0; i < sizeof f / sizeof f[0]; i++) drop(*f[i]);
+    for (int i = 0; i < 4; i++) drop(s_tf_icon[i]);
+    drop(s_tf_name);
     drop(s_fonts);
     if (s_dw5 && s_font_mem) s_dw5->UnregisterFontFileLoader(s_font_mem);
     drop(s_font_mem);
