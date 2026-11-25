@@ -54,13 +54,15 @@ problems further in.
 
 ## Features
 
-- **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below. It finds the game's folder by
-  itself, and says when a newer release is out, with a link to it.
+- **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below, in a Clean or a Retro
+  look. It finds the game's folder by itself, and says when a newer release is out, with a link to it.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and AMD FSR scaling (FSR 4.1 on AMD Radeon RX 6000 and
   newer, FSR 3.1 on other cards), NVIDIA DLSS on RTX cards in beta (see the FAQ), frame generation by AMD FSR or, in
-  beta, by ANR FG (see the FAQ), SMAA 1x and anisotropic filtering.
-- **Display:** windowed or borderless, ultrawide with its window sizes, VSync, a frame rate cap (20 or 30, or past 60:
-  120, 144 or Unlocked, experimental), and the frame rate on screen.
+  beta, by ANR FG (see the FAQ), SMAA 1x and anisotropic filtering. Shadow maps drawn 2x or 4x larger, bloom, blur and
+  depth of field at the internal resolution, ambient occlusion, a field of view from 80% to 140% of the game's in play,
+  debanding, CAS sharpening, colour vibrance and contrast, and NVIDIA Reflex in beta.
+- **Display:** windowed or borderless, ultrawide with its window sizes, HDR10 with its peak brightness and paper white,
+  VSync, a frame rate cap (20 or 30, or past 60: 120, 144 or Unlocked, experimental), and the frame rate on screen.
 - **Shaders:** a compressed cache, pipelines built before the title, every vertex shader built before the first start
   of each version, on an 8-bit screen with music of its own, and the pixel shaders of the game's files built ahead from
   the launcher (Build all shaders now).
