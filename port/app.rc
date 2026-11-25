@@ -11,6 +11,15 @@ CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "gowa.manifest"
 101 RCDATA "..\\third_party\\silkscreen\\Silkscreen-Regular.ttf"
 102 RCDATA "..\\third_party\\silkscreen\\Silkscreen-Bold.ttf"
 
+/* The launcher's translations, gettext .po files (i18n.cpp reads them by these numbers). */
+301 RCDATA "lang\\id.po"
+302 RCDATA "lang\\zh-s.po"
+303 RCDATA "lang\\zh-t.po"
+304 RCDATA "lang\\ru.po"
+305 RCDATA "lang\\es.po"
+306 RCDATA "lang\\pt-br.po"
+307 RCDATA "lang\\de.po"
+
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION AR_VERSION_RC
 PRODUCTVERSION AR_VERSION_RC

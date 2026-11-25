@@ -1,0 +1,2718 @@
+# Ascension-R launcher, Chinese (Simplified)
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: zh-s\n"
+
+#: launcher.cpp:131
+msgid "What the display reports"
+msgstr "显示器报告的值"
+
+#: launcher.cpp:131
+msgid "400 nits"
+msgstr "400 nits"
+
+#: launcher.cpp:131
+msgid "600 nits"
+msgstr "600 nits"
+
+#: launcher.cpp:131
+msgid "800 nits"
+msgstr "800 nits"
+
+#: launcher.cpp:131
+msgid "1000 nits"
+msgstr "1000 nits"
+
+#: launcher.cpp:132
+msgid "1500 nits"
+msgstr "1500 nits"
+
+#: launcher.cpp:132
+msgid "2000 nits"
+msgstr "2000 nits"
+
+#: launcher.cpp:133 launcher.cpp:173 launcher.cpp:177 launcher.cpp:222
+msgid "Auto"
+msgstr "自动"
+
+#: launcher.cpp:135
+msgid "100 nits"
+msgstr "100 nits"
+
+#: launcher.cpp:135
+msgid "150 nits"
+msgstr "150 nits"
+
+#: launcher.cpp:135
+msgid "200 nits"
+msgstr "200 nits"
+
+#: launcher.cpp:135
+msgid "250 nits"
+msgstr "250 nits"
+
+#: launcher.cpp:135
+msgid "300 nits"
+msgstr "300 nits"
+
+#: launcher.cpp:137 launcher.cpp:138
+msgid "Windowed"
+msgstr "窗口化"
+
+#: launcher.cpp:137
+msgid "Borderless fullscreen"
+msgstr "无边框全屏"
+
+#: launcher.cpp:138
+msgid "Borderless"
+msgstr "无边框"
+
+#: launcher.cpp:141
+msgid "Default (720p x Windows scale)"
+msgstr "默认（720p × Windows 缩放比例）"
+
+#: launcher.cpp:145 launcher.cpp:146 launcher.cpp:154 launcher.cpp:166
+msgid "Off"
+msgstr "关"
+
+#: launcher.cpp:145
+msgid "In the title bar"
+msgstr "在标题栏中"
+
+#: launcher.cpp:145
+msgid "On screen, with CPU/GPU load"
+msgstr "屏幕上，含 CPU/GPU 负载"
+
+#: launcher.cpp:146
+msgid "Title bar"
+msgstr "标题栏"
+
+#: launcher.cpp:146
+msgid "On screen"
+msgstr "屏幕上"
+
+#: launcher.cpp:148
+msgid "As the game sets it"
+msgstr "按游戏原版设定"
+
+#: launcher.cpp:149
+msgid "Game"
+msgstr "原版"
+
+#: launcher.cpp:152
+msgid "Off: never, a gap for a moment instead"
+msgstr "关：从不等待，改为短暂出现空缺"
+
+#: launcher.cpp:152
+msgid "Short: a frame waits 33 ms at most"
+msgstr "短：每帧最多等待 33 ms"
+
+#: launcher.cpp:153
+msgid "Full: up to two seconds"
+msgstr "完整：最多两秒"
+
+#: launcher.cpp:154
+msgid "Short"
+msgstr "短"
+
+#: launcher.cpp:154
+msgid "Full"
+msgstr "完整"
+
+#: launcher.cpp:157 launcher.cpp:240
+msgid "Windows language"
+msgstr "Windows 语言"
+
+#: launcher.cpp:161 launcher.cpp:162
+msgid "Clean"
+msgstr "简洁"
+
+#: launcher.cpp:161
+msgid "Retro: pixel font and 8-bit bevels"
+msgstr "复古：像素字体和 8-bit 立体边框"
+
+#: launcher.cpp:162
+msgid "Retro"
+msgstr "复古"
+
+#: launcher.cpp:164
+msgid "Off: the game's own 60"
+msgstr "关：游戏原有的 60 fps"
+
+#: launcher.cpp:164
+msgid "20 fps, even pace"
+msgstr "20 fps，帧间隔均匀"
+
+#: launcher.cpp:164
+msgid "30 fps, even pace"
+msgstr "30 fps，帧间隔均匀"
+
+#: launcher.cpp:165
+msgid "120 fps (experimental)"
+msgstr "120 fps（实验性）"
+
+#: launcher.cpp:165
+msgid "144 fps (experimental)"
+msgstr "144 fps（实验性）"
+
+#: launcher.cpp:165
+msgid "Unlocked (experimental)"
+msgstr "不限（实验性）"
+
+#: launcher.cpp:166
+msgid "20 fps"
+msgstr "20 fps"
+
+#: launcher.cpp:166
+msgid "30 fps"
+msgstr "30 fps"
+
+#: launcher.cpp:166
+msgid "120 fps"
+msgstr "120 fps"
+
+#: launcher.cpp:166
+msgid "144 fps"
+msgstr "144 fps"
+
+#: launcher.cpp:166
+msgid "Unlocked"
+msgstr "不限"
+
+#: launcher.cpp:168 launcher.cpp:169 launcher.cpp:3021
+msgid "Bilinear"
+msgstr "双线性"
+
+#: launcher.cpp:168
+msgid "Sharp bilinear"
+msgstr "锐利双线性"
+
+#: launcher.cpp:168
+msgid "AMD FSR 1"
+msgstr "AMD FSR 1"
+
+#: launcher.cpp:168 launcher.cpp:201 launcher.cpp:202
+msgid "AMD FSR"
+msgstr "AMD FSR"
+
+#: launcher.cpp:168
+msgid "NVIDIA DLSS (RTX cards)"
+msgstr "NVIDIA DLSS（RTX 显卡）"
+
+#: launcher.cpp:169
+msgid "Sharp"
+msgstr "锐利"
+
+#: launcher.cpp:169
+msgid "FSR 1"
+msgstr "FSR 1"
+
+#: launcher.cpp:172
+msgid "Auto: the DLL's own for each mode"
+msgstr "自动：每种模式使用 DLL 自带的预设"
+
+#: launcher.cpp:176
+msgid "Auto: the newest the graphics card takes"
+msgstr "自动：显卡支持的最新版本"
+
+#: launcher.cpp:176
+msgid "FSR 3.1"
+msgstr "FSR 3.1"
+
+#: launcher.cpp:179
+msgid "Discrete"
+msgstr "独立显卡"
+
+#: launcher.cpp:179
+msgid "Integrated"
+msgstr "集成显卡"
+
+#: launcher.cpp:181
+msgid "720p, as the game draws it"
+msgstr "720p，与游戏原版相同"
+
+#: launcher.cpp:181
+msgid "The window's size"
+msgstr "窗口大小"
+
+#: launcher.cpp:182 launcher.cpp:254
+msgid "Window"
+msgstr "窗口"
+
+#: launcher.cpp:185 launcher.cpp:188
+msgid "As the game draws them"
+msgstr "按游戏原版绘制"
+
+#: launcher.cpp:186 launcher.cpp:189
+msgid "Game's"
+msgstr "原版"
+
+#: launcher.cpp:188
+msgid "The internal resolution"
+msgstr "内部分辨率"
+
+#: launcher.cpp:189
+msgid "Internal"
+msgstr "内部"
+
+#: launcher.cpp:192
+msgid "The game's"
+msgstr "原版"
+
+#: launcher.cpp:195 launcher.cpp:196 launcher.cpp:205
+msgid "On"
+msgstr "开"
+
+#: launcher.cpp:195
+msgid "High quality"
+msgstr "高质量"
+
+#: launcher.cpp:196 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "High"
+msgstr "高"
+
+#: launcher.cpp:201 launcher.cpp:4883
+msgid "ANR FG (beta)"
+msgstr "ANR FG（测试版）"
+
+#: launcher.cpp:202
+msgid "ANR (beta)"
+msgstr "ANR（测试版）"
+
+#: launcher.cpp:205
+msgid "On + Boost"
+msgstr "开 + 加速"
+
+#: launcher.cpp:207
+msgid "SMAA 1x"
+msgstr "SMAA 1x"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Low"
+msgstr "低"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Medium"
+msgstr "中"
+
+#: launcher.cpp:210
+msgid "High (AMD's)"
+msgstr "高（AMD 默认）"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Max"
+msgstr "最高"
+
+#: launcher.cpp:217 launcher.cpp:219 launcher.cpp:234
+msgid "Normal"
+msgstr "正常"
+
+#: launcher.cpp:217
+msgid "Half"
+msgstr "一半"
+
+#: launcher.cpp:217
+msgid "Quarter"
+msgstr "四分之一"
+
+#: launcher.cpp:217
+msgid "None"
+msgstr "无"
+
+#: launcher.cpp:219
+msgid "One hit"
+msgstr "一击必杀"
+
+#: launcher.cpp:221
+msgid "Controller and keyboard"
+msgstr "手柄和键盘"
+
+#: launcher.cpp:221
+msgid "Controller only"
+msgstr "仅手柄"
+
+#: launcher.cpp:221
+msgid "Keyboard only"
+msgstr "仅键盘"
+
+#: launcher.cpp:222
+msgid "Controller"
+msgstr "手柄"
+
+#: launcher.cpp:222
+msgid "Keyboard"
+msgstr "键盘"
+
+#: launcher.cpp:224
+msgid "XInput, else SDL3"
+msgstr "优先 XInput，其次 SDL3"
+
+#: launcher.cpp:224
+msgid "XInput only"
+msgstr "仅 XInput"
+
+#: launcher.cpp:224
+msgid "SDL3 for every controller"
+msgstr "所有手柄均用 SDL3"
+
+#: launcher.cpp:225
+msgid "XInput"
+msgstr "XInput"
+
+#: launcher.cpp:227
+msgid "24% (XInput's)"
+msgstr "24%（XInput 默认）"
+
+#: launcher.cpp:229 launcher.cpp:491
+msgid "Cross"
+msgstr "×按钮"
+
+#: launcher.cpp:229 launcher.cpp:492
+msgid "Circle"
+msgstr "○按钮"
+
+#: launcher.cpp:231
+msgid "Keep 3"
+msgstr "保留 3 份"
+
+#: launcher.cpp:231
+msgid "Keep 5"
+msgstr "保留 5 份"
+
+#: launcher.cpp:231
+msgid "Keep 10"
+msgstr "保留 10 份"
+
+#: launcher.cpp:236
+msgid "As Windows has the output device"
+msgstr "跟随 Windows 的输出设备设置"
+
+#: launcher.cpp:236 launcher.cpp:237
+msgid "Stereo"
+msgstr "立体声"
+
+#: launcher.cpp:240
+msgid "English (US)"
+msgstr "英语（美国）"
+
+#: launcher.cpp:240
+msgid "English (UK)"
+msgstr "英语（英国）"
+
+#: launcher.cpp:240
+msgid "French"
+msgstr "法语"
+
+#: launcher.cpp:240
+msgid "Spanish"
+msgstr "西班牙语"
+
+#: launcher.cpp:241
+msgid "German"
+msgstr "德语"
+
+#: launcher.cpp:241
+msgid "Italian"
+msgstr "意大利语"
+
+#: launcher.cpp:241
+msgid "Dutch"
+msgstr "荷兰语"
+
+#: launcher.cpp:241
+msgid "Portuguese"
+msgstr "葡萄牙语"
+
+#: launcher.cpp:241
+msgid "Portuguese (Brazil)"
+msgstr "葡萄牙语（巴西）"
+
+#: launcher.cpp:242
+msgid "Russian"
+msgstr "俄语"
+
+#: launcher.cpp:242
+msgid "Japanese"
+msgstr "日语"
+
+#: launcher.cpp:242
+msgid "Korean"
+msgstr "韩语"
+
+#: launcher.cpp:242
+msgid "Chinese (traditional)"
+msgstr "繁体中文"
+
+#: launcher.cpp:243
+msgid "Chinese (simplified)"
+msgstr "简体中文"
+
+#: launcher.cpp:243
+msgid "Finnish"
+msgstr "芬兰语"
+
+#: launcher.cpp:243
+msgid "Swedish"
+msgstr "瑞典语"
+
+#: launcher.cpp:243
+msgid "Danish"
+msgstr "丹麦语"
+
+#: launcher.cpp:243
+msgid "Norwegian"
+msgstr "挪威语"
+
+#: launcher.cpp:244
+msgid "Polish"
+msgstr "波兰语"
+
+#: launcher.cpp:244
+msgid "Turkish"
+msgstr "土耳其语"
+
+#: launcher.cpp:248
+msgid "Auto: find players"
+msgstr "自动：寻找玩家"
+
+#: launcher.cpp:248
+msgid "Host: this PC"
+msgstr "主机：本机"
+
+#: launcher.cpp:248
+msgid "Join a host"
+msgstr "加入主机"
+
+#: launcher.cpp:249
+msgid "Host"
+msgstr "主机"
+
+#: launcher.cpp:249
+msgid "Join"
+msgstr "加入"
+
+#: launcher.cpp:255
+msgid "Borderless covers the whole screen."
+msgstr "无边框会覆盖整个屏幕。"
+
+#: launcher.cpp:256
+msgid "Window size"
+msgstr "窗口大小"
+
+#: launcher.cpp:257
+msgid "In windowed mode. The game draws 720p; the picture is scaled to the window."
+msgstr "用于窗口化模式。游戏以 720p 绘制，画面会缩放到窗口大小。"
+
+#. text
+#: launcher.cpp:258 launcher.cpp:3070
+msgid "VSync"
+msgstr "垂直同步"
+
+#: launcher.cpp:259
+msgid "Wait for the display's refresh: no tearing."
+msgstr "等待显示器刷新：画面不会撕裂。"
+
+#: launcher.cpp:260
+msgid "Frame rate cap"
+msgstr "帧率上限"
+
+#: launcher.cpp:261
+msgid "20 and 30: an even pace instead of the highest rate the PC reaches. 120, 144 and Unlocked (experimental): the game runs past its 60 at its own speed, as far as the PC and, with VSync, the monitor take it; frame generation is off with them, and the game goes back to 60 once it goes online for multiplayer. With frame generation, off follows the monitor."
+msgstr "20 和 30：帧间隔均匀，而不是追求电脑能达到的最高帧率。120、144 和不限（实验性）：游戏以自身速度超过原有的 60，上限取决于电脑性能，开启垂直同步时还取决于显示器；选择这些时帧生成关闭，联网进行多人游戏时游戏会回到 60。使用帧生成时，“关”会跟随显示器的刷新率。"
+
+#: launcher.cpp:265
+msgid "Frame rate display"
+msgstr "帧率显示"
+
+#: launcher.cpp:266
+msgid "On screen shows FPS, frame time, the CPU's, GPU's, PPU's, SPU's and RSX's load and a graph of the last frames' times, in the top right corner."
+msgstr "“屏幕上”会在右上角显示 FPS、帧时间，CPU、GPU、PPU、SPU 和 RSX 的负载，以及最近几帧帧时间的曲线图。"
+
+#: launcher.cpp:268
+msgid "Ultrawide"
+msgstr "超宽屏"
+
+#: launcher.cpp:269
+msgid "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start."
+msgstr "在更宽的屏幕上以全宽绘制游戏。HUD、菜单和过场影片保持 16:9。下次启动时生效。"
+
+#: launcher.cpp:270
+msgid "Shader build indicator"
+msgstr "着色器编译提示"
+
+#: launcher.cpp:271
+msgid "A spinner in the bottom left corner while the game's new shaders are built, as RPCS3 shows."
+msgstr "编译游戏的新着色器时，在左下角显示一个旋转图标，与 RPCS3 相同。"
+
+#: launcher.cpp:273
+msgid "HDR10 on a display Windows has HDR on for (Settings, System, Display, Use HDR): the game's picture with its highlights raised toward the peak below, the rest at paper white. Not with frame generation. Takes effect at the next start."
+msgstr "在 Windows 已开启 HDR 的显示器上输出 HDR10（设置 > 系统 > 屏幕 > 使用 HDR）：游戏画面的高光提升至下方的峰值亮度，其余部分为纸白亮度。不能与帧生成同时使用。下次启动时生效。"
+
+#: launcher.cpp:276
+msgid "HDR peak brightness"
+msgstr "HDR 峰值亮度"
+
+#: launcher.cpp:277
+msgid "How bright the brightest highlights get: fire, the sky, lightning. Auto takes what the display reports."
+msgstr "最亮的高光能有多亮：火焰、天空、闪电。“自动”采用显示器报告的值。"
+
+#: launcher.cpp:278
+msgid "HDR paper white"
+msgstr "HDR 纸白亮度"
+
+#: launcher.cpp:279
+msgid "How bright white is in the rest of the picture and the HUD. Raise it in a bright room."
+msgstr "画面其余部分和 HUD 中白色的亮度。在明亮的房间里请调高。"
+
+#: launcher.cpp:280
+msgid "Window style"
+msgstr "窗口风格"
+
+#: launcher.cpp:281
+msgid "How this window looks: Clean, smooth at every Windows scale, or Retro, a pixel font and 8-bit bevels. The game is not changed."
+msgstr "此窗口的外观：“简洁”在任何 Windows 缩放比例下都清晰平滑；“复古”使用像素字体和 8-bit 立体边框。游戏本身不受影响。"
+
+#: launcher.cpp:283
+msgid "Retro effects"
+msgstr "复古特效"
+
+#: launcher.cpp:284
+msgid "Scanlines and a neon glow in this window, with the Retro window style. The game is not changed."
+msgstr "使用“复古”窗口风格时，为此窗口添加扫描线和霓虹光晕。游戏本身不受影响。"
+
+#: launcher.cpp:285
+msgid "Graphics card"
+msgstr "显卡"
+
+#: launcher.cpp:286
+msgid "Internal resolution"
+msgstr "内部分辨率"
+
+#: launcher.cpp:287
+msgid "What the scene is drawn at. Shadow resolution and Effects resolution below say how large shadows, bloom and blur are drawn. AMD FSR and frame generation go no higher than the window."
+msgstr "绘制场景所用的分辨率。下方的“阴影分辨率”和“特效分辨率”决定阴影、泛光和模糊的绘制尺寸。使用 AMD FSR 和帧生成时不会超过窗口大小。"
+
+#: launcher.cpp:289
+msgid "Shadow resolution"
+msgstr "阴影分辨率"
+
+#: launcher.cpp:290
+msgid "Shadow maps drawn larger: finer shadow edges and less stair-stepping, most of all at a high internal resolution; where the game's shadows are soft the change is small. 4x takes about 120 MB more video memory. Takes effect at the next start."
+msgstr "以更大的尺寸绘制阴影贴图：阴影边缘更精细、锯齿更少，在较高的内部分辨率下尤为明显；游戏中本来就柔和的阴影变化不大。4x 约多占用 120 MB 显存。下次启动时生效。"
+
+#: launcher.cpp:293
+msgid "Effects resolution"
+msgstr "特效分辨率"
+
+#: launcher.cpp:294
+msgid "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal resolution above 720p. Takes effect at the next start."
+msgstr "以内部分辨率绘制泛光、模糊和景深，而不是游戏原有的 640x360 或更低：在 1440p 和 4K 下模糊背景和光晕更平滑，并保持游戏原有亮度。仅在内部分辨率高于 720p 时有效。下次启动时生效。"
+
+#: launcher.cpp:297
+msgid "Field of view"
+msgstr "视野"
+
+#: launcher.cpp:298
+msgid "How wide the view is in play, against the game's: wider shows more around Kratos, narrower brings the view in. The in-engine cinematics keep the game's own. Takes effect at the next start."
+msgstr "游玩时的视野宽度，相对于游戏原版：更宽可看到 Kratos 周围更多的范围，更窄则拉近视角。即时演算过场保持游戏原版视野。下次启动时生效。"
+
+#: launcher.cpp:300
+msgid "Ambient occlusion"
+msgstr "环境光遮蔽"
+
+#: launcher.cpp:301
+msgid "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with an ultrawide picture. Takes effect at the next start."
+msgstr "在角落、缝隙和物体与地面接触处加上柔和阴影，让画面更有层次；在叠加 HUD 之前根据场景深度计算。“高”以内部分辨率绘制，“开”以其一半绘制。超宽画面时不生效。下次启动时生效。"
+
+#: launcher.cpp:304
+msgid "Scaling"
+msgstr "缩放"
+
+#: launcher.cpp:305
+msgid "How the picture is scaled to the window. AMD FSR builds the detail from past frames, in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model on RTX cards (beta), its mode set by the internal resolution against the window (DLAA when they match); its DLL comes from NVIDIA's own GitHub when you pick it."
+msgstr "画面如何缩放到窗口大小。AMD FSR 利用之前的帧重建细节，取代 SMAA；没有场景画面的地方由 FSR 1 接管。NVIDIA DLSS 在 RTX 显卡上用 NVIDIA 的模型完成同样的工作（测试版），其模式由内部分辨率与窗口大小之比决定（两者相同时为 DLAA）；选择它时，其 DLL 从 NVIDIA 官方的 GitHub 获取。"
+
+#: launcher.cpp:309
+msgid "FSR version"
+msgstr "FSR 版本"
+
+#: launcher.cpp:310
+msgid "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little sharper and is lighter on the GPU."
+msgstr "“自动”采用显卡及其驱动支持的最新版本：AMD Radeon RX 6000 及更新的显卡使用 FSR 4.1（RX 6000 需驱动 26.10.1 或更高版本），否则使用 FSR 3.1。4.1 的边缘和细线更干净；3.1 的纹理稍锐利一些，GPU 负担也更轻。"
+
+#: launcher.cpp:313
+msgid "DLSS preset"
+msgstr "DLSS 预设"
+
+#: launcher.cpp:314
+msgid "Only with NVIDIA DLSS. Auto lets the DLL choose for each mode (K for DLAA, Quality and Balanced, M for Performance, L for Ultra Performance). L and M are sharper with less ghosting but cost more, best on RTX 40 and newer."
+msgstr "仅用于 NVIDIA DLSS。“自动”由 DLL 为每种模式选择（DLAA、质量和平衡用 K，性能用 M，超级性能用 L）。L 和 M 更锐利、拖影更少，但开销更大，最适合 RTX 40 及更新的显卡。"
+
+#: launcher.cpp:316
+msgid "FSR sharpening"
+msgstr "FSR 锐化"
+
+#: launcher.cpp:317
+msgid "The sharpening pass of FSR (RCAS). Only with FSR scaling."
+msgstr "FSR 的锐化处理（RCAS）。仅在使用 FSR 缩放时有效。"
+
+#: launcher.cpp:318
+msgid "CAS sharpening"
+msgstr "CAS 锐化"
+
+#: launcher.cpp:319
+msgid "AMD's contrast adaptive sharpening on the picture with bilinear or sharp bilinear scaling, or NVIDIA DLSS: crisper detail, edges not overdone. AMD FSR has its own (FSR sharpening). Not with frame generation."
+msgstr "在使用双线性、锐利双线性缩放或 NVIDIA DLSS 时，对画面应用 AMD 的对比度自适应锐化：细节更清晰，边缘不会过度锐化。AMD FSR 有自己的锐化（FSR 锐化）。不能与帧生成同时使用。"
+
+#: launcher.cpp:321
+msgid "Debanding"
+msgstr "去色带"
+
+#: launcher.cpp:322
+msgid "Smooths the steps in dark gradients, fog and skies, with a fine grain; edges and texture stay as they are. Not with frame generation."
+msgstr "用细微的颗粒平滑暗部渐变、雾气和天空中的色阶断层；边缘和纹理保持不变。不能与帧生成同时使用。"
+
+#: launcher.cpp:324
+msgid "Colour vibrance"
+msgstr "色彩鲜艳度"
+
+#: launcher.cpp:325
+msgid "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. On the whole picture, the game's HUD and menus too."
+msgstr "色彩更生动：暗淡的颜色提升最多，肤色和本已浓烈的颜色提升少得多。作用于整个画面，包括游戏的 HUD 和菜单。"
+
+#: launcher.cpp:327
+msgid "Contrast"
+msgstr "对比度"
+
+#: launcher.cpp:328
+msgid "Lit surfaces and highlights stand out more; deep shadows keep their detail, black and white kept."
+msgstr "受光表面和高光更突出；深色阴影保留细节，黑色与白色保持不变。"
+
+#: launcher.cpp:329 launcher.cpp:4717
+msgid "Frame generation"
+msgstr "帧生成"
+
+#: launcher.cpp:330
+msgid "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases."
+msgstr "开启垂直同步时，屏幕上的帧数翻倍：游戏被限制在显示器刷新率的一半（120 Hz 时为 60），每两帧之间生成一帧，画面约晚一帧，低于 25 时不生效。ANR FG（测试版）能让运动物体保持完整，而 AMD FSR 的帧生成可能会将其撕裂；选择它后，启动器会提议从 Apex Compute 的发布页下载。"
+
+#: launcher.cpp:333
+msgid "NVIDIA Reflex"
+msgstr "NVIDIA Reflex"
+
+#: launcher.cpp:334
+msgid "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame generation. Takes effect at the next start."
+msgstr "在 NVIDIA GeForce GTX 900 及更新的显卡上降低输入延迟（测试版）：每一帧都在 GPU 允许的最晚时刻开始，因此当 GPU 是瓶颈时，排队等待的帧更少。“加速”还会让 GPU 保持较高频率。不能与帧生成同时使用。下次启动时生效。"
+
+#: launcher.cpp:337
+msgid "Anti-aliasing"
+msgstr "抗锯齿"
+
+#: launcher.cpp:338
+msgid "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling does this itself in play."
+msgstr "在游戏绘制完一帧后平滑锯齿边缘。几乎没有性能开销。使用 AMD FSR 缩放时，游玩过程中由 FSR 自行完成。"
+
+#: launcher.cpp:340
+msgid "Anisotropic filtering"
+msgstr "各向异性过滤"
+
+#: launcher.cpp:341
+msgid "Sharper textures seen at an angle. The game itself asks for none."
+msgstr "倾斜视角下的纹理更清晰。游戏本身没有使用。"
+
+#: launcher.cpp:342
+msgid "Build shaders in the background"
+msgstr "后台编译着色器"
+
+#: launcher.cpp:343
+msgid "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things wait for theirs; an effect turns up a moment late."
+msgstr "编译新着色器时游戏继续运行，不会卡住。墙壁、地面等实体物件会等待各自的着色器；特效会晚一点出现。"
+
+#: launcher.cpp:345
+msgid "Wait for new shaders"
+msgstr "等待新着色器"
+
+#: launcher.cpp:346
+msgid "How long walls and floors wait for their new shaders. Short: 33 ms in all for a frame, no pause; past it a gap shows there until the shader is built. Full: up to two seconds each, no gap but a pause. Off: no wait, a gap for a moment."
+msgstr "墙壁和地面等待其新着色器的时长。短：每帧总共 33 ms，不会停顿；超过后该处会出现空缺，直到着色器编译完成。完整：每个最多两秒，没有空缺但会停顿。关：不等待，短暂出现空缺。"
+
+#: launcher.cpp:349
+msgid "Render thread"
+msgstr "渲染线程"
+
+#: launcher.cpp:350
+msgid "The GPU's work is recorded and shown on a thread of its own, beside the one that reads the game's commands: about 10% more frames where that one holds the game back."
+msgstr "GPU 的工作在独立的线程上录制和呈现，与读取游戏命令的线程分开：在后者拖慢游戏的地方，帧数约提升 10%。"
+
+#: launcher.cpp:352
+msgid "Build pipelines first"
+msgstr "先编译管线"
+
+#: launcher.cpp:353
+msgid "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built while you play: a moment, a few seconds after a GPU driver update."
+msgstr "启动时，游戏会等待之前运行时保存的管线编译完成，这样游玩过程中就不会再编译：只需片刻，更新 GPU 驱动后需要几秒。"
+
+#. check_line
+#: launcher.cpp:355 launcher.cpp:2961
+msgid "Pixel shaders built ahead"
+msgstr "提前编译像素着色器"
+
+#: launcher.cpp:356
+msgid "The pixel shaders of the game's files are built before play, after the vertex shaders on the first start (Enter or Start leaves them for the next), or by Build all shaders now below Clear shaders: some minutes, once. Places you reach later wait for fewer of them."
+msgstr "在开始游玩前编译游戏文件中的像素着色器：首次启动时在顶点着色器之后进行（按 Enter 或 START 按钮可留到下次），也可以使用“清除着色器”下方的“立即编译全部着色器”：需要几分钟，只需一次。之后到达的地方需要等待的着色器会更少。"
+
+#: launcher.cpp:359
+msgid "Device"
+msgstr "输入设备"
+
+#: launcher.cpp:360
+msgid "Auto reads a controller and the keyboard and mouse at the same time: either one plays."
+msgstr "“自动”同时读取手柄和键盘鼠标：用哪个都能玩。"
+
+#: launcher.cpp:361
+msgid "Controller API"
+msgstr "手柄 API"
+
+#: launcher.cpp:362
+msgid "Auto reads a controller through XInput when it has it (Xbox, most PC pads), else through SDL3 (DualShock 4, DualSense, Switch and others). With DS4Windows, XInput, or one controller counts twice."
+msgstr "手柄支持 XInput 时（Xbox 及大多数 PC 手柄），“自动”通过 XInput 读取，否则通过 SDL3 读取（DualShock 4、DualSense、Switch 等）。使用 DS4Windows 时请选 XInput，否则一个手柄会被算作两个。"
+
+#: launcher.cpp:364
+msgid "Stick dead zone"
+msgstr "摇杆死区"
+
+#: launcher.cpp:365
+msgid "How far a stick moves before it counts."
+msgstr "摇杆要推多远才开始生效。"
+
+#: launcher.cpp:366
+msgid "Confirm button"
+msgstr "确认按钮"
+
+#: launcher.cpp:367
+msgid "The button that confirms in the menus."
+msgstr "菜单中用于确认的按钮。"
+
+#: launcher.cpp:368
+msgid "Vibration"
+msgstr "振动"
+
+#: launcher.cpp:368
+msgid "Controller rumble."
+msgstr "手柄振动。"
+
+#: launcher.cpp:369
+msgid "Damage to Kratos"
+msgstr "Kratos 受到的伤害"
+
+#: launcher.cpp:370
+msgid "How much of a hit he takes. None: hits take no health from him."
+msgstr "他被击中时承受多少伤害。无：被击中不会损失生命值。"
+
+#: launcher.cpp:371
+msgid "Kratos's damage"
+msgstr "Kratos 造成的伤害"
+
+#: launcher.cpp:372
+msgid "How much his hits take from an enemy. One hit: all of its health."
+msgstr "他的攻击能削减敌人多少生命值。一击必杀：削减全部生命值。"
+
+#: launcher.cpp:373
+msgid "Max red orbs"
+msgstr "红魂全满"
+
+#: launcher.cpp:374
+msgid "The red orbs are held at the most the game allows, 1,000,000. A save made with this on keeps them."
+msgstr "红魂保持在游戏允许的上限 1,000,000。开启此项时保存的存档会保留这些红魂。"
+
+#: launcher.cpp:375
+msgid "Infinite magic and items"
+msgstr "无限魔法和道具"
+
+#: launcher.cpp:376
+msgid "The magic and item meters stay full."
+msgstr "魔法槽和道具槽始终全满。"
+
+#: launcher.cpp:377
+msgid "Infinite rage"
+msgstr "无限怒气"
+
+#: launcher.cpp:378
+msgid "The rage meter stays full."
+msgstr "怒气槽始终全满。"
+
+#: launcher.cpp:379
+msgid "Infinite double jumps"
+msgstr "无限二段跳"
+
+#: launcher.cpp:380
+msgid "Kratos can jump again in the air, as often as he likes."
+msgstr "Kratos 可以在空中不限次数地再次跳跃。"
+
+#: launcher.cpp:381
+msgid "Use mods"
+msgstr "启用模组"
+
+#: launcher.cpp:382
+msgid "Off: the game as it is, every mod left out. Below, each one is switched on its own."
+msgstr "关：保持游戏原样，不加载任何模组。可在下方单独开关每个模组。"
+
+#: launcher.cpp:383
+msgid "Write out the game's textures"
+msgstr "导出游戏纹理"
+
+#: launcher.cpp:384
+msgid "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, named by the id a picture in its place takes. The game is slower while it is on."
+msgstr "用于制作纹理模组：游戏加载的每个纹理都会导出一次到设置文件旁的 textures-dump 中，以替换它的图片所用的 id 命名。开启时游戏会变慢。"
+
+#. text
+#: launcher.cpp:386 launcher.cpp:2616 launcher.cpp:3088
+msgid "Multiplayer"
+msgstr "多人游戏"
+
+#: launcher.cpp:387
+msgid "Auto: the game finds other players itself, as torrents find their peers: no host. Host: this PC runs the matchmaking, for its own game and the players who join it. Join: play through a host's PC. Then Multi-Player on the game's title screen, and Quick Play."
+msgstr "自动：游戏像 BT 下载寻找节点一样自行寻找其他玩家，无需主机。主机：由本机负责匹配，供本机的游戏和加入的玩家使用。加入：通过主机的电脑游玩。然后在游戏标题画面选择多人游戏（Multi-Player），再选快速游戏（Quick Play）。"
+
+#: launcher.cpp:390
+msgid "Online ID"
+msgstr "线上 ID"
+
+#: launcher.cpp:391
+msgid "Your name in the game: 3 to 16 letters, digits, - and _, starting with a letter. Every player needs their own."
+msgstr "你在游戏中的名字：3 到 16 个字母、数字、- 和 _，须以字母开头。每位玩家都需要自己的名字。"
+
+#: launcher.cpp:393
+msgid "Host's address"
+msgstr "主机地址"
+
+#: launcher.cpp:394
+msgid "To join: the address the host's Multiplayer tab shows, or the host's name."
+msgstr "加入时填写：主机的“多人游戏”页显示的地址，或主机的名称。"
+
+#: launcher.cpp:395
+msgid "Always relayed"
+msgstr "始终中转"
+
+#: launcher.cpp:396
+msgid "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the other players: for a network where joining works and playing does not."
+msgstr "你的游戏流量经由主机的电脑（主机、加入）或玩家的节点（自动）中转，而不是直接发给其他玩家：适用于能加入但无法正常游玩的网络。"
+
+#: launcher.cpp:398
+msgid "Open the port on the router"
+msgstr "在路由器上开放端口"
+
+#: launcher.cpp:399
+msgid "Auto: asks the router (UPnP) to let other players reach this PC, as torrent clients do. Players who can be reached carry for the ones who cannot."
+msgstr "自动模式下：像 BT 客户端一样，请求路由器（UPnP）允许其他玩家连接到本机。可被连接的玩家会为无法被连接的玩家中转。"
+
+#: launcher.cpp:401
+msgid "Help others connect"
+msgstr "帮助他人连接"
+
+#: launcher.cpp:402
+msgid "Auto: two players who cannot reach each other may talk through your PC (a few pairs at most)."
+msgstr "自动模式下：两位无法互相连接的玩家可以通过你的电脑通信（最多几对）。"
+
+#: launcher.cpp:403
+msgid "Community nodes"
+msgstr "社区节点"
+
+#: launcher.cpp:404
+msgid "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and carry for them: address:port, a comma between."
+msgstr "自动模式下：任何人都能在可被连接的电脑上运行的节点（scripts\\mp_p2p.py community），负责介绍玩家并为其中转：格式为 地址:端口，多个之间用英文逗号分隔。"
+
+#: launcher.cpp:406
+msgid "Launcher language"
+msgstr "启动器语言"
+
+#: launcher.cpp:407
+msgid "The language of this window. Windows language follows Windows' display language, and English where this window has no translation. The game's own text and speech are the next row's."
+msgstr "此窗口的语言。“Windows 语言”跟随 Windows 的显示语言，此窗口没有对应翻译时使用英语。游戏本身的文字和语音在下一行设置。"
+
+#: launcher.cpp:409
+msgid "Language"
+msgstr "游戏语言"
+
+#: launcher.cpp:410
+msgid "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for this one, Triangle for Greek), and keeps it."
+msgstr "游戏的语言：文字和语音。欧版光盘在首次启动时询问并采用它（按×按钮选此语言，按△按钮选希腊语），之后一直保持。"
+
+#: launcher.cpp:412
+msgid "Esc closes the game"
+msgstr "Esc 关闭游戏"
+
+#: launcher.cpp:413
+msgid "Esc is not a PS3 button; off leaves it free."
+msgstr "Esc 不是 PS3 按钮；设为关时不占用此键。"
+
+#: launcher.cpp:414
+msgid "Save backups"
+msgstr "存档备份"
+
+#: launcher.cpp:415
+msgid "Copies kept of a save before the game writes over it."
+msgstr "游戏覆盖存档前为其保留的副本数。"
+
+#: launcher.cpp:416
+msgid "Steady audio"
+msgstr "稳定音频"
+
+#: launcher.cpp:417
+msgid "Runs the game's sound on a thread of its own, so heavy fights do not break it up."
+msgstr "在独立的线程上运行游戏声音，激烈战斗时不会断断续续。"
+
+#: launcher.cpp:418
+msgid "Speakers"
+msgstr "扬声器"
+
+#: launcher.cpp:419
+msgid "Auto follows the output device; 7.1 for Windows Sonic or Dolby Atmos for Headphones. Surround also needs the game's Sound Mode (Options, Audio) on 5.1 or 7.1."
+msgstr "“自动”跟随输出设备；使用 Windows Sonic 或 Dolby Atmos for Headphones 时选 7.1。环绕声还需要将游戏的声音模式（选项 > 音频）设为 5.1 或 7.1。"
+
+#: launcher.cpp:421
+msgid "Bypass sound effects"
+msgstr "绕过音效处理"
+
+#: launcher.cpp:422
+msgid "The game's sound skips Windows' and the sound card's effects (equalizers, loudness, virtual surround), where the device has a way past them."
+msgstr "在设备支持绕过的情况下，游戏声音会跳过 Windows 和声卡的音效处理（均衡器、响度、虚拟环绕声）。"
+
+#: launcher.cpp:424
+msgid "Precompile music"
+msgstr "预编译音乐"
+
+#: launcher.cpp:425
+msgid "Music on the screen that builds the shaders at a version's first start, made by the program."
+msgstr "每个版本首次启动时，编译着色器画面上播放的音乐，由程序生成。"
+
+#: launcher.cpp:426
+msgid "Optimise for this PC"
+msgstr "针对本机优化"
+
+#: launcher.cpp:427
+msgid "When the game's code is built, a training copy first plays the opening by itself, muted, in a window of its own (leave it open), and the build then uses what it counted: 2-3% more frames on the test laptop. It adds about 15 minutes to each build; if anything goes wrong there, the build goes on without it. Turned on after a build, Play builds the game's code again with it."
+msgstr "编译游戏代码时，先由一个训练副本在单独的窗口中静音自动运行开场部分（请勿关闭该窗口），然后编译会利用它统计的数据：在测试笔记本上帧数提升 2-3%。每次编译约多花 15 分钟；这一步出错时，编译会跳过它继续进行。如果在编译后才开启此项，“开始游戏”会用它重新编译游戏代码。"
+
+#: launcher.cpp:431
+msgid "Show this window at start"
+msgstr "启动时显示此窗口"
+
+#: launcher.cpp:432
+msgid "When off, hold Shift while the game starts to bring it back."
+msgstr "关闭后，在游戏启动时按住 Shift 可让此窗口重新显示。"
+
+#: launcher.cpp:433
+msgid "Check for updates"
+msgstr "检查更新"
+
+#: launcher.cpp:434
+msgid "At most every six hours, asks GitHub whether a newer release is out, and says so here with a link to it."
+msgstr "最多每六小时向 GitHub 查询一次是否有新版本发布，如有，会在此处提示并附上链接。"
+
+#: launcher.cpp:452
+msgid "The PS3's SPU anti-aliasing, whose picture this port never shows, does no work: about 5% faster, and the bloom stays. AMD FSR and frame generation take the game's order without MLAA, which has no bloom or motion blur."
+msgstr "PS3 的 SPU 抗锯齿（本移植版从不显示其画面）不再运行：速度提升约 5%，泛光依然保留。AMD FSR 和帧生成会采用游戏中不含 MLAA 的渲染路径，该路径没有泛光和动态模糊。"
+
+#: launcher.cpp:455
+msgid "The blur of what lies outside the camera's focus."
+msgstr "镜头焦点以外区域的模糊。"
+
+#: launcher.cpp:456
+msgid "No blur of what moves fast. With AMD FSR or frame generation it never reaches the screen anyway, and they keep its draws, for what moves."
+msgstr "快速移动的物体不再模糊。使用 AMD FSR 或帧生成时它本来就不会显示在屏幕上，而它们会保留其绘制，用来判断哪些物体在移动。"
+
+#: launcher.cpp:458
+msgid "Keeps the triangles the game drops as too thin for its 720p grid. For Internal resolution above 720p: at 720p it only adds geometry (3% slower at the first level, 11% at the gate)."
+msgstr "保留游戏因在 720p 网格下过细而丢弃的三角形。适用于“内部分辨率”高于 720p 时：在 720p 下只会增加几何体（第一关慢 3%，大门处慢 11%）。"
+
+#: launcher.cpp:461
+msgid "No dynamic shadows: the biggest saving, about 25% faster in the Megaera fight."
+msgstr "无动态阴影：节省最多，在 Megaera 战中速度提升约 25%。"
+
+#: launcher.cpp:487
+msgid "D-pad up"
+msgstr "方向按钮上"
+
+#: launcher.cpp:487
+msgid "Left stick up"
+msgstr "左摇杆向上"
+
+#: launcher.cpp:488
+msgid "D-pad down"
+msgstr "方向按钮下"
+
+#: launcher.cpp:488
+msgid "Left stick down"
+msgstr "左摇杆向下"
+
+#: launcher.cpp:489
+msgid "D-pad left"
+msgstr "方向按钮左"
+
+#: launcher.cpp:489
+msgid "Left stick left"
+msgstr "左摇杆向左"
+
+#: launcher.cpp:490
+msgid "D-pad right"
+msgstr "方向按钮右"
+
+#: launcher.cpp:490
+msgid "Left stick right"
+msgstr "左摇杆向右"
+
+#: launcher.cpp:491
+msgid "Right stick up"
+msgstr "右摇杆向上"
+
+#: launcher.cpp:492
+msgid "Right stick down"
+msgstr "右摇杆向下"
+
+#: launcher.cpp:493
+msgid "Square"
+msgstr "□按钮"
+
+#: launcher.cpp:493
+msgid "Right stick left"
+msgstr "右摇杆向左"
+
+#: launcher.cpp:494
+msgid "Triangle"
+msgstr "△按钮"
+
+#: launcher.cpp:494
+msgid "Right stick right"
+msgstr "右摇杆向右"
+
+#: launcher.cpp:498
+msgid "Start"
+msgstr "START 按钮"
+
+#: launcher.cpp:498
+msgid "Select"
+msgstr "SELECT 按钮"
+
+#: launcher.cpp:647
+msgid "in the multiplayer menu"
+msgstr "在多人游戏菜单中"
+
+#: launcher.cpp:647
+msgid "looking for a match"
+msgstr "正在寻找对局"
+
+#: launcher.cpp:648
+msgid "in a match"
+msgstr "对局中"
+
+#. snprintf
+#: launcher.cpp:757
+msgid "Could not write %s."
+msgstr "无法写入 %s。"
+
+#: launcher.cpp:900
+msgid "Stopping…"
+msgstr "正在停止…"
+
+#: launcher.cpp:901
+msgid "Starting…"
+msgstr "正在启动…"
+
+#: launcher.cpp:903
+msgid "%ls · about %ld min left"
+msgstr "%ls · 约剩 %ld 分钟"
+
+#: launcher.cpp:904
+msgid "%ls · about a minute left"
+msgstr "%ls · 约剩 1 分钟"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 25 minutes"
+msgstr "在本机只需一次：约 25 分钟"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 10 minutes"
+msgstr "在本机只需一次：约 10 分钟"
+
+#: launcher.cpp:916
+msgid "Not built: %ls"
+msgstr "未编译：%ls"
+
+#: launcher.cpp:925
+msgid "The game's code is partly built"
+msgstr "游戏代码已部分编译"
+
+#: launcher.cpp:926
+msgid "Build goes on where it stopped"
+msgstr "“编译”会从中断处继续"
+
+#: launcher.cpp:928
+msgid "The game's code is not built yet"
+msgstr "游戏代码尚未编译"
+
+#: launcher.cpp:932
+msgid "The game's code is from another version"
+msgstr "游戏代码来自其他版本"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 25 minutes"
+msgstr "需在本机重新编译：约 25 分钟"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 10 minutes"
+msgstr "需在本机重新编译：约 10 分钟"
+
+#: launcher.cpp:936
+msgid "The game's code is built without Optimise for this PC"
+msgstr "游戏代码编译时未开启“针对本机优化”"
+
+#: launcher.cpp:937
+msgid "Again with it: about 25 minutes"
+msgstr "开启后重新编译：约 25 分钟"
+
+#. toast_bad
+#: launcher.cpp:940 launcher.cpp:4992
+msgid "No Kit folder to build the game's code with"
+msgstr "没有用于编译游戏代码的 Kit 文件夹"
+
+#: launcher.cpp:966
+msgid " Stopping…"
+msgstr " 正在停止…"
+
+#: launcher.cpp:975
+msgid "Downloading RPCS3: %.1f of %.1f MB, no data for %d s%ls"
+msgstr "正在下载 RPCS3：%.1f / %.1f MB，已 %d 秒没有数据%ls"
+
+#: launcher.cpp:978
+msgid "Downloading RPCS3: no answer from the server for %d s%ls"
+msgstr "正在下载 RPCS3：服务器已 %d 秒无响应%ls"
+
+#: launcher.cpp:982
+msgid ", %ld reconnected"
+msgstr "，已重连 %ld 次"
+
+#: launcher.cpp:983
+msgid "Downloading RPCS3: %.1f of %.1f MB, %.1f MB/s, about %d s left%ls%ls"
+msgstr "正在下载 RPCS3：%.1f / %.1f MB，%.1f MB/s，约剩 %d 秒%ls%ls"
+
+#: launcher.cpp:986
+msgid "Downloading RPCS3: %.1f of %.1f MB%ls"
+msgstr "正在下载 RPCS3：%.1f / %.1f MB%ls"
+
+#: launcher.cpp:988
+msgid "Downloading RPCS3: connecting…%ls"
+msgstr "正在下载 RPCS3：正在连接…%ls"
+
+#: launcher.cpp:992
+msgid "Checking the download…%ls"
+msgstr "正在校验下载…%ls"
+
+#: launcher.cpp:993
+msgid "Unpacking RPCS3… %d s%ls"
+msgstr "正在解压 RPCS3… %d 秒%ls"
+
+#: launcher.cpp:994
+msgid "Copying the game's files…%ls"
+msgstr "正在复制游戏文件…%ls"
+
+#: launcher.cpp:995
+msgid "Decrypting the game… %d s%ls"
+msgstr "正在解密游戏… %d 秒%ls"
+
+#: launcher.cpp:996
+msgid "Checking the result…%ls"
+msgstr "正在检查结果…%ls"
+
+#: launcher.cpp:1065
+msgid "Not the whole game: see the System tab"
+msgstr "游戏不完整：请查看“系统”页"
+
+#: launcher.cpp:1066
+msgid "Not version 1.12: see the System tab"
+msgstr "不是 1.12 版本：请查看“系统”页"
+
+#: launcher.cpp:1067
+msgid "Set the game's folder first"
+msgstr "请先设置游戏文件夹"
+
+#: launcher.cpp:1072
+msgid "Not set"
+msgstr "未设置"
+
+#: launcher.cpp:1075
+msgid "%ls  ·  update: %ls"
+msgstr "%ls  ·  更新：%ls"
+
+#: launcher.cpp:1096
+msgid "God of War: Ascension · %ls · %ls"
+msgstr "God of War: Ascension · %ls · %ls"
+
+#: launcher.cpp:1100
+msgid "That is %ls %ls. This port runs version 1.12: install the game's update first"
+msgstr "这是 %ls %ls。本移植版运行 1.12 版本：请先安装游戏更新"
+
+#: launcher.cpp:1104
+msgid "%ls %ls, but not the GOWA.elf this port was made from: it may not run"
+msgstr "%ls %ls，但不是本移植版所基于的 GOWA.elf：可能无法运行"
+
+#: launcher.cpp:1113
+msgid "To decrypt the game this needs the RPCS3 its update is installed in"
+msgstr "解密游戏需要安装了其更新的那个 RPCS3"
+
+#: launcher.cpp:1114
+msgid "To decrypt the game this needs RPCS3 and its license file (.rap)"
+msgstr "解密游戏需要 RPCS3 和游戏的许可证文件（.rap）"
+
+#: launcher.cpp:1115
+msgid "To decrypt the game this needs its license file (.rap)"
+msgstr "解密游戏需要游戏的许可证文件（.rap）"
+
+#: launcher.cpp:1116
+msgid "To decrypt the game this needs RPCS3"
+msgstr "解密游戏需要 RPCS3"
+
+#: launcher.cpp:1119
+msgid "That is %ls %ls. This port runs %ls 1.12"
+msgstr "这是 %ls %ls。本移植版运行 %ls 1.12"
+
+#: launcher.cpp:1122
+msgid "No game there. Auto detect looks on every disk, or Browse to its folder"
+msgstr "此处没有游戏。“自动检测”会搜索所有磁盘，也可以点击“浏览”选择游戏文件夹"
+
+#: launcher.cpp:1160
+msgid "Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat."
+msgstr "独立显卡：%s。集成显卡：%s，速度较慢，但更省电、发热更少。"
+
+#: launcher.cpp:1268 launcher.cpp:1271 launcher.cpp:1344
+msgid "graphics.anr_dll names no folder"
+msgstr "graphics.anr_dll 未指定文件夹"
+
+#: launcher.cpp:1278
+msgid "the zip was not unpacked: "
+msgstr "zip 文件未能解压："
+
+#: launcher.cpp:1284
+msgid "it holds no nvngx_dlssg.dll: pick ANR FG's full or addon zip"
+msgstr "其中没有 nvngx_dlssg.dll：请选择 ANR FG 的 full 或 addon zip 文件"
+
+#: launcher.cpp:1289
+msgid "the folder there could not be moved aside: is the game running?"
+msgstr "无法移开原有的文件夹：游戏是否正在运行？"
+
+#: launcher.cpp:1294
+msgid "its folder could not be put in place"
+msgstr "无法将其文件夹放到位"
+
+#. snprintf
+#: launcher.cpp:1314 launcher.cpp:4819
+msgid "graphics.anr_dll is not a path"
+msgstr "graphics.anr_dll 不是有效路径"
+
+#: launcher.cpp:1347
+msgid "no folder could be made for the download"
+msgstr "无法为下载创建文件夹"
+
+#: launcher.cpp:1356
+msgid "its DLL is not signed by Apex Compute, Inc., so it was taken out again"
+msgstr "其 DLL 未经 Apex Compute, Inc. 签名，因此已被移除"
+
+#. toast_bad
+#: launcher.cpp:1387
+msgid "ANR FG: graphics.anr_dll is not a path"
+msgstr "ANR FG：graphics.anr_dll 不是有效路径"
+
+#. toast_bad
+#: launcher.cpp:1394
+msgid "ANR FG: the download could not start"
+msgstr "ANR FG：无法开始下载"
+
+#. toast
+#: launcher.cpp:1395
+msgid "Downloading ANR FG: the Play tab shows how far"
+msgstr "正在下载 ANR FG：可在“开始游戏”页查看进度"
+
+#: launcher.cpp:1404
+msgid "ANR FG %s is set up, signed by Apex Compute"
+msgstr "ANR FG %s 已安装，由 Apex Compute 签名"
+
+#: launcher.cpp:1407
+msgid "ANR FG: %s"
+msgstr "ANR FG：%s"
+
+#. toast_bad
+#: launcher.cpp:1440
+msgid "NVIDIA DLSS: the download could not start"
+msgstr "NVIDIA DLSS：无法开始下载"
+
+#. toast
+#: launcher.cpp:1441
+msgid "Downloading NVIDIA DLSS: the Play tab shows how far"
+msgstr "正在下载 NVIDIA DLSS：可在“开始游戏”页查看进度"
+
+#: launcher.cpp:1449
+msgid "NVIDIA DLSS %s is set up, signed by NVIDIA"
+msgstr "NVIDIA DLSS %s 已安装，由 NVIDIA 签名"
+
+#: launcher.cpp:1452
+msgid "NVIDIA DLSS: %s"
+msgstr "NVIDIA DLSS：%s"
+
+#: launcher.cpp:1530
+msgid "Smooth"
+msgstr "流畅"
+
+#: launcher.cpp:1530
+msgid "The default and the fastest: 720p sharpened by AMD FSR 1, SMAA; no dynamic shadows or motion blur."
+msgstr "默认且最快：720p，经 AMD FSR 1 锐化，SMAA；无动态阴影和动态模糊。"
+
+#: launcher.cpp:1537
+msgid "Balanced"
+msgstr "平衡"
+
+#: launcher.cpp:1537
+msgid "1080p by AMD FSR 1, dynamic shadows at 2x, full-size bloom, ambient occlusion; no motion blur."
+msgstr "1080p，经 AMD FSR 1 缩放，2x 动态阴影，全尺寸泛光，环境光遮蔽；无动态模糊。"
+
+#: launcher.cpp:1544
+msgid "Ultra"
+msgstr "超高"
+
+#: launcher.cpp:1544
+msgid "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The slowest."
+msgstr "所有效果开到最高：窗口分辨率、SMAA、4x 阴影、环境光遮蔽和泛光。速度最慢。"
+
+#: launcher.cpp:2615
+msgid "Play"
+msgstr "开始游戏"
+
+#: launcher.cpp:2615
+msgid "Graphics"
+msgstr "图形"
+
+#: launcher.cpp:2615
+msgid "Display"
+msgstr "显示"
+
+#: launcher.cpp:2615
+msgid "Controls"
+msgstr "控制"
+
+#: launcher.cpp:2615
+msgid "Game patches"
+msgstr "游戏补丁"
+
+#: launcher.cpp:2615
+msgid "Cheats"
+msgstr "作弊"
+
+#: launcher.cpp:2616
+msgid "Mods"
+msgstr "模组"
+
+#: launcher.cpp:2616
+msgid "Trophies"
+msgstr "奖杯"
+
+#: launcher.cpp:2616
+msgid "System"
+msgstr "系统"
+
+#: launcher.cpp:2620
+msgid "How the picture is scaled, smoothed and filtered."
+msgstr "画面的缩放、平滑和过滤方式。"
+
+#: launcher.cpp:2620
+msgid "The window, its pace and the frame rate display."
+msgstr "窗口、帧率节奏和帧率显示。"
+
+#: launcher.cpp:2621
+msgid "Controller and keyboard."
+msgstr "手柄和键盘。"
+
+#: launcher.cpp:2621
+msgid "Switches that change what the game draws, for speed."
+msgstr "改变游戏绘制内容以提升速度的开关。"
+
+#: launcher.cpp:2622
+msgid "For an easier fight. The game reads these when it starts; multiplayer turns them off until the next start."
+msgstr "让战斗更轻松。游戏在启动时读取这些设置；多人游戏会将其关闭，直到下次启动。"
+
+#: launcher.cpp:2623
+msgid "Files that change the game, from the mods folder. The game reads them when it starts."
+msgstr "模组文件夹中用于修改游戏的文件。游戏在启动时读取它们。"
+
+#: launcher.cpp:2624
+msgid "What you have won, from the game's own trophy list."
+msgstr "你已获得的奖杯，来自游戏自身的奖杯列表。"
+
+#: launcher.cpp:2625
+msgid "Play with other players: found by the game itself, or through a host."
+msgstr "与其他玩家一起游玩：由游戏自行寻找，或通过主机连接。"
+
+#: launcher.cpp:2626
+msgid "The game's folder, language, saves and this window."
+msgstr "游戏文件夹、语言、存档和此窗口。"
+
+#: launcher.cpp:2684
+msgid "%ls available ›"
+msgstr "%ls 可用 ›"
+
+#: launcher.cpp:2696
+msgid "Built %ls"
+msgstr "构建于 %ls"
+
+#. side_link
+#: launcher.cpp:2719 launcher.cpp:4644 launcher.cpp:4654 launcher.cpp:4677
+msgid "Report a problem"
+msgstr "报告问题"
+
+#. side_link
+#: launcher.cpp:2720 launcher.cpp:4236
+msgid "Clear shaders"
+msgstr "清除着色器"
+
+#: launcher.cpp:2722
+msgid "Build all shaders now"
+msgstr "立即编译全部着色器"
+
+#: launcher.cpp:2723
+msgid "Building shaders %ld%%"
+msgstr "正在编译着色器 %ld%%"
+
+#: launcher.cpp:2724
+msgid "Reading the game's files"
+msgstr "正在读取游戏文件"
+
+#. side_link
+#: launcher.cpp:2726
+msgid "Open save folder"
+msgstr "打开存档文件夹"
+
+#: launcher.cpp:2810
+msgid "PS3 code recompiled to x86-64, drawn with Direct3D 12."
+msgstr "PS3 代码重编译为 x86-64，使用 Direct3D 12 绘制。"
+
+#. text
+#: launcher.cpp:2816
+msgid "NATIVE PC PORT · STATIC RECOMPILATION"
+msgstr "原生 PC 移植 · 静态重编译"
+
+#. draw_chip
+#: launcher.cpp:2832
+msgid "DIRECT3D 12"
+msgstr "DIRECT3D 12"
+
+#: launcher.cpp:2834
+msgid "INTERNAL: WINDOW"
+msgstr "内部分辨率：窗口"
+
+#: launcher.cpp:2835
+msgid "%ls INTERNAL"
+msgstr "内部分辨率 %ls"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW PRE-RELEASE"
+msgstr "新预发布版"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW RELEASE"
+msgstr "新版本"
+
+#: launcher.cpp:2848
+msgid "%ls is out"
+msgstr "%ls 已发布"
+
+#: launcher.cpp:2849
+msgid "Download"
+msgstr "下载"
+
+#. w_card
+#: launcher.cpp:2864
+msgid "READY CHECK"
+msgstr "就绪检查"
+
+#. check_line
+#: launcher.cpp:2867
+msgid "Looking for the game…"
+msgstr "正在查找游戏…"
+
+#. w_button
+#: launcher.cpp:2885 launcher.cpp:2957 launcher.cpp:2997 launcher.cpp:3012
+msgid "Stop"
+msgstr "停止"
+
+#. w_button
+#: launcher.cpp:2890
+msgid "Log"
+msgstr "日志"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:3141
+msgid "Try again"
+msgstr "重试"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:2964
+msgid "Build"
+msgstr "编译"
+
+#. check_line
+#: launcher.cpp:2896
+msgid "Not decrypted yet (System tab)"
+msgstr "尚未解密（“系统”页）"
+
+#: launcher.cpp:2897
+msgid "Game files missing (System tab)"
+msgstr "游戏文件缺失（“系统”页）"
+
+#: launcher.cpp:2898
+msgid "Wrong game files (System tab)"
+msgstr "游戏文件不正确（“系统”页）"
+
+#. check_line
+#: launcher.cpp:2899
+msgid "Not version 1.12 (System tab)"
+msgstr "不是 1.12 版本（“系统”页）"
+
+#. check_line, toast_bad
+#: launcher.cpp:2900 launcher.cpp:4192
+msgid "Game not found"
+msgstr "未找到游戏"
+
+#. w_button
+#: launcher.cpp:2901
+msgid "Find game"
+msgstr "查找游戏"
+
+#. check_line
+#: launcher.cpp:2903
+msgid "Game found, but not version 1.12"
+msgstr "已找到游戏，但不是 1.12 版本"
+
+#. check_line
+#: launcher.cpp:2904
+msgid "Game found, but another GOWA.elf"
+msgstr "已找到游戏，但 GOWA.elf 不同"
+
+#: launcher.cpp:2907
+msgid "Game found: %ls %ls"
+msgstr "已找到游戏：%ls %ls"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profile"
+msgstr "存档：%d 个档案"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profiles"
+msgstr "存档：%d 个档案"
+
+#: launcher.cpp:2914
+msgid "No saves yet: a new game makes one"
+msgstr "还没有存档：开始新游戏即会创建"
+
+#: launcher.cpp:2920
+msgid "Graphics: %ls"
+msgstr "显卡：%ls"
+
+#: launcher.cpp:2920
+msgid "no Direct3D adapter found"
+msgstr "未找到 Direct3D 适配器"
+
+#: launcher.cpp:2928
+msgid "Game patches: %d of %d on"
+msgstr "游戏补丁：已开启 %d / %d"
+
+#. check_line
+#: launcher.cpp:2935
+msgid "Keyboard and mouse (Controls tab)"
+msgstr "键盘和鼠标（“控制”页）"
+
+#: launcher.cpp:2938
+msgid "Controller: %ls, and %d more"
+msgstr "手柄：%ls，另有 %d 个"
+
+#: launcher.cpp:2939
+msgid "Controller: %ls"
+msgstr "手柄：%ls"
+
+#. check_line
+#: launcher.cpp:2944
+msgid "No controller found (Controls: controller only)"
+msgstr "未找到手柄（“控制”页：仅手柄）"
+
+#. check_line
+#: launcher.cpp:2945
+msgid "No controller: keyboard and mouse"
+msgstr "无手柄：使用键盘和鼠标"
+
+#: launcher.cpp:2953
+msgid "Building pixel shaders: %ld%%"
+msgstr "正在编译像素着色器：%ld%%"
+
+#: launcher.cpp:2955
+msgid "Building pixel shaders: reading the game"
+msgstr "正在编译像素着色器：读取游戏中"
+
+#. check_line
+#: launcher.cpp:2959
+msgid "Pixel shaders compiled as you play"
+msgstr "像素着色器在游玩时编译"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders partly built"
+msgstr "像素着色器已部分编译"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders not built yet"
+msgstr "像素着色器尚未编译"
+
+#: launcher.cpp:2984
+msgid " + ANR FG%hs%hs"
+msgstr " + ANR FG%hs%hs"
+
+#: launcher.cpp:2987
+msgid " + FSR frames"
+msgstr " + FSR 帧生成"
+
+#: launcher.cpp:2987
+msgid " + DLSS frames"
+msgstr " + DLSS 帧生成"
+
+#: launcher.cpp:2987
+msgid " + Reflex"
+msgstr " + Reflex"
+
+#: launcher.cpp:2992
+msgid "Downloading ANR FG %hs: %lld%%"
+msgstr "正在下载 ANR FG %hs：%lld%%"
+
+#: launcher.cpp:2994
+msgid "Downloading ANR FG %hs"
+msgstr "正在下载 ANR FG %hs"
+
+#. check_line
+#: launcher.cpp:2999
+msgid "ANR FG's files are not here yet"
+msgstr "尚缺少 ANR FG 的文件"
+
+#. w_button
+#: launcher.cpp:3000
+msgid "Get ANR"
+msgstr "获取 ANR"
+
+#. check_line
+#: launcher.cpp:3002
+msgid "DLSS needs an RTX card: AMD FSR instead"
+msgstr "DLSS 需要 RTX 显卡：改用 AMD FSR"
+
+#. check_line
+#: launcher.cpp:3003
+msgid "DLSS frame generation needs an RTX 40 or newer: off"
+msgstr "DLSS 帧生成需要 RTX 40 或更新的显卡：已关闭"
+
+#: launcher.cpp:3007
+msgid "Downloading DLSS %hs: %lld%%"
+msgstr "正在下载 DLSS %hs：%lld%%"
+
+#: launcher.cpp:3009
+msgid "Downloading DLSS %hs"
+msgstr "正在下载 DLSS %hs"
+
+#. check_line
+#: launcher.cpp:3014
+msgid "DLSS frame generation's DLL is not here yet"
+msgstr "尚缺少 DLSS 帧生成的 DLL"
+
+#. check_line
+#: launcher.cpp:3015
+msgid "DLSS's DLL is not here yet"
+msgstr "尚缺少 DLSS 的 DLL"
+
+#. w_button
+#: launcher.cpp:3016
+msgid "Get DLSS"
+msgstr "获取 DLSS"
+
+#: launcher.cpp:3018
+msgid "Upscaling: NVIDIA DLSS (beta)%ls"
+msgstr "超分辨率：NVIDIA DLSS（测试版）%ls"
+
+#: launcher.cpp:3021
+msgid "Scaling: %ls%ls"
+msgstr "缩放：%ls%ls"
+
+#: launcher.cpp:3027 launcher.cpp:3028
+msgid "Upscaling: AMD FSR %ls%ls"
+msgstr "超分辨率：AMD FSR %ls%ls"
+
+#: launcher.cpp:3029
+msgid "Upscaling: AMD FSR%ls"
+msgstr "超分辨率：AMD FSR%ls"
+
+#: launcher.cpp:3029
+msgid ", the newest the card has"
+msgstr "，显卡支持的最新版本"
+
+#. text
+#: launcher.cpp:3034
+msgid "GAME FOLDER"
+msgstr "游戏文件夹"
+
+#. text
+#: launcher.cpp:3036
+msgid "SETTINGS FILE"
+msgstr "设置文件"
+
+#. w_card
+#: launcher.cpp:3042
+msgid "YOUR SETUP"
+msgstr "你的设置"
+
+#. text
+#: launcher.cpp:3054
+msgid "Your own mix of game patches and graphics settings."
+msgstr "你自己搭配的游戏补丁和图形设置。"
+
+#. text
+#: launcher.cpp:3075
+msgid "Frame rate on screen"
+msgstr "屏幕显示帧率"
+
+#: launcher.cpp:3082
+msgid "Auto · %d online"
+msgstr "自动 · %d 人在线"
+
+#: launcher.cpp:3082
+msgid "Auto · starting"
+msgstr "自动 · 正在启动"
+
+#: launcher.cpp:3083
+msgid "Auto · did not start"
+msgstr "自动 · 未能启动"
+
+#. text
+#: launcher.cpp:3109
+msgid "Game folder"
+msgstr "游戏文件夹"
+
+#. w_button
+#: launcher.cpp:3110
+msgid "Browse…"
+msgstr "浏览…"
+
+#. w_button
+#: launcher.cpp:3111
+msgid "Auto detect"
+msgstr "自动检测"
+
+#: launcher.cpp:3116
+msgid "Searching: %ls"
+msgstr "正在搜索：%ls"
+
+#: launcher.cpp:3141
+msgid "Choose rpcs3.exe…"
+msgstr "选择 rpcs3.exe…"
+
+#: launcher.cpp:3141
+msgid "Download RPCS3"
+msgstr "下载 RPCS3"
+
+#: launcher.cpp:3141
+msgid "Choose .rap…"
+msgstr "选择 .rap…"
+
+#: launcher.cpp:3250
+msgid "Won %ls"
+msgstr "获得于 %ls"
+
+#: launcher.cpp:3251
+msgid "Won"
+msgstr "已获得"
+
+#. text
+#: launcher.cpp:3260
+msgid "The trophies come from the game's own files: once the game is found (System tab), they show here."
+msgstr "奖杯来自游戏自身的文件：找到游戏后（“系统”页），奖杯会显示在这里。"
+
+#: launcher.cpp:3264
+msgid "Platinum"
+msgstr "白金"
+
+#: launcher.cpp:3264
+msgid "Gold"
+msgstr "金"
+
+#: launcher.cpp:3264
+msgid "Silver"
+msgstr "银"
+
+#: launcher.cpp:3264
+msgid "Bronze"
+msgstr "铜"
+
+#: launcher.cpp:3278
+msgid "%d of %d won  ·  %d%%"
+msgstr "已获得 %d / %d  ·  %d%%"
+
+#. text
+#: launcher.cpp:3306
+msgid "Hidden trophy"
+msgstr "隐藏奖杯"
+
+#. text
+#: launcher.cpp:3307
+msgid "What it is for shows once it is won."
+msgstr "获得后才会显示获得条件。"
+
+#. text
+#: launcher.cpp:3308
+msgid "Won in the multiplayer, which this port does not have. The platinum does without it."
+msgstr "需在多人游戏中获得，本移植版没有这部分内容。白金奖杯不需要它。"
+
+#: launcher.cpp:3314
+msgid "Not in this port"
+msgstr "本移植版无法获得"
+
+#: launcher.cpp:3314
+msgid "Not won yet"
+msgstr "尚未获得"
+
+#. toast_bad
+#: launcher.cpp:3387
+msgid "The mods folder could not be made"
+msgstr "无法创建模组文件夹"
+
+#. text
+#: launcher.cpp:3431
+msgid "Mods folder"
+msgstr "模组文件夹"
+
+#. w_button
+#: launcher.cpp:3433
+msgid "Open folder…"
+msgstr "打开文件夹…"
+
+#. text
+#: launcher.cpp:3438
+msgid "No mods yet. Put a mod's folder or its .zip into the mods folder: it shows here, switched on."
+msgstr "还没有模组。将模组的文件夹或其 .zip 放入模组文件夹：它会显示在这里，并处于开启状态。"
+
+#: launcher.cpp:3454
+msgid "by "
+msgstr "作者："
+
+#: launcher.cpp:3454
+msgid "  ·  by "
+msgstr "  ·  作者："
+
+#: launcher.cpp:3470
+msgid "Not read: %ls"
+msgstr "未读取：%ls"
+
+#: launcher.cpp:3473
+msgid "%d file"
+msgstr "%d 个文件"
+
+#: launcher.cpp:3473
+msgid "%d files"
+msgstr "%d 个文件"
+
+#: launcher.cpp:3477
+msgid "%d of them from %ls, above"
+msgstr "其中 %d 个取自上方的 %ls"
+
+#: launcher.cpp:3488
+msgid "archive: %d file"
+msgstr "archive：%d 个文件"
+
+#: launcher.cpp:3488
+msgid "archive: %d files"
+msgstr "archive：%d 个文件"
+
+#: launcher.cpp:3491
+msgid "text: %d file"
+msgstr "text：%d 个文件"
+
+#: launcher.cpp:3491
+msgid "text: %d files"
+msgstr "text：%d 个文件"
+
+#: launcher.cpp:3492
+msgid ", packed when the game starts"
+msgstr "，游戏启动时打包"
+
+#: launcher.cpp:3496
+msgid "textures: %d picture"
+msgstr "textures：%d 张图片"
+
+#: launcher.cpp:3496
+msgid "textures: %d pictures"
+msgstr "textures：%d 张图片"
+
+#: launcher.cpp:3497
+msgid ", %d more by aliases.txt"
+msgstr "，另有 %d 张来自 aliases.txt"
+
+#: launcher.cpp:3499
+msgid "not read by this build yet:"
+msgstr "此版本尚不读取："
+
+#: launcher.cpp:3520
+msgid "At the last start the mods' archive and text were not packed: %ls"
+msgstr "上次启动时，模组的 archive 和 text 未能打包：%ls"
+
+#. text
+#: launcher.cpp:3526
+msgid "The first one in the list wins where two mods have the same file. Mods are files alone: the game's folder is never changed."
+msgstr "两个模组含有相同文件时，以列表中靠前的为准。模组只是文件：游戏文件夹永远不会被修改。"
+
+#. text
+#: launcher.cpp:3528
+msgid "Use mods is off: the game starts without any of them."
+msgstr "“启用模组”已关闭：游戏启动时不加载任何模组。"
+
+#: launcher.cpp:3549
+msgid "other players can reach it"
+msgstr "其他玩家可以连接到它"
+
+#: launcher.cpp:3550
+msgid "others reach it once introduced"
+msgstr "经介绍后其他玩家可以连接到它"
+
+#: launcher.cpp:3551
+msgid "others reach it only through another node"
+msgstr "其他玩家只能通过其他节点连接到它"
+
+#: launcher.cpp:3552
+msgid "how others reach it is not known yet"
+msgstr "尚不清楚其他玩家如何连接到它"
+
+#: launcher.cpp:3553
+msgid "Your node is on: %ls."
+msgstr "你的节点已开启：%ls。"
+
+#: launcher.cpp:3554
+msgid "Your node is starting…"
+msgstr "你的节点正在启动…"
+
+#: launcher.cpp:3555
+msgid "Your node did not start: %ls"
+msgstr "你的节点未能启动：%ls"
+
+#: launcher.cpp:3556
+msgid "Your node starts once your online ID is set."
+msgstr "设置线上 ID 后，你的节点就会启动。"
+
+#: launcher.cpp:3559
+msgid "Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks for Ascension-R players there can see this PC's address while this window or the game is open on Auto. Windows may ask to let Python through: allow it."
+msgstr "“自动”通过 BitTorrent DHT 和本机所在的网络寻找其他玩家：当此窗口或游戏以“自动”模式打开时，任何在其中寻找 Ascension-R 玩家的人都能看到本机地址。Windows 可能会询问是否允许 Python 通过防火墙：请允许。"
+
+#: launcher.cpp:3569
+msgid "Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to let Python through: allow it."
+msgstr "与本机处于同一网络的玩家通过 %ls 加入。通过互联网加入：在路由器上将 TCP 10070 和 10012 以及 TCP 和 UDP 36101 转发到本机，并把本机的公网地址告诉他们；或者让所有人加入同一个虚拟网络（Tailscale、ZeroTier、Radmin VPN），并告知本机在其中的地址。Windows 可能会询问是否允许 Python 通过防火墙：请允许。"
+
+#: launcher.cpp:3572
+msgid "this PC's address"
+msgstr "本机地址"
+
+#: launcher.cpp:3576
+msgid "The players you play with see your PC's address. Nothing goes to Sony's servers."
+msgstr "与你一起游玩的玩家能看到你电脑的地址。不会向索尼的服务器发送任何内容。"
+
+#: launcher.cpp:3612
+msgid "ONLINE NOW: %d"
+msgstr "当前在线：%d"
+
+#. text
+#: launcher.cpp:3616
+msgid "No other player yet. Players show up here while their launcher or game runs on Auto."
+msgstr "还没有其他玩家。当玩家的启动器或游戏以“自动”模式运行时，会显示在这里。"
+
+#: launcher.cpp:3625
+msgid " · through another node"
+msgstr " · 通过其他节点"
+
+#: launcher.cpp:3626
+msgid " · heard of from another node"
+msgstr " · 从其他节点得知"
+
+#: launcher.cpp:3631
+msgid "and %d more"
+msgstr "还有 %d 人"
+
+#: launcher.cpp:3653
+msgid "Which key or mouse button plays each PS3 button."
+msgstr "每个 PS3 按钮由哪个按键或鼠标按键操作。"
+
+#. w_label
+#: launcher.cpp:3700
+msgid "Keyboard keys"
+msgstr "键盘按键"
+
+#. w_button
+#: launcher.cpp:3701
+msgid "Edit keys…"
+msgstr "编辑按键…"
+
+#. text
+#: launcher.cpp:3709
+msgid "Off: drawn as on the PS3. The game reads these when it starts."
+msgstr "关：按 PS3 原样绘制。游戏在启动时读取这些设置。"
+
+#: launcher.cpp:3752
+msgid "no AA"
+msgstr "无抗锯齿"
+
+#: launcher.cpp:3754
+msgid "frame generation"
+msgstr "帧生成"
+
+#: launcher.cpp:3754
+msgid "ANR FG"
+msgstr "ANR FG"
+
+#: launcher.cpp:3755
+msgid "no cap"
+msgstr "不限帧率"
+
+#. w_button
+#: launcher.cpp:3765
+msgid "PLAY"
+msgstr "开始游戏"
+
+#: launcher.cpp:3766
+msgid "QUIT"
+msgstr "退出"
+
+#: launcher.cpp:3766
+msgid "SAVE"
+msgstr "保存"
+
+#. text_w, w_button
+#: launcher.cpp:3766 launcher.cpp:3866 launcher.cpp:3867
+msgid "DEFAULTS"
+msgstr "默认"
+
+#: launcher.cpp:3791
+msgid "%ls preset"
+msgstr "%ls预设"
+
+#: launcher.cpp:3792
+msgid "Custom setup"
+msgstr "自定义设置"
+
+#. text, glow_text
+#: launcher.cpp:3845 launcher.cpp:3846
+msgid "KEYBOARD KEYS"
+msgstr "键盘按键"
+
+#. text
+#: launcher.cpp:3847
+msgid "Click an action, then press a key or a mouse button. Backspace clears it, Esc gives up. Edit ascension-r.ini to give an action more than one key."
+msgstr "点击一个操作，然后按下键盘按键或鼠标按键。Backspace 清除，Esc 取消。要为一个操作设置多个按键，请编辑 ascension-r.ini。"
+
+#. text
+#: launcher.cpp:3860
+msgid "Press a key or button"
+msgstr "请按下按键或鼠标按键"
+
+#. text
+#: launcher.cpp:3860
+msgid "(none)"
+msgstr "（无）"
+
+#. text_w, w_button
+#: launcher.cpp:3866 launcher.cpp:3869
+msgid "CANCEL"
+msgstr "取消"
+
+#. w_button
+#: launcher.cpp:3868
+msgid "OK"
+msgstr "确定"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "Stopped"
+msgstr "已停止"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "The game could not be prepared"
+msgstr "无法准备好游戏"
+
+#. toast
+#: launcher.cpp:4148
+msgid "Game ready"
+msgstr "游戏已就绪"
+
+#: launcher.cpp:4161
+msgid "another release"
+msgstr "其他发行版本"
+
+#: launcher.cpp:4161
+msgid "not decrypted"
+msgstr "未解密"
+
+#: launcher.cpp:4161
+msgid "another build"
+msgstr "其他构建版本"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game found"
+msgstr "已找到游戏"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game folder set"
+msgstr "已设置游戏文件夹"
+
+#. toast_bad
+#: launcher.cpp:4169 launcher.cpp:4184
+msgid "The game's folder could not be set"
+msgstr "无法设置游戏文件夹"
+
+#: launcher.cpp:4171
+msgid "Found %ls in %ls. This port runs %ls 1.12"
+msgstr "找到 %ls（位于 %ls）。本移植版运行 %ls 1.12"
+
+#. toast_bad
+#: launcher.cpp:4172
+msgid "Another release of the game"
+msgstr "游戏的其他发行版本"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "The disc is an ISO"
+msgstr "光盘是 ISO 文件"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "Found the update, not the disc"
+msgstr "找到了更新，但没有光盘"
+
+#. toast_bad
+#: launcher.cpp:4181
+msgid "Found the disc, not its update"
+msgstr "找到了光盘，但没有其更新"
+
+#. toast_bad
+#: launcher.cpp:4182
+msgid "The disc's files are encrypted"
+msgstr "光盘文件已加密"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not all of it"
+msgstr "找到了游戏，但不完整"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not 1.12's files"
+msgstr "找到了游戏，但不是 1.12 的文件"
+
+#: launcher.cpp:4186
+msgid "No game in %ls"
+msgstr "%ls 中没有游戏"
+
+#. toast_bad
+#: launcher.cpp:4187
+msgid "No game in that folder"
+msgstr "该文件夹中没有游戏"
+
+#. toast
+#: launcher.cpp:4189
+msgid "No better copy found"
+msgstr "未找到更好的副本"
+
+#: launcher.cpp:4191
+msgid "Not found on this PC. Browse to its folder (%ls)"
+msgstr "本机上未找到。请点击“浏览”选择游戏文件夹（%ls）"
+
+#. toast_bad
+#: launcher.cpp:4202 launcher.cpp:4312
+msgid "No shader cache in the settings"
+msgstr "设置中没有着色器缓存"
+
+#. toast
+#: launcher.cpp:4229
+msgid "No compiled shaders to clear"
+msgstr "没有可清除的已编译着色器"
+
+#: launcher.cpp:4233
+msgid "Move %.0f MB of compiled shaders to the Recycle Bin?\n\nThe next start builds the vertex shaders first; the rest come as the game reaches them."
+msgstr "将 %.0f MB 已编译的着色器移到回收站？\n\n下次启动时会先编译顶点着色器；其余的会在游戏用到时再编译。"
+
+#. toast_bad
+#: launcher.cpp:4242
+msgid "Not cleared: is the game running?"
+msgstr "未清除：游戏是否正在运行？"
+
+#. toast
+#: launcher.cpp:4243
+msgid "Shaders cleared"
+msgstr "着色器已清除"
+
+#: launcher.cpp:4294
+msgid "Pixel shaders built: %u new, %u kept from before%s"
+msgstr "像素着色器已编译：新增 %u 个，保留之前的 %u 个%s"
+
+#: launcher.cpp:4294
+msgid ", some failed"
+msgstr "，部分失败"
+
+#: launcher.cpp:4298
+msgid "Shaders not built: %s"
+msgstr "着色器未编译：%s"
+
+#. toast
+#: launcher.cpp:4301
+msgid "Building shaders stopped"
+msgstr "着色器编译已停止"
+
+#. toast_bad
+#: launcher.cpp:4341 launcher.cpp:4364
+msgid "Could not start building shaders"
+msgstr "无法开始编译着色器"
+
+#: launcher.cpp:4442
+msgid "it stopped (%lu)%ls"
+msgstr "已停止（%lu）%ls"
+
+#. toast_bad
+#: launcher.cpp:4461
+msgid "No Kit folder beside the program"
+msgstr "程序旁没有 Kit 文件夹"
+
+#. toast_bad
+#: launcher.cpp:4504 launcher.cpp:4527 launcher.cpp:4547
+msgid "Could not start the build"
+msgstr "无法开始编译"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 25 minutes"
+msgstr "正在编译游戏代码：约 25 分钟"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 10 minutes"
+msgstr "正在编译游戏代码：约 10 分钟"
+
+#. toast
+#: launcher.cpp:4574
+msgid "The game's code is built"
+msgstr "游戏代码已编译完成"
+
+#. toast
+#: launcher.cpp:4575
+msgid "Stopped: Build goes on from there"
+msgstr "已停止：“编译”会从此处继续"
+
+#. toast_bad
+#: launcher.cpp:4576
+msgid "The game's code could not be built"
+msgstr "游戏代码编译失败"
+
+#. toast_bad
+#: launcher.cpp:4597
+msgid "No build log yet"
+msgstr "还没有编译日志"
+
+#: launcher.cpp:4623
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, the log of building the game's code, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "报告是一个 zip 文件，供你附加到 GitHub 上的 issue 中。游戏本身不会发送任何内容。\n\n其中包含你最近几次运行的日志、你在这些运行中的按键记录和游戏打开的文件、你的设置、编译游戏代码的日志、本机的硬件和驱动版本，以及 Windows 对本游戏崩溃的记录。\n\n文件夹路径和你的 Windows 用户名会被隐藏。其中不含任何游戏文件。"
+
+#: launcher.cpp:4630
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "报告是一个 zip 文件，供你附加到 GitHub 上的 issue 中。游戏本身不会发送任何内容。\n\n其中包含你最近几次运行的日志、你在这些运行中的按键记录和游戏打开的文件、你的设置、本机的硬件和驱动版本，以及 Windows 对本游戏崩溃的记录。\n\n文件夹路径和你的 Windows 用户名会被隐藏。其中不含任何游戏文件。"
+
+#: launcher.cpp:4638
+msgid "Make the report"
+msgstr "生成报告"
+
+#: launcher.cpp:4646
+msgid "Make a problem report?"
+msgstr "生成问题报告？"
+
+#: launcher.cpp:4648
+msgid "Include my saves, so the problem can be loaded where it happened"
+msgstr "包含我的存档，以便在问题发生的位置加载"
+
+#. toast_bad
+#: launcher.cpp:4662
+msgid "Could not make the report"
+msgstr "无法生成报告"
+
+#: launcher.cpp:4668
+msgid "%ls\n\nAttach it to a new issue and say what happened and where you were in the game."
+msgstr "%ls\n\n请将它附加到新的 issue 中，并说明发生了什么，以及当时你在游戏中的位置。"
+
+#: launcher.cpp:4671
+msgid "Open GitHub"
+msgstr "打开 GitHub"
+
+#: launcher.cpp:4671
+msgid "Show the file"
+msgstr "显示文件"
+
+#: launcher.cpp:4679
+msgid "The report is ready"
+msgstr "报告已生成"
+
+#: launcher.cpp:4706
+msgid "The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in the Graphics tab."
+msgstr "GPU 在帧生成的交换链（AMD FSR）后面停止了响应，部分电脑在游戏开始时出现过这种情况。关闭帧生成会保留其他所有设置，包括 FSR 缩放。你可以在“图形”页重新开启。"
+
+#: launcher.cpp:4712
+msgid "Turn frame generation off"
+msgstr "关闭帧生成"
+
+#: launcher.cpp:4712
+msgid "Keep it on"
+msgstr "保持开启"
+
+#: launcher.cpp:4719
+msgid "The game froze in the last session, with frame generation on"
+msgstr "上次运行时，游戏在开启帧生成的情况下卡死"
+
+#: launcher.cpp:4726
+msgid "The game froze with frame generation on"
+msgstr "游戏在开启帧生成的情况下卡死"
+
+#. toast
+#: launcher.cpp:4732
+msgid "Frame generation is off"
+msgstr "帧生成已关闭"
+
+#. toast_bad
+#: launcher.cpp:4733
+msgid "Could not save the settings"
+msgstr "无法保存设置"
+
+#: launcher.cpp:4745
+msgid "The last session crashed. Make a report of it?"
+msgstr "上次运行时游戏崩溃了。要生成报告吗？"
+
+#: launcher.cpp:4746
+msgid "The last session lost the graphics device. Make a report of it?"
+msgstr "上次运行时丢失了图形设备。要生成报告吗？"
+
+#: launcher.cpp:4747
+msgid "The game froze in the last session. Make a report of it?"
+msgstr "上次运行时游戏卡死了。要生成报告吗？"
+
+#: launcher.cpp:4748
+msgid "The last session stopped without saying why. Make a report of it?"
+msgstr "上次运行意外停止，原因不明。要生成报告吗？"
+
+#: launcher.cpp:4767
+msgid "The game's folder: %ls, or a folder it is under"
+msgstr "游戏文件夹：%ls，或其所在的上级文件夹"
+
+#. snprintf
+#: launcher.cpp:4843
+msgid "no zip named"
+msgstr "未指定 zip 文件"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "ANR FG's zip (anr-fg-...-addon.zip, or -full.zip)"
+msgstr "ANR FG 的 zip 文件（anr-fg-...-addon.zip 或 -full.zip）"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "Zip files"
+msgstr "Zip 文件"
+
+#. toast
+#: launcher.cpp:4859
+msgid "ANR FG is in place: the game uses it from the next start"
+msgstr "ANR FG 已就位：游戏将从下次启动起使用它"
+
+#: launcher.cpp:4860
+msgid "ANR FG: "
+msgstr "ANR FG："
+
+#: launcher.cpp:4870
+msgid "ANR FG is Apex Neural Rendering's frame generation, by Apex Compute, in beta. It is not part of Ascension-R and has no licence of its own, so it is not in the download.\n\nAscension-R can download the newest release's addon zip (about 4 MB) from Apex Compute's own releases on GitHub (github.com/apex-compute/ANR), check it against the SHA-256 GitHub lists and Apex Compute's signature, and set it up in the anr folder beside the program. Nothing else is sent or installed."
+msgstr "ANR FG 是 Apex Compute 开发的 Apex Neural Rendering 帧生成技术，目前为测试版。它不属于 Ascension-R，也没有自己的许可证，因此不包含在下载内容中。\n\nAscension-R 可以从 Apex Compute 在 GitHub 上的官方发布页（github.com/apex-compute/ANR）下载最新版本的 addon zip（约 4 MB），根据 GitHub 列出的 SHA-256 和 Apex Compute 的签名进行校验，并安装到程序旁的 anr 文件夹中。不会发送或安装任何其他内容。"
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Download and set up"
+msgstr "下载并安装"
+
+#: launcher.cpp:4878
+msgid "Choose a zip I have"
+msgstr "选择已有的 zip 文件"
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Not now"
+msgstr "暂不"
+
+#: launcher.cpp:4885 launcher.cpp:4892
+msgid "Download ANR FG?"
+msgstr "下载 ANR FG？"
+
+#: launcher.cpp:4914
+msgid "%ls%ls%ls %hs (%d MB)"
+msgstr "%ls%ls%ls %hs（%d MB）"
+
+#: launcher.cpp:4915
+msgid " and "
+msgstr " 和 "
+
+#: launcher.cpp:4918
+msgid "%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\nAscension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the program. Nothing else is sent or installed."
+msgstr "%ls其 DLL 属于 NVIDIA，受 NVIDIA RTX SDK 许可证约束，因此不包含在下载内容中。\n\nAscension-R 可以从 NVIDIA 在 GitHub 上的官方 DLSS 仓库（github.com/NVIDIA/DLSS）下载 %ls，根据 Ascension-R 保存的 SHA-256 和 NVIDIA 的签名进行校验，并放入程序旁的 dlss 文件夹中。不会发送或安装任何其他内容。"
+
+#: launcher.cpp:4922
+msgid "NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on GeForce RTX 40 and newer cards."
+msgstr "NVIDIA DLSS 帧生成使用 NVIDIA 自己的模型在每两帧之间生成一帧，适用于 GeForce RTX 40 及更新的显卡。"
+
+#: launcher.cpp:4924
+msgid "NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards."
+msgstr "NVIDIA DLSS 在 GeForce RTX 及其他 NVIDIA RTX 显卡上使用 NVIDIA 自己的模型构建画面。"
+
+#: launcher.cpp:4935
+msgid "NVIDIA DLSS (beta)"
+msgstr "NVIDIA DLSS（测试版）"
+
+#: launcher.cpp:4937 launcher.cpp:4944
+msgid "Download NVIDIA DLSS?"
+msgstr "下载 NVIDIA DLSS？"
+
+#. toast
+#: launcher.cpp:4991
+msgid "The game's code is still being built"
+msgstr "游戏代码仍在编译中"
+
+#. toast_bad
+#: launcher.cpp:5010
+msgid "Multiplayer could not start"
+msgstr "多人游戏无法启动"
+
+#. toast
+#: launcher.cpp:5016 launcher.cpp:5414
+msgid "Saved"
+msgstr "已保存"
+
+#. pick_file
+#: launcher.cpp:5038
+msgid "Choose rpcs3.exe"
+msgstr "选择 rpcs3.exe"
+
+#. toast
+#: launcher.cpp:5043
+msgid "Now choose the game's license file (.rap)"
+msgstr "现在请选择游戏的许可证文件（.rap）"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "The game's license file"
+msgstr "游戏的许可证文件"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "License file (*.rap)"
+msgstr "许可证文件 (*.rap)"
+
+#. toast
+#: launcher.cpp:5064
+msgid "Defaults back: Save or Play keeps them"
+msgstr "已恢复默认：点击“保存”或“开始游戏”即可保留"
+
+#: launcher.cpp:5475
+msgid "Multiplayer: cannot find gowa-host: is the address right?"
+msgstr "多人游戏：找不到 gowa-host：地址是否正确？"
+
+#: launcher.cpp:5494
+msgid "Compiling the game's code"
+msgstr "正在编译游戏代码"
+
+#. snprintf
+#: launcher.cpp:5715 launcher.cpp:5716
+msgid "ANR FG is Windows only"
+msgstr "ANR FG 仅支持 Windows"
+
+#: game_find.cpp:279
+msgid "%.1f GB"
+msgstr "%.1f GB"
+
+#: game_find.cpp:280
+msgid "%.0f MB"
+msgstr "%.0f MB"
+
+#: game_find.cpp:281
+msgid "%llu bytes"
+msgstr "%llu 字节"
+
+#: game_find.cpp:291
+msgid "The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 (File, Install Packages, in that order), then Auto detect"
+msgstr "光盘（%hs）缺少到 1.12 的更新：请在 RPCS3 中按顺序安装 1.04 至 1.12 的更新（File > Install Packages），然后点击“自动检测”"
+
+#: game_find.cpp:295
+msgid "The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding PS3_GAME)"
+msgstr "%hs 的更新位于 %ls，但缺少其光盘：请点击“浏览”选择光盘文件夹（包含 PS3_GAME 的那个）"
+
+#: game_find.cpp:299
+msgid "RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse to that folder"
+msgstr "RPCS3 中的光盘是 ISO 文件（%ls）：请打开它（装载），将全部内容复制到一个文件夹，然后点击“浏览”选择该文件夹"
+
+#: game_find.cpp:303
+msgid "The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed"
+msgstr "%ls 中的光盘文件已加密：这是从未解密的转储。需要已解密的副本"
+
+#: game_find.cpp:311
+msgid "Not every update is installed: %d file missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "更新未全部安装：缺少 %d 个文件，首个为 %hs。请按顺序安装 1.04 至 1.12"
+
+#: game_find.cpp:312
+msgid "Not every update is installed: %d files missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "更新未全部安装：缺少 %d 个文件，首个为 %hs。请按顺序安装 1.04 至 1.12"
+
+#: game_find.cpp:315
+msgid "Not every update is installed: %d file differs, %hs first. Install 1.04 to 1.12, in order"
+msgstr "更新未全部安装：%d 个文件不一致，首个为 %hs。请按顺序安装 1.04 至 1.12"
+
+#: game_find.cpp:316
+msgid "Not every update is installed: %d files differ, %hs first. Install 1.04 to 1.12, in order"
+msgstr "更新未全部安装：%d 个文件不一致，首个为 %hs。请按顺序安装 1.04 至 1.12"
+
+#: game_find.cpp:321
+msgid "Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the disc again"
+msgstr "光盘不完整：%d / %d 个游戏文件缺失（%ls），首个为 %hs。请重新复制整张光盘"
+
+#: game_find.cpp:326
+msgid "Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again"
+msgstr "游戏不完整：%d / %d 个文件缺失（%ls），首个为 %hs。请重新安装游戏"
+
+#: game_find.cpp:329
+msgid "%d of the disc's files is not as the disc has it, %hs first. Copy all of the disc again"
+msgstr "%d 个光盘文件与光盘上的不一致，首个为 %hs。请重新复制整张光盘"
+
+#: game_find.cpp:330
+msgid "%d of the disc's files are not as the disc has them, %hs first. Copy all of the disc again"
+msgstr "%d 个光盘文件与光盘上的不一致，首个为 %hs。请重新复制整张光盘"
+
+#: game_find.cpp:333
+msgid "%d of the game's files is not as version 1.12 has it, %hs first. Install the game again"
+msgstr "%d 个游戏文件与 1.12 版本不一致，首个为 %hs。请重新安装游戏"
+
+#: game_find.cpp:334
+msgid "%d of the game's files are not as version 1.12 has them, %hs first. Install the game again"
+msgstr "%d 个游戏文件与 1.12 版本不一致，首个为 %hs。请重新安装游戏"
+
+#. say
+#: game_find.cpp:936
+msgid "A file is in the way"
+msgstr "目标位置已有文件"
+
+#. say
+#: game_find.cpp:946
+msgid "A real folder with files is in the way"
+msgstr "目标位置已有一个含文件的真实文件夹"
+
+#. say
+#: game_find.cpp:965
+msgid "Not a folder"
+msgstr "不是文件夹"
+
+#. say
+#: game_find.cpp:968
+msgid "A link cannot lead to a network folder"
+msgstr "链接不能指向网络文件夹"
+
+#. say
+#: game_find.cpp:970 game_find.cpp:975 game_find.cpp:997
+msgid "Cannot make the link"
+msgstr "无法创建链接"
+
+#. say
+#: game_find.cpp:1010
+msgid "Cannot replace the link"
+msgstr "无法替换链接"
+
+#: title_patches.json
+msgid "Disable MLAA"
+msgstr "禁用 MLAA"
+
+#: title_patches.json
+msgid "MLAA path off (FSR, DLSS)"
+msgstr "关闭 MLAA 路径（FSR、DLSS）"
+
+#: title_patches.json
+msgid "Disable Depth of Field"
+msgstr "禁用景深"
+
+#: title_patches.json
+msgid "Disable Motion Blur"
+msgstr "禁用动态模糊"
+
+#: title_patches.json
+msgid "Disable Mesh Trimming"
+msgstr "禁用网格裁剪"
+
+#: title_patches.json
+msgid "Disable Shadows"
+msgstr "禁用阴影"
+
+#: title_patches.json
+msgid "Unlock FPS (experimental)"
+msgstr "解锁帧率（实验性）"
+
+#. Kit build stage
+#: gowa.py
+msgid "Reading the game's code"
+msgstr "读取游戏代码"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the game's code"
+msgstr "转译游戏代码"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the SPU programs"
+msgstr "转译 SPU 程序"
+
+#. Kit build stage
+#: gowa.py
+msgid "Linking"
+msgstr "链接"
+
+#. Kit build stage
+#: gowa.py
+msgid "Checking the game"
+msgstr "检查游戏"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: what it learned"
+msgstr "针对本机优化：应用所学数据"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the game plays by itself (leave it open)"
+msgstr "针对本机优化：游戏自动运行中（请勿关闭）"
+
+#. Kit build stage
+#: gowa.py
+msgid "Compiling"
+msgstr "编译"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: compiling the training copy"
+msgstr "针对本机优化：编译训练副本"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the training copy"
+msgstr "针对本机优化：训练副本"
+

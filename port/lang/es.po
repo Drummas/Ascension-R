@@ -1,0 +1,2718 @@
+# Ascension-R launcher, Spanish
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: es\n"
+
+#: launcher.cpp:131
+msgid "What the display reports"
+msgstr "Lo que indica la pantalla"
+
+#: launcher.cpp:131
+msgid "400 nits"
+msgstr "400 nits"
+
+#: launcher.cpp:131
+msgid "600 nits"
+msgstr "600 nits"
+
+#: launcher.cpp:131
+msgid "800 nits"
+msgstr "800 nits"
+
+#: launcher.cpp:131
+msgid "1000 nits"
+msgstr "1000 nits"
+
+#: launcher.cpp:132
+msgid "1500 nits"
+msgstr "1500 nits"
+
+#: launcher.cpp:132
+msgid "2000 nits"
+msgstr "2000 nits"
+
+#: launcher.cpp:133 launcher.cpp:173 launcher.cpp:177 launcher.cpp:222
+msgid "Auto"
+msgstr "Auto"
+
+#: launcher.cpp:135
+msgid "100 nits"
+msgstr "100 nits"
+
+#: launcher.cpp:135
+msgid "150 nits"
+msgstr "150 nits"
+
+#: launcher.cpp:135
+msgid "200 nits"
+msgstr "200 nits"
+
+#: launcher.cpp:135
+msgid "250 nits"
+msgstr "250 nits"
+
+#: launcher.cpp:135
+msgid "300 nits"
+msgstr "300 nits"
+
+#: launcher.cpp:137 launcher.cpp:138
+msgid "Windowed"
+msgstr "En ventana"
+
+#: launcher.cpp:137
+msgid "Borderless fullscreen"
+msgstr "Pantalla completa sin bordes"
+
+#: launcher.cpp:138
+msgid "Borderless"
+msgstr "Sin bordes"
+
+#: launcher.cpp:141
+msgid "Default (720p x Windows scale)"
+msgstr "Por defecto (720p × escala)"
+
+#: launcher.cpp:145 launcher.cpp:146 launcher.cpp:154 launcher.cpp:166
+msgid "Off"
+msgstr "No"
+
+#: launcher.cpp:145
+msgid "In the title bar"
+msgstr "En la barra de título"
+
+#: launcher.cpp:145
+msgid "On screen, with CPU/GPU load"
+msgstr "En pantalla, con carga de CPU/GPU"
+
+#: launcher.cpp:146
+msgid "Title bar"
+msgstr "Barra de título"
+
+#: launcher.cpp:146
+msgid "On screen"
+msgstr "En pantalla"
+
+#: launcher.cpp:148
+msgid "As the game sets it"
+msgstr "Como lo ajusta el juego"
+
+#: launcher.cpp:149
+msgid "Game"
+msgstr "Juego"
+
+#: launcher.cpp:152
+msgid "Off: never, a gap for a moment instead"
+msgstr "No: nunca; en su lugar, un hueco por un momento"
+
+#: launcher.cpp:152
+msgid "Short: a frame waits 33 ms at most"
+msgstr "Corta: un fotograma espera 33 ms como máximo"
+
+#: launcher.cpp:153
+msgid "Full: up to two seconds"
+msgstr "Completa: hasta dos segundos"
+
+#: launcher.cpp:154
+msgid "Short"
+msgstr "Corta"
+
+#: launcher.cpp:154
+msgid "Full"
+msgstr "Completa"
+
+#: launcher.cpp:157 launcher.cpp:240
+msgid "Windows language"
+msgstr "Idioma de Windows"
+
+#: launcher.cpp:161 launcher.cpp:162
+msgid "Clean"
+msgstr "Limpio"
+
+#: launcher.cpp:161
+msgid "Retro: pixel font and 8-bit bevels"
+msgstr "Retro: fuente pixelada y biseles de 8 bits"
+
+#: launcher.cpp:162
+msgid "Retro"
+msgstr "Retro"
+
+#: launcher.cpp:164
+msgid "Off: the game's own 60"
+msgstr "No: los 60 del propio juego"
+
+#: launcher.cpp:164
+msgid "20 fps, even pace"
+msgstr "20 fps, ritmo constante"
+
+#: launcher.cpp:164
+msgid "30 fps, even pace"
+msgstr "30 fps, ritmo constante"
+
+#: launcher.cpp:165
+msgid "120 fps (experimental)"
+msgstr "120 fps (experimental)"
+
+#: launcher.cpp:165
+msgid "144 fps (experimental)"
+msgstr "144 fps (experimental)"
+
+#: launcher.cpp:165
+msgid "Unlocked (experimental)"
+msgstr "Ilimitado (experimental)"
+
+#: launcher.cpp:166
+msgid "20 fps"
+msgstr "20 fps"
+
+#: launcher.cpp:166
+msgid "30 fps"
+msgstr "30 fps"
+
+#: launcher.cpp:166
+msgid "120 fps"
+msgstr "120 fps"
+
+#: launcher.cpp:166
+msgid "144 fps"
+msgstr "144 fps"
+
+#: launcher.cpp:166
+msgid "Unlocked"
+msgstr "Ilimitado"
+
+#: launcher.cpp:168 launcher.cpp:169 launcher.cpp:3021
+msgid "Bilinear"
+msgstr "Bilineal"
+
+#: launcher.cpp:168
+msgid "Sharp bilinear"
+msgstr "Bilineal nítido"
+
+#: launcher.cpp:168
+msgid "AMD FSR 1"
+msgstr "AMD FSR 1"
+
+#: launcher.cpp:168 launcher.cpp:201 launcher.cpp:202
+msgid "AMD FSR"
+msgstr "AMD FSR"
+
+#: launcher.cpp:168
+msgid "NVIDIA DLSS (RTX cards)"
+msgstr "NVIDIA DLSS (tarjetas RTX)"
+
+#: launcher.cpp:169
+msgid "Sharp"
+msgstr "Nítido"
+
+#: launcher.cpp:169
+msgid "FSR 1"
+msgstr "FSR 1"
+
+#: launcher.cpp:172
+msgid "Auto: the DLL's own for each mode"
+msgstr "Auto: el de la DLL para cada modo"
+
+#: launcher.cpp:176
+msgid "Auto: the newest the graphics card takes"
+msgstr "Auto: la más reciente que admita la tarjeta gráfica"
+
+#: launcher.cpp:176
+msgid "FSR 3.1"
+msgstr "FSR 3.1"
+
+#: launcher.cpp:179
+msgid "Discrete"
+msgstr "Dedicada"
+
+#: launcher.cpp:179
+msgid "Integrated"
+msgstr "Integrada"
+
+#: launcher.cpp:181
+msgid "720p, as the game draws it"
+msgstr "720p, como la dibuja el juego"
+
+#: launcher.cpp:181
+msgid "The window's size"
+msgstr "El tamaño de la ventana"
+
+#: launcher.cpp:182 launcher.cpp:254
+msgid "Window"
+msgstr "Ventana"
+
+#: launcher.cpp:185 launcher.cpp:188
+msgid "As the game draws them"
+msgstr "Como en el juego"
+
+#: launcher.cpp:186 launcher.cpp:189
+msgid "Game's"
+msgstr "Del juego"
+
+#: launcher.cpp:188
+msgid "The internal resolution"
+msgstr "La resolución interna"
+
+#: launcher.cpp:189
+msgid "Internal"
+msgstr "Interna"
+
+#: launcher.cpp:192
+msgid "The game's"
+msgstr "El del juego"
+
+#: launcher.cpp:195 launcher.cpp:196 launcher.cpp:205
+msgid "On"
+msgstr "Sí"
+
+#: launcher.cpp:195
+msgid "High quality"
+msgstr "Alta calidad"
+
+#: launcher.cpp:196 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "High"
+msgstr "Alto"
+
+#: launcher.cpp:201 launcher.cpp:4883
+msgid "ANR FG (beta)"
+msgstr "ANR FG (beta)"
+
+#: launcher.cpp:202
+msgid "ANR (beta)"
+msgstr "ANR (beta)"
+
+#: launcher.cpp:205
+msgid "On + Boost"
+msgstr "Sí + Boost"
+
+#: launcher.cpp:207
+msgid "SMAA 1x"
+msgstr "SMAA 1x"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Low"
+msgstr "Bajo"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Medium"
+msgstr "Medio"
+
+#: launcher.cpp:210
+msgid "High (AMD's)"
+msgstr "Alto (el de AMD)"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Max"
+msgstr "Máximo"
+
+#: launcher.cpp:217 launcher.cpp:219 launcher.cpp:234
+msgid "Normal"
+msgstr "Normal"
+
+#: launcher.cpp:217
+msgid "Half"
+msgstr "Mitad"
+
+#: launcher.cpp:217
+msgid "Quarter"
+msgstr "Un cuarto"
+
+#: launcher.cpp:217
+msgid "None"
+msgstr "Ninguno"
+
+#: launcher.cpp:219
+msgid "One hit"
+msgstr "Un golpe"
+
+#: launcher.cpp:221
+msgid "Controller and keyboard"
+msgstr "Mando y teclado"
+
+#: launcher.cpp:221
+msgid "Controller only"
+msgstr "Solo mando"
+
+#: launcher.cpp:221
+msgid "Keyboard only"
+msgstr "Solo teclado"
+
+#: launcher.cpp:222
+msgid "Controller"
+msgstr "Mando"
+
+#: launcher.cpp:222
+msgid "Keyboard"
+msgstr "Teclado"
+
+#: launcher.cpp:224
+msgid "XInput, else SDL3"
+msgstr "XInput; si no, SDL3"
+
+#: launcher.cpp:224
+msgid "XInput only"
+msgstr "Solo XInput"
+
+#: launcher.cpp:224
+msgid "SDL3 for every controller"
+msgstr "SDL3 para todos los mandos"
+
+#: launcher.cpp:225
+msgid "XInput"
+msgstr "XInput"
+
+#: launcher.cpp:227
+msgid "24% (XInput's)"
+msgstr "24% (el de XInput)"
+
+#: launcher.cpp:229 launcher.cpp:491
+msgid "Cross"
+msgstr "Cruz"
+
+#: launcher.cpp:229 launcher.cpp:492
+msgid "Circle"
+msgstr "Círculo"
+
+#: launcher.cpp:231
+msgid "Keep 3"
+msgstr "Conservar 3"
+
+#: launcher.cpp:231
+msgid "Keep 5"
+msgstr "Conservar 5"
+
+#: launcher.cpp:231
+msgid "Keep 10"
+msgstr "Conservar 10"
+
+#: launcher.cpp:236
+msgid "As Windows has the output device"
+msgstr "Según el dispositivo de salida de Windows"
+
+#: launcher.cpp:236 launcher.cpp:237
+msgid "Stereo"
+msgstr "Estéreo"
+
+#: launcher.cpp:240
+msgid "English (US)"
+msgstr "Inglés (EE. UU.)"
+
+#: launcher.cpp:240
+msgid "English (UK)"
+msgstr "Inglés (Reino Unido)"
+
+#: launcher.cpp:240
+msgid "French"
+msgstr "Francés"
+
+#: launcher.cpp:240
+msgid "Spanish"
+msgstr "Español"
+
+#: launcher.cpp:241
+msgid "German"
+msgstr "Alemán"
+
+#: launcher.cpp:241
+msgid "Italian"
+msgstr "Italiano"
+
+#: launcher.cpp:241
+msgid "Dutch"
+msgstr "Neerlandés"
+
+#: launcher.cpp:241
+msgid "Portuguese"
+msgstr "Portugués"
+
+#: launcher.cpp:241
+msgid "Portuguese (Brazil)"
+msgstr "Portugués (Brasil)"
+
+#: launcher.cpp:242
+msgid "Russian"
+msgstr "Ruso"
+
+#: launcher.cpp:242
+msgid "Japanese"
+msgstr "Japonés"
+
+#: launcher.cpp:242
+msgid "Korean"
+msgstr "Coreano"
+
+#: launcher.cpp:242
+msgid "Chinese (traditional)"
+msgstr "Chino (tradicional)"
+
+#: launcher.cpp:243
+msgid "Chinese (simplified)"
+msgstr "Chino (simplificado)"
+
+#: launcher.cpp:243
+msgid "Finnish"
+msgstr "Finés"
+
+#: launcher.cpp:243
+msgid "Swedish"
+msgstr "Sueco"
+
+#: launcher.cpp:243
+msgid "Danish"
+msgstr "Danés"
+
+#: launcher.cpp:243
+msgid "Norwegian"
+msgstr "Noruego"
+
+#: launcher.cpp:244
+msgid "Polish"
+msgstr "Polaco"
+
+#: launcher.cpp:244
+msgid "Turkish"
+msgstr "Turco"
+
+#: launcher.cpp:248
+msgid "Auto: find players"
+msgstr "Auto: buscar jugadores"
+
+#: launcher.cpp:248
+msgid "Host: this PC"
+msgstr "Anfitrión: este PC"
+
+#: launcher.cpp:248
+msgid "Join a host"
+msgstr "Unirse a anfitrión"
+
+#: launcher.cpp:249
+msgid "Host"
+msgstr "Anfitrión"
+
+#: launcher.cpp:249
+msgid "Join"
+msgstr "Unirse"
+
+#: launcher.cpp:255
+msgid "Borderless covers the whole screen."
+msgstr "Sin bordes ocupa toda la pantalla."
+
+#: launcher.cpp:256
+msgid "Window size"
+msgstr "Tamaño de ventana"
+
+#: launcher.cpp:257
+msgid "In windowed mode. The game draws 720p; the picture is scaled to the window."
+msgstr "En modo ventana. El juego dibuja a 720p; la imagen se escala a la ventana."
+
+#. text
+#: launcher.cpp:258 launcher.cpp:3070
+msgid "VSync"
+msgstr "VSync"
+
+#: launcher.cpp:259
+msgid "Wait for the display's refresh: no tearing."
+msgstr "Espera al refresco de la pantalla: sin tearing."
+
+#: launcher.cpp:260
+msgid "Frame rate cap"
+msgstr "Límite de FPS"
+
+#: launcher.cpp:261
+msgid "20 and 30: an even pace instead of the highest rate the PC reaches. 120, 144 and Unlocked (experimental): the game runs past its 60 at its own speed, as far as the PC and, with VSync, the monitor take it; frame generation is off with them, and the game goes back to 60 once it goes online for multiplayer. With frame generation, off follows the monitor."
+msgstr "20 y 30: un ritmo constante en lugar de la tasa más alta que alcance el PC. 120, 144 e Ilimitado (experimental): el juego pasa de sus 60 a su propia velocidad, hasta donde lo permitan el PC y, con VSync, el monitor; la generación de fotogramas se desactiva con ellos, y el juego vuelve a 60 en cuanto se conecta para el multijugador. Con generación de fotogramas, en No el ritmo lo marca el monitor."
+
+#: launcher.cpp:265
+msgid "Frame rate display"
+msgstr "Indicador de FPS"
+
+#: launcher.cpp:266
+msgid "On screen shows FPS, frame time, the CPU's, GPU's, PPU's, SPU's and RSX's load and a graph of the last frames' times, in the top right corner."
+msgstr "En pantalla muestra los FPS, el tiempo de fotograma, la carga de CPU, GPU, PPU, SPU y RSX y una gráfica de los tiempos de los últimos fotogramas, en la esquina superior derecha."
+
+#: launcher.cpp:268
+msgid "Ultrawide"
+msgstr "Ultrapanorámico"
+
+#: launcher.cpp:269
+msgid "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start."
+msgstr "Dibuja el juego a todo el ancho de una pantalla más ancha. El HUD, los menús y los videos se quedan en 16:9. Se aplica en el próximo inicio."
+
+#: launcher.cpp:270
+msgid "Shader build indicator"
+msgstr "Indicador de compilación de shaders"
+
+#: launcher.cpp:271
+msgid "A spinner in the bottom left corner while the game's new shaders are built, as RPCS3 shows."
+msgstr "Un icono giratorio en la esquina inferior izquierda mientras se compilan los shaders nuevos del juego, como el que muestra RPCS3."
+
+#: launcher.cpp:273
+msgid "HDR10 on a display Windows has HDR on for (Settings, System, Display, Use HDR): the game's picture with its highlights raised toward the peak below, the rest at paper white. Not with frame generation. Takes effect at the next start."
+msgstr "HDR10 en una pantalla con el HDR activado en Windows (Configuración, Sistema, Pantalla, Usar HDR): la imagen del juego con sus luces intensas elevadas hacia el brillo máximo de abajo, y el resto al blanco de papel. No funciona con generación de fotogramas. Se aplica en el próximo inicio."
+
+#: launcher.cpp:276
+msgid "HDR peak brightness"
+msgstr "Brillo máximo HDR"
+
+#: launcher.cpp:277
+msgid "How bright the brightest highlights get: fire, the sky, lightning. Auto takes what the display reports."
+msgstr "Cuánto brillan las luces más intensas: el fuego, el cielo, los rayos. Auto usa lo que indica la pantalla."
+
+#: launcher.cpp:278
+msgid "HDR paper white"
+msgstr "Blanco de papel HDR"
+
+#: launcher.cpp:279
+msgid "How bright white is in the rest of the picture and the HUD. Raise it in a bright room."
+msgstr "Cuánto brilla el blanco en el resto de la imagen y en el HUD. Súbelo en una habitación luminosa."
+
+#: launcher.cpp:280
+msgid "Window style"
+msgstr "Estilo de ventana"
+
+#: launcher.cpp:281
+msgid "How this window looks: Clean, smooth at every Windows scale, or Retro, a pixel font and 8-bit bevels. The game is not changed."
+msgstr "El aspecto de esta ventana: Limpio, suave en cualquier escala de Windows, o Retro, con fuente pixelada y biseles de 8 bits. El juego no cambia."
+
+#: launcher.cpp:283
+msgid "Retro effects"
+msgstr "Efectos retro"
+
+#: launcher.cpp:284
+msgid "Scanlines and a neon glow in this window, with the Retro window style. The game is not changed."
+msgstr "Scanlines y un brillo de neón en esta ventana, con el estilo de ventana Retro. El juego no cambia."
+
+#: launcher.cpp:285
+msgid "Graphics card"
+msgstr "Tarjeta gráfica"
+
+#: launcher.cpp:286
+msgid "Internal resolution"
+msgstr "Resolución interna"
+
+#: launcher.cpp:287
+msgid "What the scene is drawn at. Shadow resolution and Effects resolution below say how large shadows, bloom and blur are drawn. AMD FSR and frame generation go no higher than the window."
+msgstr "A qué resolución se dibuja la escena. Resolución de sombras y Resolución de efectos, más abajo, indican a qué tamaño se dibujan las sombras, el bloom y el desenfoque. AMD FSR y la generación de fotogramas no pasan del tamaño de la ventana."
+
+#: launcher.cpp:289
+msgid "Shadow resolution"
+msgstr "Resolución de sombras"
+
+#: launcher.cpp:290
+msgid "Shadow maps drawn larger: finer shadow edges and less stair-stepping, most of all at a high internal resolution; where the game's shadows are soft the change is small. 4x takes about 120 MB more video memory. Takes effect at the next start."
+msgstr "Mapas de sombras dibujados más grandes: bordes de sombra más finos y menos dientes de sierra, sobre todo con una resolución interna alta; donde las sombras del juego son suaves, el cambio es pequeño. 4x ocupa unos 120 MB más de memoria gráfica. Se aplica en el próximo inicio."
+
+#: launcher.cpp:293
+msgid "Effects resolution"
+msgstr "Resolución de efectos"
+
+#: launcher.cpp:294
+msgid "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal resolution above 720p. Takes effect at the next start."
+msgstr "Bloom, desenfoque y profundidad de campo dibujados a la resolución interna, no a los 640x360 o menos del juego: fondos desenfocados y resplandores más suaves a 1440p y 4K, con el brillo del juego intacto. Solo con una resolución interna superior a 720p. Se aplica en el próximo inicio."
+
+#: launcher.cpp:297
+msgid "Field of view"
+msgstr "Campo de visión"
+
+#: launcher.cpp:298
+msgid "How wide the view is in play, against the game's: wider shows more around Kratos, narrower brings the view in. The in-engine cinematics keep the game's own. Takes effect at the next start."
+msgstr "La amplitud de la vista al jugar, respecto a la del juego: más amplia muestra más alrededor de Kratos, más estrecha acerca la vista. Las cinemáticas con el motor del juego mantienen la del propio juego. Se aplica en el próximo inicio."
+
+#: launcher.cpp:300
+msgid "Ambient occlusion"
+msgstr "Oclusión ambiental"
+
+#: launcher.cpp:301
+msgid "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with an ultrawide picture. Takes effect at the next start."
+msgstr "Sombra suave en esquinas, huecos y donde los objetos tocan el suelo, para una imagen con más profundidad, calculada a partir de la profundidad de la escena antes de poner el HUD. Alto la dibuja a la resolución interna; Sí, a la mitad de esta. Desactivada con imagen ultrapanorámica. Se aplica en el próximo inicio."
+
+#: launcher.cpp:304
+msgid "Scaling"
+msgstr "Escalado"
+
+#: launcher.cpp:305
+msgid "How the picture is scaled to the window. AMD FSR builds the detail from past frames, in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model on RTX cards (beta), its mode set by the internal resolution against the window (DLAA when they match); its DLL comes from NVIDIA's own GitHub when you pick it."
+msgstr "Cómo se escala la imagen a la ventana. AMD FSR reconstruye el detalle a partir de fotogramas anteriores, en lugar de SMAA, y FSR 1 se encarga donde no hay escena. NVIDIA DLSS hace lo mismo con el modelo de NVIDIA en tarjetas RTX (beta), con su modo fijado por la resolución interna frente a la ventana (DLAA cuando coinciden); su DLL se descarga del propio GitHub de NVIDIA cuando lo eliges."
+
+#: launcher.cpp:309
+msgid "FSR version"
+msgstr "Versión de FSR"
+
+#: launcher.cpp:310
+msgid "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little sharper and is lighter on the GPU."
+msgstr "Auto usa la más reciente que tengan la tarjeta y su controlador: FSR 4.1 en AMD Radeon RX 6000 y posteriores (RX 6000: controlador 26.10.1 o posterior); si no, FSR 3.1. 4.1 da bordes y líneas finas más limpios; 3.1 mantiene las texturas un poco más nítidas y exige menos a la GPU."
+
+#: launcher.cpp:313
+msgid "DLSS preset"
+msgstr "Preajuste de DLSS"
+
+#: launcher.cpp:314
+msgid "Only with NVIDIA DLSS. Auto lets the DLL choose for each mode (K for DLAA, Quality and Balanced, M for Performance, L for Ultra Performance). L and M are sharper with less ghosting but cost more, best on RTX 40 and newer."
+msgstr "Solo con NVIDIA DLSS. Auto deja que la DLL elija para cada modo (K para DLAA, Calidad y Equilibrado, M para Rendimiento, L para Ultra rendimiento). L y M son más nítidos y con menos ghosting, pero exigen más; mejor en RTX 40 y posteriores."
+
+#: launcher.cpp:316
+msgid "FSR sharpening"
+msgstr "Nitidez de FSR"
+
+#: launcher.cpp:317
+msgid "The sharpening pass of FSR (RCAS). Only with FSR scaling."
+msgstr "La pasada de nitidez de FSR (RCAS). Solo con escalado FSR."
+
+#: launcher.cpp:318
+msgid "CAS sharpening"
+msgstr "Nitidez de CAS"
+
+#: launcher.cpp:319
+msgid "AMD's contrast adaptive sharpening on the picture with bilinear or sharp bilinear scaling, or NVIDIA DLSS: crisper detail, edges not overdone. AMD FSR has its own (FSR sharpening). Not with frame generation."
+msgstr "La nitidez adaptativa por contraste de AMD sobre la imagen con escalado Bilineal o Bilineal nítido, o con NVIDIA DLSS: detalle más definido, sin bordes exagerados. AMD FSR tiene la suya (Nitidez de FSR). No funciona con generación de fotogramas."
+
+#: launcher.cpp:321
+msgid "Debanding"
+msgstr "Reducir bandas"
+
+#: launcher.cpp:322
+msgid "Smooths the steps in dark gradients, fog and skies, with a fine grain; edges and texture stay as they are. Not with frame generation."
+msgstr "Suaviza los escalones en degradados oscuros, niebla y cielos, con un grano fino; los bordes y las texturas no cambian. No funciona con generación de fotogramas."
+
+#: launcher.cpp:324
+msgid "Colour vibrance"
+msgstr "Viveza del color"
+
+#: launcher.cpp:325
+msgid "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. On the whole picture, the game's HUD and menus too."
+msgstr "Colores más vivos: los apagados se realzan más; la piel y los colores ya intensos, mucho menos. En toda la imagen, también el HUD y los menús del juego."
+
+#: launcher.cpp:327
+msgid "Contrast"
+msgstr "Contraste"
+
+#: launcher.cpp:328
+msgid "Lit surfaces and highlights stand out more; deep shadows keep their detail, black and white kept."
+msgstr "Las superficies iluminadas y las luces intensas destacan más; las sombras profundas conservan su detalle, y el negro y el blanco se mantienen."
+
+#: launcher.cpp:329 launcher.cpp:4717
+msgid "Frame generation"
+msgstr "Generación de fotogramas"
+
+#: launcher.cpp:330
+msgid "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases."
+msgstr "El doble de fotogramas en pantalla, con VSync activado: el juego se mantiene a la mitad de la frecuencia del monitor (60 a 120 Hz), se genera un fotograma entre cada dos, con cerca de un fotograma de retraso, y por debajo de 25 se hace a un lado. ANR FG (beta) mantiene entero lo que se mueve donde la de AMD FSR puede romperlo; al elegirlo, el launcher ofrece descargarlo de las versiones publicadas por Apex Compute."
+
+#: launcher.cpp:333
+msgid "NVIDIA Reflex"
+msgstr "NVIDIA Reflex"
+
+#: launcher.cpp:334
+msgid "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame generation. Takes effect at the next start."
+msgstr "Menos latencia de entrada en NVIDIA GeForce GTX 900 y posteriores (beta): cada fotograma empieza lo más tarde que permite la GPU, así que esperan turno menos fotogramas cuando la GPU es la parte más lenta. Boost además mantiene altas las frecuencias de la GPU. No funciona con generación de fotogramas. Se aplica en el próximo inicio."
+
+#: launcher.cpp:337
+msgid "Anti-aliasing"
+msgstr "Antialiasing"
+
+#: launcher.cpp:338
+msgid "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling does this itself in play."
+msgstr "Suaviza los bordes dentados después de que el juego dibuje el fotograma. Apenas cuesta rendimiento. El escalado AMD FSR ya lo hace por sí mismo al jugar."
+
+#: launcher.cpp:340
+msgid "Anisotropic filtering"
+msgstr "Filtrado anisotrópico"
+
+#: launcher.cpp:341
+msgid "Sharper textures seen at an angle. The game itself asks for none."
+msgstr "Texturas más nítidas vistas en ángulo. El propio juego no pide ninguno."
+
+#: launcher.cpp:342
+msgid "Build shaders in the background"
+msgstr "Compilar shaders en segundo plano"
+
+#: launcher.cpp:343
+msgid "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things wait for theirs; an effect turns up a moment late."
+msgstr "Un shader nuevo se compila mientras el juego sigue, en vez de un parón. Paredes, suelos y otros objetos sólidos esperan al suyo; un efecto aparece un momento tarde."
+
+#: launcher.cpp:345
+msgid "Wait for new shaders"
+msgstr "Esperar a los shaders nuevos"
+
+#: launcher.cpp:346
+msgid "How long walls and floors wait for their new shaders. Short: 33 ms in all for a frame, no pause; past it a gap shows there until the shader is built. Full: up to two seconds each, no gap but a pause. Off: no wait, a gap for a moment."
+msgstr "Cuánto esperan paredes y suelos a sus shaders nuevos. Corta: 33 ms en total por fotograma, sin pausa; pasado ese tiempo se ve un hueco ahí hasta que se compila el shader. Completa: hasta dos segundos cada uno, sin huecos pero con una pausa. No: sin espera, un hueco por un momento."
+
+#: launcher.cpp:349
+msgid "Render thread"
+msgstr "Hilo de renderizado"
+
+#: launcher.cpp:350
+msgid "The GPU's work is recorded and shown on a thread of its own, beside the one that reads the game's commands: about 10% more frames where that one holds the game back."
+msgstr "El trabajo de la GPU se graba y se presenta en un hilo propio, junto al que lee los comandos del juego: alrededor de un 10% más de fotogramas donde ese hilo frena al juego."
+
+#: launcher.cpp:352
+msgid "Build pipelines first"
+msgstr "Compilar pipelines primero"
+
+#: launcher.cpp:353
+msgid "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built while you play: a moment, a few seconds after a GPU driver update."
+msgstr "Al iniciarse, el juego espera a que se compilen las pipelines guardadas de sesiones anteriores, para que no se compile ninguna mientras juegas: un momento; unos segundos tras actualizar el controlador de la GPU."
+
+#. check_line
+#: launcher.cpp:355 launcher.cpp:2961
+msgid "Pixel shaders built ahead"
+msgstr "Pixel shaders compilados de antemano"
+
+#: launcher.cpp:356
+msgid "The pixel shaders of the game's files are built before play, after the vertex shaders on the first start (Enter or Start leaves them for the next), or by Build all shaders now below Clear shaders: some minutes, once. Places you reach later wait for fewer of them."
+msgstr "Los pixel shaders de los archivos del juego se compilan antes de jugar, tras los vertex shaders en el primer inicio (Enter o Start los deja para el siguiente), o con Compilar shaders ya, debajo de Borrar shaders: unos minutos, una sola vez. Los lugares a los que llegues después esperarán a menos de ellos."
+
+#: launcher.cpp:359
+msgid "Device"
+msgstr "Dispositivo"
+
+#: launcher.cpp:360
+msgid "Auto reads a controller and the keyboard and mouse at the same time: either one plays."
+msgstr "Auto lee un mando y el teclado y mouse a la vez: se puede jugar con cualquiera."
+
+#: launcher.cpp:361
+msgid "Controller API"
+msgstr "API de mando"
+
+#: launcher.cpp:362
+msgid "Auto reads a controller through XInput when it has it (Xbox, most PC pads), else through SDL3 (DualShock 4, DualSense, Switch and others). With DS4Windows, XInput, or one controller counts twice."
+msgstr "Auto lee un mando por XInput si lo admite (Xbox, la mayoría de mandos de PC) y, si no, por SDL3 (DualShock 4, DualSense, Switch y otros). Con DS4Windows, usa XInput, o un mismo mando contará dos veces."
+
+#: launcher.cpp:364
+msgid "Stick dead zone"
+msgstr "Zona muerta del stick"
+
+#: launcher.cpp:365
+msgid "How far a stick moves before it counts."
+msgstr "Cuánto se mueve un stick antes de que cuente."
+
+#: launcher.cpp:366
+msgid "Confirm button"
+msgstr "Botón de confirmar"
+
+#: launcher.cpp:367
+msgid "The button that confirms in the menus."
+msgstr "El botón que confirma en los menús."
+
+#: launcher.cpp:368
+msgid "Vibration"
+msgstr "Vibración"
+
+#: launcher.cpp:368
+msgid "Controller rumble."
+msgstr "Vibración del mando."
+
+#: launcher.cpp:369
+msgid "Damage to Kratos"
+msgstr "Daño a Kratos"
+
+#: launcher.cpp:370
+msgid "How much of a hit he takes. None: hits take no health from him."
+msgstr "Cuánto daño recibe de un golpe. Ninguno: los golpes no le quitan vida."
+
+#: launcher.cpp:371
+msgid "Kratos's damage"
+msgstr "Daño de Kratos"
+
+#: launcher.cpp:372
+msgid "How much his hits take from an enemy. One hit: all of its health."
+msgstr "Cuánta vida quitan sus golpes a un enemigo. Un golpe: toda su vida."
+
+#: launcher.cpp:373
+msgid "Max red orbs"
+msgstr "Orbes rojos máximos"
+
+#: launcher.cpp:374
+msgid "The red orbs are held at the most the game allows, 1,000,000. A save made with this on keeps them."
+msgstr "Los orbes rojos se mantienen en el máximo que permite el juego, 1 000 000. Una partida guardada con esto activado los conserva."
+
+#: launcher.cpp:375
+msgid "Infinite magic and items"
+msgstr "Magia y objetos infinitos"
+
+#: launcher.cpp:376
+msgid "The magic and item meters stay full."
+msgstr "Los medidores de magia y de objetos se mantienen llenos."
+
+#: launcher.cpp:377
+msgid "Infinite rage"
+msgstr "Ira infinita"
+
+#: launcher.cpp:378
+msgid "The rage meter stays full."
+msgstr "El medidor de ira se mantiene lleno."
+
+#: launcher.cpp:379
+msgid "Infinite double jumps"
+msgstr "Saltos dobles infinitos"
+
+#: launcher.cpp:380
+msgid "Kratos can jump again in the air, as often as he likes."
+msgstr "Kratos puede volver a saltar en el aire, tantas veces como quiera."
+
+#: launcher.cpp:381
+msgid "Use mods"
+msgstr "Usar mods"
+
+#: launcher.cpp:382
+msgid "Off: the game as it is, every mod left out. Below, each one is switched on its own."
+msgstr "Desactivado: el juego tal cual, sin ningún mod. Abajo, cada uno se activa por separado."
+
+#: launcher.cpp:383
+msgid "Write out the game's textures"
+msgstr "Exportar las texturas del juego"
+
+#: launcher.cpp:384
+msgid "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, named by the id a picture in its place takes. The game is slower while it is on."
+msgstr "Para crear mods de texturas: cada textura que carga el juego se guarda una vez en textures-dump, junto al archivo de ajustes, con el nombre del id que toma una imagen que la sustituya. El juego va más lento mientras está activado."
+
+#. text
+#: launcher.cpp:386 launcher.cpp:2616 launcher.cpp:3088
+msgid "Multiplayer"
+msgstr "Multijugador"
+
+#: launcher.cpp:387
+msgid "Auto: the game finds other players itself, as torrents find their peers: no host. Host: this PC runs the matchmaking, for its own game and the players who join it. Join: play through a host's PC. Then Multi-Player on the game's title screen, and Quick Play."
+msgstr "Auto: el juego encuentra a otros jugadores por sí mismo, como los torrents encuentran a sus pares: sin anfitrión. Anfitrión: este PC gestiona el emparejamiento, para su propia partida y los jugadores que se unan a ella. Unirse: juega a través del PC de un anfitrión. Después, Multijugador en la pantalla de título del juego, y Partida rápida."
+
+#: launcher.cpp:390
+msgid "Online ID"
+msgstr "ID online"
+
+#: launcher.cpp:391
+msgid "Your name in the game: 3 to 16 letters, digits, - and _, starting with a letter. Every player needs their own."
+msgstr "Tu nombre en el juego: de 3 a 16 letras, dígitos, - y _, empezando por una letra. Cada jugador necesita el suyo."
+
+#: launcher.cpp:393
+msgid "Host's address"
+msgstr "Dirección del anfitrión"
+
+#: launcher.cpp:394
+msgid "To join: the address the host's Multiplayer tab shows, or the host's name."
+msgstr "Para unirte: la dirección que muestra la pestaña Multijugador del anfitrión, o el nombre del anfitrión."
+
+#: launcher.cpp:395
+msgid "Always relayed"
+msgstr "Siempre retransmitido"
+
+#: launcher.cpp:396
+msgid "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the other players: for a network where joining works and playing does not."
+msgstr "El tráfico de tu partida pasa por el PC del anfitrión (Anfitrión, Unirse) o por los nodos de los jugadores (Auto) en lugar de ir directo a los demás jugadores: para una red en la que unirse funciona pero jugar no."
+
+#: launcher.cpp:398
+msgid "Open the port on the router"
+msgstr "Abrir el puerto en el router"
+
+#: launcher.cpp:399
+msgid "Auto: asks the router (UPnP) to let other players reach this PC, as torrent clients do. Players who can be reached carry for the ones who cannot."
+msgstr "Auto: pide al router (UPnP) que deje a otros jugadores conectar con este PC, como hacen los clientes de torrent. Los jugadores accesibles hacen de puente para los que no lo son."
+
+#: launcher.cpp:401
+msgid "Help others connect"
+msgstr "Ayudar a otros a conectarse"
+
+#: launcher.cpp:402
+msgid "Auto: two players who cannot reach each other may talk through your PC (a few pairs at most)."
+msgstr "Auto: dos jugadores que no pueden conectarse entre sí pueden comunicarse a través de tu PC (unas pocas parejas como máximo)."
+
+#: launcher.cpp:403
+msgid "Community nodes"
+msgstr "Nodos de la comunidad"
+
+#: launcher.cpp:404
+msgid "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and carry for them: address:port, a comma between."
+msgstr "Auto: nodos que cualquiera puede ejecutar en un PC accesible (scripts\\mp_p2p.py community), que presentan a los jugadores y hacen de puente para ellos: dirección:puerto, separados por comas."
+
+#: launcher.cpp:406
+msgid "Launcher language"
+msgstr "Idioma del launcher"
+
+#: launcher.cpp:407
+msgid "The language of this window. Windows language follows Windows' display language, and English where this window has no translation. The game's own text and speech are the next row's."
+msgstr "El idioma de esta ventana. Idioma de Windows sigue el idioma de visualización de Windows, e inglés donde esta ventana no tiene traducción. El texto y las voces del propio juego se eligen en la fila siguiente."
+
+#: launcher.cpp:409
+msgid "Language"
+msgstr "Idioma"
+
+#: launcher.cpp:410
+msgid "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for this one, Triangle for Greek), and keeps it."
+msgstr "El idioma del juego: texto y voces. El disco europeo lo fija en su primer inicio, cuando lo pregunta (Cruz para este, Triángulo para griego), y lo conserva."
+
+#: launcher.cpp:412
+msgid "Esc closes the game"
+msgstr "Esc cierra el juego"
+
+#: launcher.cpp:413
+msgid "Esc is not a PS3 button; off leaves it free."
+msgstr "Esc no es un botón de PS3; desactivado, queda libre."
+
+#: launcher.cpp:414
+msgid "Save backups"
+msgstr "Copias de seguridad"
+
+#: launcher.cpp:415
+msgid "Copies kept of a save before the game writes over it."
+msgstr "Copias que se guardan de una partida antes de que el juego la sobrescriba."
+
+#: launcher.cpp:416
+msgid "Steady audio"
+msgstr "Audio estable"
+
+#: launcher.cpp:417
+msgid "Runs the game's sound on a thread of its own, so heavy fights do not break it up."
+msgstr "Ejecuta el sonido del juego en un hilo propio, para que los combates intensos no lo entrecorten."
+
+#: launcher.cpp:418
+msgid "Speakers"
+msgstr "Altavoces"
+
+#: launcher.cpp:419
+msgid "Auto follows the output device; 7.1 for Windows Sonic or Dolby Atmos for Headphones. Surround also needs the game's Sound Mode (Options, Audio) on 5.1 or 7.1."
+msgstr "Auto sigue al dispositivo de salida; 7.1 para Windows Sonic o Dolby Atmos for Headphones. El sonido envolvente también necesita el Modo de sonido del juego (Opciones, Audio) en 5.1 o 7.1."
+
+#: launcher.cpp:421
+msgid "Bypass sound effects"
+msgstr "Omitir efectos de sonido"
+
+#: launcher.cpp:422
+msgid "The game's sound skips Windows' and the sound card's effects (equalizers, loudness, virtual surround), where the device has a way past them."
+msgstr "El sonido del juego evita los efectos de Windows y de la tarjeta de sonido (ecualizadores, loudness, envolvente virtual), si el dispositivo permite saltárselos."
+
+#: launcher.cpp:424
+msgid "Precompile music"
+msgstr "Música de precompilación"
+
+#: launcher.cpp:425
+msgid "Music on the screen that builds the shaders at a version's first start, made by the program."
+msgstr "Música en la pantalla que compila los shaders en el primer inicio de cada versión, generada por el programa."
+
+#: launcher.cpp:426
+msgid "Optimise for this PC"
+msgstr "Optimizar para este PC"
+
+#: launcher.cpp:427
+msgid "When the game's code is built, a training copy first plays the opening by itself, muted, in a window of its own (leave it open), and the build then uses what it counted: 2-3% more frames on the test laptop. It adds about 15 minutes to each build; if anything goes wrong there, the build goes on without it. Turned on after a build, Play builds the game's code again with it."
+msgstr "Al compilar el código del juego, una copia de entrenamiento juega primero la introducción por sí sola, sin sonido, en su propia ventana (déjala abierta), y luego la compilación usa lo que midió: un 2-3% más de fotogramas en el PC portátil de pruebas. Añade unos 15 minutos a cada compilación; si algo falla ahí, la compilación sigue sin ella. Si la activas después de una compilación, Jugar vuelve a compilar el código del juego con ella."
+
+#: launcher.cpp:431
+msgid "Show this window at start"
+msgstr "Mostrar esta ventana al iniciar"
+
+#: launcher.cpp:432
+msgid "When off, hold Shift while the game starts to bring it back."
+msgstr "Si está desactivado, mantén Shift mientras se inicia el juego para que vuelva a aparecer."
+
+#: launcher.cpp:433
+msgid "Check for updates"
+msgstr "Buscar actualizaciones"
+
+#: launcher.cpp:434
+msgid "At most every six hours, asks GitHub whether a newer release is out, and says so here with a link to it."
+msgstr "Como mucho cada seis horas, pregunta a GitHub si hay una versión más nueva y lo indica aquí con un enlace."
+
+#: launcher.cpp:452
+msgid "The PS3's SPU anti-aliasing, whose picture this port never shows, does no work: about 5% faster, and the bloom stays. AMD FSR and frame generation take the game's order without MLAA, which has no bloom or motion blur."
+msgstr "El antialiasing por SPU de PS3, cuya imagen este port nunca muestra, deja de trabajar: alrededor de un 5% más rápido, y el bloom se mantiene. AMD FSR y la generación de fotogramas usan el orden del juego sin MLAA, que no tiene bloom ni desenfoque de movimiento."
+
+#: launcher.cpp:455
+msgid "The blur of what lies outside the camera's focus."
+msgstr "El desenfoque de lo que queda fuera del foco de la cámara."
+
+#: launcher.cpp:456
+msgid "No blur of what moves fast. With AMD FSR or frame generation it never reaches the screen anyway, and they keep its draws, for what moves."
+msgstr "Sin desenfoque de lo que se mueve rápido. Con AMD FSR o la generación de fotogramas nunca llega a la pantalla de todos modos, y estos conservan sus pasadas de dibujo, por lo que se mueve."
+
+#: launcher.cpp:458
+msgid "Keeps the triangles the game drops as too thin for its 720p grid. For Internal resolution above 720p: at 720p it only adds geometry (3% slower at the first level, 11% at the gate)."
+msgstr "Conserva los triángulos que el juego descarta por ser demasiado finos para su cuadrícula de 720p. Para una Resolución interna superior a 720p: a 720p solo añade geometría (un 3% más lento en el primer nivel, un 11% en la puerta)."
+
+#: launcher.cpp:461
+msgid "No dynamic shadows: the biggest saving, about 25% faster in the Megaera fight."
+msgstr "Sin sombras dinámicas: el mayor ahorro, alrededor de un 25% más rápido en el combate contra Megaera."
+
+#: launcher.cpp:487
+msgid "D-pad up"
+msgstr "Cruceta arriba"
+
+#: launcher.cpp:487
+msgid "Left stick up"
+msgstr "Stick izq. arriba"
+
+#: launcher.cpp:488
+msgid "D-pad down"
+msgstr "Cruceta abajo"
+
+#: launcher.cpp:488
+msgid "Left stick down"
+msgstr "Stick izq. abajo"
+
+#: launcher.cpp:489
+msgid "D-pad left"
+msgstr "Cruceta izquierda"
+
+#: launcher.cpp:489
+msgid "Left stick left"
+msgstr "Stick izq. izquierda"
+
+#: launcher.cpp:490
+msgid "D-pad right"
+msgstr "Cruceta derecha"
+
+#: launcher.cpp:490
+msgid "Left stick right"
+msgstr "Stick izq. derecha"
+
+#: launcher.cpp:491
+msgid "Right stick up"
+msgstr "Stick der. arriba"
+
+#: launcher.cpp:492
+msgid "Right stick down"
+msgstr "Stick der. abajo"
+
+#: launcher.cpp:493
+msgid "Square"
+msgstr "Cuadrado"
+
+#: launcher.cpp:493
+msgid "Right stick left"
+msgstr "Stick der. izquierda"
+
+#: launcher.cpp:494
+msgid "Triangle"
+msgstr "Triángulo"
+
+#: launcher.cpp:494
+msgid "Right stick right"
+msgstr "Stick der. derecha"
+
+#: launcher.cpp:498
+msgid "Start"
+msgstr "Start"
+
+#: launcher.cpp:498
+msgid "Select"
+msgstr "Select"
+
+#: launcher.cpp:647
+msgid "in the multiplayer menu"
+msgstr "en el menú multijugador"
+
+#: launcher.cpp:647
+msgid "looking for a match"
+msgstr "buscando partida"
+
+#: launcher.cpp:648
+msgid "in a match"
+msgstr "en una partida"
+
+#. snprintf
+#: launcher.cpp:757
+msgid "Could not write %s."
+msgstr "No se pudo escribir %s."
+
+#: launcher.cpp:900
+msgid "Stopping…"
+msgstr "Deteniendo…"
+
+#: launcher.cpp:901
+msgid "Starting…"
+msgstr "Iniciando…"
+
+#: launcher.cpp:903
+msgid "%ls · about %ld min left"
+msgstr "%ls · quedan unos %ld min"
+
+#: launcher.cpp:904
+msgid "%ls · about a minute left"
+msgstr "%ls · queda cerca de un minuto"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 25 minutes"
+msgstr "Una vez, en este PC: unos 25 minutos"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 10 minutes"
+msgstr "Una vez, en este PC: unos 10 minutos"
+
+#: launcher.cpp:916
+msgid "Not built: %ls"
+msgstr "Sin compilar: %ls"
+
+#: launcher.cpp:925
+msgid "The game's code is partly built"
+msgstr "El código del juego está compilado en parte"
+
+#: launcher.cpp:926
+msgid "Build goes on where it stopped"
+msgstr "Compilar continúa donde se detuvo"
+
+#: launcher.cpp:928
+msgid "The game's code is not built yet"
+msgstr "El código del juego aún no está compilado"
+
+#: launcher.cpp:932
+msgid "The game's code is from another version"
+msgstr "El código del juego es de otra versión"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 25 minutes"
+msgstr "De nuevo, en este PC: unos 25 minutos"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 10 minutes"
+msgstr "De nuevo, en este PC: unos 10 minutos"
+
+#: launcher.cpp:936
+msgid "The game's code is built without Optimise for this PC"
+msgstr "El código del juego está compilado sin Optimizar para este PC"
+
+#: launcher.cpp:937
+msgid "Again with it: about 25 minutes"
+msgstr "De nuevo con esa opción: unos 25 minutos"
+
+#. toast_bad
+#: launcher.cpp:940 launcher.cpp:4992
+msgid "No Kit folder to build the game's code with"
+msgstr "No hay carpeta Kit para compilar el código del juego"
+
+#: launcher.cpp:966
+msgid " Stopping…"
+msgstr " Deteniendo…"
+
+#: launcher.cpp:975
+msgid "Downloading RPCS3: %.1f of %.1f MB, no data for %d s%ls"
+msgstr "Descargando RPCS3: %.1f de %.1f MB, sin datos desde hace %d s%ls"
+
+#: launcher.cpp:978
+msgid "Downloading RPCS3: no answer from the server for %d s%ls"
+msgstr "Descargando RPCS3: el servidor no responde desde hace %d s%ls"
+
+#: launcher.cpp:982
+msgid ", %ld reconnected"
+msgstr ", reconexiones: %ld"
+
+#: launcher.cpp:983
+msgid "Downloading RPCS3: %.1f of %.1f MB, %.1f MB/s, about %d s left%ls%ls"
+msgstr "Descargando RPCS3: %.1f de %.1f MB, %.1f MB/s, quedan unos %d s%ls%ls"
+
+#: launcher.cpp:986
+msgid "Downloading RPCS3: %.1f of %.1f MB%ls"
+msgstr "Descargando RPCS3: %.1f de %.1f MB%ls"
+
+#: launcher.cpp:988
+msgid "Downloading RPCS3: connecting…%ls"
+msgstr "Descargando RPCS3: conectando…%ls"
+
+#: launcher.cpp:992
+msgid "Checking the download…%ls"
+msgstr "Comprobando la descarga…%ls"
+
+#: launcher.cpp:993
+msgid "Unpacking RPCS3… %d s%ls"
+msgstr "Descomprimiendo RPCS3… %d s%ls"
+
+#: launcher.cpp:994
+msgid "Copying the game's files…%ls"
+msgstr "Copiando los archivos del juego…%ls"
+
+#: launcher.cpp:995
+msgid "Decrypting the game… %d s%ls"
+msgstr "Descifrando el juego… %d s%ls"
+
+#: launcher.cpp:996
+msgid "Checking the result…%ls"
+msgstr "Comprobando el resultado…%ls"
+
+#: launcher.cpp:1065
+msgid "Not the whole game: see the System tab"
+msgstr "El juego no está completo: mira la pestaña Sistema"
+
+#: launcher.cpp:1066
+msgid "Not version 1.12: see the System tab"
+msgstr "No es la versión 1.12: mira la pestaña Sistema"
+
+#: launcher.cpp:1067
+msgid "Set the game's folder first"
+msgstr "Primero elige la carpeta del juego"
+
+#: launcher.cpp:1072
+msgid "Not set"
+msgstr "Sin definir"
+
+#: launcher.cpp:1075
+msgid "%ls  ·  update: %ls"
+msgstr "%ls  ·  actualización: %ls"
+
+#: launcher.cpp:1096
+msgid "God of War: Ascension · %ls · %ls"
+msgstr "God of War: Ascension · %ls · %ls"
+
+#: launcher.cpp:1100
+msgid "That is %ls %ls. This port runs version 1.12: install the game's update first"
+msgstr "Es %ls %ls. Este port usa la versión 1.12: instala primero la actualización del juego"
+
+#: launcher.cpp:1104
+msgid "%ls %ls, but not the GOWA.elf this port was made from: it may not run"
+msgstr "%ls %ls, pero no el GOWA.elf a partir del que se hizo este port: puede que no funcione"
+
+#: launcher.cpp:1113
+msgid "To decrypt the game this needs the RPCS3 its update is installed in"
+msgstr "Para descifrar el juego hace falta el RPCS3 en el que está instalada su actualización"
+
+#: launcher.cpp:1114
+msgid "To decrypt the game this needs RPCS3 and its license file (.rap)"
+msgstr "Para descifrar el juego hacen falta RPCS3 y su archivo de licencia (.rap)"
+
+#: launcher.cpp:1115
+msgid "To decrypt the game this needs its license file (.rap)"
+msgstr "Para descifrar el juego hace falta su archivo de licencia (.rap)"
+
+#: launcher.cpp:1116
+msgid "To decrypt the game this needs RPCS3"
+msgstr "Para descifrar el juego hace falta RPCS3"
+
+#: launcher.cpp:1119
+msgid "That is %ls %ls. This port runs %ls 1.12"
+msgstr "Es %ls %ls. Este port usa %ls 1.12"
+
+#: launcher.cpp:1122
+msgid "No game there. Auto detect looks on every disk, or Browse to its folder"
+msgstr "No hay ningún juego ahí. Autodetectar busca en todos los discos; o usa Examinar para ir a su carpeta"
+
+#: launcher.cpp:1160
+msgid "Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat."
+msgstr "Dedicada: %s. Integrada: %s, más lenta, pero consume menos energía y genera menos calor."
+
+#: launcher.cpp:1268 launcher.cpp:1271 launcher.cpp:1344
+msgid "graphics.anr_dll names no folder"
+msgstr "graphics.anr_dll no indica ninguna carpeta"
+
+#: launcher.cpp:1278
+msgid "the zip was not unpacked: "
+msgstr "no se descomprimió el zip: "
+
+#: launcher.cpp:1284
+msgid "it holds no nvngx_dlssg.dll: pick ANR FG's full or addon zip"
+msgstr "no contiene nvngx_dlssg.dll: elige el zip full o addon de ANR FG"
+
+#: launcher.cpp:1289
+msgid "the folder there could not be moved aside: is the game running?"
+msgstr "no se pudo apartar la carpeta que había: ¿se está ejecutando el juego?"
+
+#: launcher.cpp:1294
+msgid "its folder could not be put in place"
+msgstr "no se pudo colocar su carpeta"
+
+#. snprintf
+#: launcher.cpp:1314 launcher.cpp:4819
+msgid "graphics.anr_dll is not a path"
+msgstr "graphics.anr_dll no es una ruta"
+
+#: launcher.cpp:1347
+msgid "no folder could be made for the download"
+msgstr "no se pudo crear una carpeta para la descarga"
+
+#: launcher.cpp:1356
+msgid "its DLL is not signed by Apex Compute, Inc., so it was taken out again"
+msgstr "su DLL no está firmada por Apex Compute, Inc., así que se volvió a quitar"
+
+#. toast_bad
+#: launcher.cpp:1387
+msgid "ANR FG: graphics.anr_dll is not a path"
+msgstr "ANR FG: graphics.anr_dll no es una ruta"
+
+#. toast_bad
+#: launcher.cpp:1394
+msgid "ANR FG: the download could not start"
+msgstr "ANR FG: no se pudo iniciar la descarga"
+
+#. toast
+#: launcher.cpp:1395
+msgid "Downloading ANR FG: the Play tab shows how far"
+msgstr "Descargando ANR FG: la pestaña Jugar muestra el progreso"
+
+#: launcher.cpp:1404
+msgid "ANR FG %s is set up, signed by Apex Compute"
+msgstr "ANR FG %s está instalado, firmado por Apex Compute"
+
+#: launcher.cpp:1407
+msgid "ANR FG: %s"
+msgstr "ANR FG: %s"
+
+#. toast_bad
+#: launcher.cpp:1440
+msgid "NVIDIA DLSS: the download could not start"
+msgstr "NVIDIA DLSS: no se pudo iniciar la descarga"
+
+#. toast
+#: launcher.cpp:1441
+msgid "Downloading NVIDIA DLSS: the Play tab shows how far"
+msgstr "Descargando NVIDIA DLSS: la pestaña Jugar muestra el progreso"
+
+#: launcher.cpp:1449
+msgid "NVIDIA DLSS %s is set up, signed by NVIDIA"
+msgstr "NVIDIA DLSS %s está instalado, firmado por NVIDIA"
+
+#: launcher.cpp:1452
+msgid "NVIDIA DLSS: %s"
+msgstr "NVIDIA DLSS: %s"
+
+#: launcher.cpp:1530
+msgid "Smooth"
+msgstr "Fluido"
+
+#: launcher.cpp:1530
+msgid "The default and the fastest: 720p sharpened by AMD FSR 1, SMAA; no dynamic shadows or motion blur."
+msgstr "Predeterminado y el más rápido: 720p con AMD FSR 1, SMAA; sin sombras dinámicas ni desenfoque de movimiento."
+
+#: launcher.cpp:1537
+msgid "Balanced"
+msgstr "Equilibrado"
+
+#: launcher.cpp:1537
+msgid "1080p by AMD FSR 1, dynamic shadows at 2x, full-size bloom, ambient occlusion; no motion blur."
+msgstr "1080p con AMD FSR 1, sombras dinámicas a 2x, bloom a tamaño completo, oclusión ambiental; sin desenfoque de movimiento."
+
+#: launcher.cpp:1544
+msgid "Ultra"
+msgstr "Ultra"
+
+#: launcher.cpp:1544
+msgid "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The slowest."
+msgstr "Todos los efectos al máximo: resolución de la ventana, SMAA, sombras a 4x, oclusión ambiental y bloom. El más lento."
+
+#: launcher.cpp:2615
+msgid "Play"
+msgstr "Jugar"
+
+#: launcher.cpp:2615
+msgid "Graphics"
+msgstr "Gráficos"
+
+#: launcher.cpp:2615
+msgid "Display"
+msgstr "Pantalla"
+
+#: launcher.cpp:2615
+msgid "Controls"
+msgstr "Controles"
+
+#: launcher.cpp:2615
+msgid "Game patches"
+msgstr "Parches del juego"
+
+#: launcher.cpp:2615
+msgid "Cheats"
+msgstr "Trucos"
+
+#: launcher.cpp:2616
+msgid "Mods"
+msgstr "Mods"
+
+#: launcher.cpp:2616
+msgid "Trophies"
+msgstr "Trofeos"
+
+#: launcher.cpp:2616
+msgid "System"
+msgstr "Sistema"
+
+#: launcher.cpp:2620
+msgid "How the picture is scaled, smoothed and filtered."
+msgstr "Cómo se escala, suaviza y filtra la imagen."
+
+#: launcher.cpp:2620
+msgid "The window, its pace and the frame rate display."
+msgstr "La ventana, su ritmo y el indicador de FPS."
+
+#: launcher.cpp:2621
+msgid "Controller and keyboard."
+msgstr "Mando y teclado."
+
+#: launcher.cpp:2621
+msgid "Switches that change what the game draws, for speed."
+msgstr "Opciones que cambian lo que dibuja el juego, para ganar velocidad."
+
+#: launcher.cpp:2622
+msgid "For an easier fight. The game reads these when it starts; multiplayer turns them off until the next start."
+msgstr "Para combates más fáciles. El juego los lee al iniciarse; el multijugador los desactiva hasta el siguiente inicio."
+
+#: launcher.cpp:2623
+msgid "Files that change the game, from the mods folder. The game reads them when it starts."
+msgstr "Archivos que modifican el juego, desde la carpeta de mods. El juego los lee al iniciarse."
+
+#: launcher.cpp:2624
+msgid "What you have won, from the game's own trophy list."
+msgstr "Lo que has conseguido, según la lista de trofeos del propio juego."
+
+#: launcher.cpp:2625
+msgid "Play with other players: found by the game itself, or through a host."
+msgstr "Juega con otros jugadores: encontrados por el propio juego o a través de un anfitrión."
+
+#: launcher.cpp:2626
+msgid "The game's folder, language, saves and this window."
+msgstr "La carpeta del juego, el idioma, las partidas guardadas y esta ventana."
+
+#: launcher.cpp:2684
+msgid "%ls available ›"
+msgstr "%ls disponible ›"
+
+#: launcher.cpp:2696
+msgid "Built %ls"
+msgstr "Compilado el %ls"
+
+#. side_link
+#: launcher.cpp:2719 launcher.cpp:4644 launcher.cpp:4654 launcher.cpp:4677
+msgid "Report a problem"
+msgstr "Reportar un problema"
+
+#. side_link
+#: launcher.cpp:2720 launcher.cpp:4236
+msgid "Clear shaders"
+msgstr "Borrar shaders"
+
+#: launcher.cpp:2722
+msgid "Build all shaders now"
+msgstr "Compilar shaders ya"
+
+#: launcher.cpp:2723
+msgid "Building shaders %ld%%"
+msgstr "Compilando shaders %ld%%"
+
+#: launcher.cpp:2724
+msgid "Reading the game's files"
+msgstr "Leyendo archivos del juego"
+
+#. side_link
+#: launcher.cpp:2726
+msgid "Open save folder"
+msgstr "Carpeta de partidas"
+
+#: launcher.cpp:2810
+msgid "PS3 code recompiled to x86-64, drawn with Direct3D 12."
+msgstr "Código de PS3 recompilado a x86-64, dibujado con Direct3D 12."
+
+#. text
+#: launcher.cpp:2816
+msgid "NATIVE PC PORT · STATIC RECOMPILATION"
+msgstr "PORT NATIVO PARA PC · RECOMPILACIÓN ESTÁTICA"
+
+#. draw_chip
+#: launcher.cpp:2832
+msgid "DIRECT3D 12"
+msgstr "DIRECT3D 12"
+
+#: launcher.cpp:2834
+msgid "INTERNAL: WINDOW"
+msgstr "INTERNA: VENTANA"
+
+#: launcher.cpp:2835
+msgid "%ls INTERNAL"
+msgstr "%ls INTERNA"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW PRE-RELEASE"
+msgstr "NUEVA VERSIÓN PREVIA"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW RELEASE"
+msgstr "NUEVA VERSIÓN"
+
+#: launcher.cpp:2848
+msgid "%ls is out"
+msgstr "Ya salió %ls"
+
+#: launcher.cpp:2849
+msgid "Download"
+msgstr "Descargar"
+
+#. w_card
+#: launcher.cpp:2864
+msgid "READY CHECK"
+msgstr "COMPROBACIÓN PREVIA"
+
+#. check_line
+#: launcher.cpp:2867
+msgid "Looking for the game…"
+msgstr "Buscando el juego…"
+
+#. w_button
+#: launcher.cpp:2885 launcher.cpp:2957 launcher.cpp:2997 launcher.cpp:3012
+msgid "Stop"
+msgstr "Detener"
+
+#. w_button
+#: launcher.cpp:2890
+msgid "Log"
+msgstr "Registro"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:3141
+msgid "Try again"
+msgstr "Reintentar"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:2964
+msgid "Build"
+msgstr "Compilar"
+
+#. check_line
+#: launcher.cpp:2896
+msgid "Not decrypted yet (System tab)"
+msgstr "Aún sin descifrar (pestaña Sistema)"
+
+#: launcher.cpp:2897
+msgid "Game files missing (System tab)"
+msgstr "Faltan archivos del juego (pestaña Sistema)"
+
+#: launcher.cpp:2898
+msgid "Wrong game files (System tab)"
+msgstr "Archivos del juego incorrectos (pestaña Sistema)"
+
+#. check_line
+#: launcher.cpp:2899
+msgid "Not version 1.12 (System tab)"
+msgstr "No es la versión 1.12 (pestaña Sistema)"
+
+#. check_line, toast_bad
+#: launcher.cpp:2900 launcher.cpp:4192
+msgid "Game not found"
+msgstr "Juego no encontrado"
+
+#. w_button
+#: launcher.cpp:2901
+msgid "Find game"
+msgstr "Buscar juego"
+
+#. check_line
+#: launcher.cpp:2903
+msgid "Game found, but not version 1.12"
+msgstr "Juego encontrado, pero no es la versión 1.12"
+
+#. check_line
+#: launcher.cpp:2904
+msgid "Game found, but another GOWA.elf"
+msgstr "Juego encontrado, pero con otro GOWA.elf"
+
+#: launcher.cpp:2907
+msgid "Game found: %ls %ls"
+msgstr "Juego encontrado: %ls %ls"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profile"
+msgstr "Partidas: %d perfil"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profiles"
+msgstr "Partidas: %d perfiles"
+
+#: launcher.cpp:2914
+msgid "No saves yet: a new game makes one"
+msgstr "Aún no hay partidas guardadas: una partida nueva crea una"
+
+#: launcher.cpp:2920
+msgid "Graphics: %ls"
+msgstr "Tarjeta gráfica: %ls"
+
+#: launcher.cpp:2920
+msgid "no Direct3D adapter found"
+msgstr "no se encontró ningún adaptador Direct3D"
+
+#: launcher.cpp:2928
+msgid "Game patches: %d of %d on"
+msgstr "Parches del juego: %d de %d activos"
+
+#. check_line
+#: launcher.cpp:2935
+msgid "Keyboard and mouse (Controls tab)"
+msgstr "Teclado y mouse (pestaña Controles)"
+
+#: launcher.cpp:2938
+msgid "Controller: %ls, and %d more"
+msgstr "Mando: %ls y %d más"
+
+#: launcher.cpp:2939
+msgid "Controller: %ls"
+msgstr "Mando: %ls"
+
+#. check_line
+#: launcher.cpp:2944
+msgid "No controller found (Controls: controller only)"
+msgstr "No se encontró ningún mando (Controles: Solo mando)"
+
+#. check_line
+#: launcher.cpp:2945
+msgid "No controller: keyboard and mouse"
+msgstr "Sin mando: teclado y mouse"
+
+#: launcher.cpp:2953
+msgid "Building pixel shaders: %ld%%"
+msgstr "Compilando pixel shaders: %ld%%"
+
+#: launcher.cpp:2955
+msgid "Building pixel shaders: reading the game"
+msgstr "Compilando pixel shaders: leyendo el juego"
+
+#. check_line
+#: launcher.cpp:2959
+msgid "Pixel shaders compiled as you play"
+msgstr "Pixel shaders compilados mientras juegas"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders partly built"
+msgstr "Pixel shaders compilados en parte"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders not built yet"
+msgstr "Pixel shaders aún sin compilar"
+
+#: launcher.cpp:2984
+msgid " + ANR FG%hs%hs"
+msgstr " + ANR FG%hs%hs"
+
+#: launcher.cpp:2987
+msgid " + FSR frames"
+msgstr " + fotogramas FSR"
+
+#: launcher.cpp:2987
+msgid " + DLSS frames"
+msgstr " + fotogramas DLSS"
+
+#: launcher.cpp:2987
+msgid " + Reflex"
+msgstr " + Reflex"
+
+#: launcher.cpp:2992
+msgid "Downloading ANR FG %hs: %lld%%"
+msgstr "Descargando ANR FG %hs: %lld%%"
+
+#: launcher.cpp:2994
+msgid "Downloading ANR FG %hs"
+msgstr "Descargando ANR FG %hs"
+
+#. check_line
+#: launcher.cpp:2999
+msgid "ANR FG's files are not here yet"
+msgstr "Aún faltan los archivos de ANR FG"
+
+#. w_button
+#: launcher.cpp:3000
+msgid "Get ANR"
+msgstr "Obtener ANR"
+
+#. check_line
+#: launcher.cpp:3002
+msgid "DLSS needs an RTX card: AMD FSR instead"
+msgstr "DLSS necesita una tarjeta RTX: se usa AMD FSR"
+
+#. check_line
+#: launcher.cpp:3003
+msgid "DLSS frame generation needs an RTX 40 or newer: off"
+msgstr "La generación de fotogramas DLSS necesita una RTX 40 o posterior: desactivada"
+
+#: launcher.cpp:3007
+msgid "Downloading DLSS %hs: %lld%%"
+msgstr "Descargando DLSS %hs: %lld%%"
+
+#: launcher.cpp:3009
+msgid "Downloading DLSS %hs"
+msgstr "Descargando DLSS %hs"
+
+#. check_line
+#: launcher.cpp:3014
+msgid "DLSS frame generation's DLL is not here yet"
+msgstr "Aún falta la DLL de la generación de fotogramas DLSS"
+
+#. check_line
+#: launcher.cpp:3015
+msgid "DLSS's DLL is not here yet"
+msgstr "Aún falta la DLL de DLSS"
+
+#. w_button
+#: launcher.cpp:3016
+msgid "Get DLSS"
+msgstr "Obtener DLSS"
+
+#: launcher.cpp:3018
+msgid "Upscaling: NVIDIA DLSS (beta)%ls"
+msgstr "Reescalado: NVIDIA DLSS (beta)%ls"
+
+#: launcher.cpp:3021
+msgid "Scaling: %ls%ls"
+msgstr "Escalado: %ls%ls"
+
+#: launcher.cpp:3027 launcher.cpp:3028
+msgid "Upscaling: AMD FSR %ls%ls"
+msgstr "Reescalado: AMD FSR %ls%ls"
+
+#: launcher.cpp:3029
+msgid "Upscaling: AMD FSR%ls"
+msgstr "Reescalado: AMD FSR%ls"
+
+#: launcher.cpp:3029
+msgid ", the newest the card has"
+msgstr ", la más reciente de la tarjeta"
+
+#. text
+#: launcher.cpp:3034
+msgid "GAME FOLDER"
+msgstr "CARPETA DEL JUEGO"
+
+#. text
+#: launcher.cpp:3036
+msgid "SETTINGS FILE"
+msgstr "ARCHIVO DE AJUSTES"
+
+#. w_card
+#: launcher.cpp:3042
+msgid "YOUR SETUP"
+msgstr "TUS AJUSTES"
+
+#. text
+#: launcher.cpp:3054
+msgid "Your own mix of game patches and graphics settings."
+msgstr "Tu propia combinación de parches del juego y ajustes gráficos."
+
+#. text
+#: launcher.cpp:3075
+msgid "Frame rate on screen"
+msgstr "FPS en pantalla"
+
+#: launcher.cpp:3082
+msgid "Auto · %d online"
+msgstr "Auto · %d en línea"
+
+#: launcher.cpp:3082
+msgid "Auto · starting"
+msgstr "Auto · iniciando"
+
+#: launcher.cpp:3083
+msgid "Auto · did not start"
+msgstr "Auto · no se inició"
+
+#. text
+#: launcher.cpp:3109
+msgid "Game folder"
+msgstr "Carpeta del juego"
+
+#. w_button
+#: launcher.cpp:3110
+msgid "Browse…"
+msgstr "Examinar…"
+
+#. w_button
+#: launcher.cpp:3111
+msgid "Auto detect"
+msgstr "Autodetectar"
+
+#: launcher.cpp:3116
+msgid "Searching: %ls"
+msgstr "Buscando: %ls"
+
+#: launcher.cpp:3141
+msgid "Choose rpcs3.exe…"
+msgstr "Elegir rpcs3.exe…"
+
+#: launcher.cpp:3141
+msgid "Download RPCS3"
+msgstr "Descargar RPCS3"
+
+#: launcher.cpp:3141
+msgid "Choose .rap…"
+msgstr "Elegir .rap…"
+
+#: launcher.cpp:3250
+msgid "Won %ls"
+msgstr "Obtenido el %ls"
+
+#: launcher.cpp:3251
+msgid "Won"
+msgstr "Obtenido"
+
+#. text
+#: launcher.cpp:3260
+msgid "The trophies come from the game's own files: once the game is found (System tab), they show here."
+msgstr "Los trofeos salen de los propios archivos del juego: cuando se encuentre el juego (pestaña Sistema), aparecerán aquí."
+
+#: launcher.cpp:3264
+msgid "Platinum"
+msgstr "Platino"
+
+#: launcher.cpp:3264
+msgid "Gold"
+msgstr "Oro"
+
+#: launcher.cpp:3264
+msgid "Silver"
+msgstr "Plata"
+
+#: launcher.cpp:3264
+msgid "Bronze"
+msgstr "Bronce"
+
+#: launcher.cpp:3278
+msgid "%d of %d won  ·  %d%%"
+msgstr "%d de %d obtenidos  ·  %d%%"
+
+#. text
+#: launcher.cpp:3306
+msgid "Hidden trophy"
+msgstr "Trofeo oculto"
+
+#. text
+#: launcher.cpp:3307
+msgid "What it is for shows once it is won."
+msgstr "Cómo se consigue se muestra cuando lo obtienes."
+
+#. text
+#: launcher.cpp:3308
+msgid "Won in the multiplayer, which this port does not have. The platinum does without it."
+msgstr "Se obtiene en el multijugador, que este port no tiene. El platino no lo necesita."
+
+#: launcher.cpp:3314
+msgid "Not in this port"
+msgstr "No está en este port"
+
+#: launcher.cpp:3314
+msgid "Not won yet"
+msgstr "Aún no obtenido"
+
+#. toast_bad
+#: launcher.cpp:3387
+msgid "The mods folder could not be made"
+msgstr "No se pudo crear la carpeta de mods"
+
+#. text
+#: launcher.cpp:3431
+msgid "Mods folder"
+msgstr "Carpeta de mods"
+
+#. w_button
+#: launcher.cpp:3433
+msgid "Open folder…"
+msgstr "Abrir carpeta…"
+
+#. text
+#: launcher.cpp:3438
+msgid "No mods yet. Put a mod's folder or its .zip into the mods folder: it shows here, switched on."
+msgstr "Aún no hay mods. Pon la carpeta de un mod o su .zip en la carpeta de mods: aparecerá aquí, activado."
+
+#: launcher.cpp:3454
+msgid "by "
+msgstr "por "
+
+#: launcher.cpp:3454
+msgid "  ·  by "
+msgstr "  ·  por "
+
+#: launcher.cpp:3470
+msgid "Not read: %ls"
+msgstr "No leído: %ls"
+
+#: launcher.cpp:3473
+msgid "%d file"
+msgstr "%d archivo"
+
+#: launcher.cpp:3473
+msgid "%d files"
+msgstr "%d archivos"
+
+#: launcher.cpp:3477
+msgid "%d of them from %ls, above"
+msgstr "%d de ellos se toman de %ls, más arriba"
+
+#: launcher.cpp:3488
+msgid "archive: %d file"
+msgstr "archive: %d archivo"
+
+#: launcher.cpp:3488
+msgid "archive: %d files"
+msgstr "archive: %d archivos"
+
+#: launcher.cpp:3491
+msgid "text: %d file"
+msgstr "text: %d archivo"
+
+#: launcher.cpp:3491
+msgid "text: %d files"
+msgstr "text: %d archivos"
+
+#: launcher.cpp:3492
+msgid ", packed when the game starts"
+msgstr ", se empaquetan al iniciar el juego"
+
+#: launcher.cpp:3496
+msgid "textures: %d picture"
+msgstr "textures: %d imagen"
+
+#: launcher.cpp:3496
+msgid "textures: %d pictures"
+msgstr "textures: %d imágenes"
+
+#: launcher.cpp:3497
+msgid ", %d more by aliases.txt"
+msgstr ", %d más por aliases.txt"
+
+#: launcher.cpp:3499
+msgid "not read by this build yet:"
+msgstr "esta versión aún no lee:"
+
+#: launcher.cpp:3520
+msgid "At the last start the mods' archive and text were not packed: %ls"
+msgstr "En el último inicio no se empaquetaron archive y text de los mods: %ls"
+
+#. text
+#: launcher.cpp:3526
+msgid "The first one in the list wins where two mods have the same file. Mods are files alone: the game's folder is never changed."
+msgstr "Si dos mods tienen el mismo archivo, gana el primero de la lista. Los mods son solo archivos: la carpeta del juego nunca se modifica."
+
+#. text
+#: launcher.cpp:3528
+msgid "Use mods is off: the game starts without any of them."
+msgstr "Usar mods está desactivado: el juego se inicia sin ninguno."
+
+#: launcher.cpp:3549
+msgid "other players can reach it"
+msgstr "otros jugadores pueden conectarse a él"
+
+#: launcher.cpp:3550
+msgid "others reach it once introduced"
+msgstr "otros se conectan a él tras ser presentados"
+
+#: launcher.cpp:3551
+msgid "others reach it only through another node"
+msgstr "otros solo se conectan a él a través de otro nodo"
+
+#: launcher.cpp:3552
+msgid "how others reach it is not known yet"
+msgstr "aún no se sabe cómo se conectan a él los demás"
+
+#: launcher.cpp:3553
+msgid "Your node is on: %ls."
+msgstr "Tu nodo está activo: %ls."
+
+#: launcher.cpp:3554
+msgid "Your node is starting…"
+msgstr "Tu nodo se está iniciando…"
+
+#: launcher.cpp:3555
+msgid "Your node did not start: %ls"
+msgstr "Tu nodo no se inició: %ls"
+
+#: launcher.cpp:3556
+msgid "Your node starts once your online ID is set."
+msgstr "Tu nodo se inicia cuando configures tu ID online."
+
+#: launcher.cpp:3559
+msgid "Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks for Ascension-R players there can see this PC's address while this window or the game is open on Auto. Windows may ask to let Python through: allow it."
+msgstr "Auto encuentra a los demás jugadores mediante la DHT de BitTorrent y en la red de este PC: cualquiera que busque jugadores de Ascension-R ahí puede ver la dirección de este PC mientras esta ventana o el juego estén abiertos en Auto. Puede que Windows pida dejar pasar a Python: permítelo."
+
+#: launcher.cpp:3569
+msgid "Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to let Python through: allow it."
+msgstr "Los jugadores de la red de este PC se unen en %ls. Desde internet: redirige TCP 10070 y 10012 y TCP y UDP 36101 a este PC en su router y dales su dirección de internet, o haz que todos se unan a una misma red virtual (Tailscale, ZeroTier, Radmin VPN) y da su dirección en ella. Puede que Windows pida dejar pasar a Python: permítelo."
+
+#: launcher.cpp:3572
+msgid "this PC's address"
+msgstr "la dirección de este PC"
+
+#: launcher.cpp:3576
+msgid "The players you play with see your PC's address. Nothing goes to Sony's servers."
+msgstr "Los jugadores con los que juegas ven la dirección de tu PC. No se envía nada a los servidores de Sony."
+
+#: launcher.cpp:3612
+msgid "ONLINE NOW: %d"
+msgstr "EN LÍNEA AHORA: %d"
+
+#. text
+#: launcher.cpp:3616
+msgid "No other player yet. Players show up here while their launcher or game runs on Auto."
+msgstr "Aún no hay más jugadores. Los jugadores aparecen aquí mientras su launcher o su juego funcionan en Auto."
+
+#: launcher.cpp:3625
+msgid " · through another node"
+msgstr " · a través de otro nodo"
+
+#: launcher.cpp:3626
+msgid " · heard of from another node"
+msgstr " · anunciado por otro nodo"
+
+#: launcher.cpp:3631
+msgid "and %d more"
+msgstr "y %d más"
+
+#: launcher.cpp:3653
+msgid "Which key or mouse button plays each PS3 button."
+msgstr "Qué tecla o botón del mouse hace de cada botón de PS3."
+
+#. w_label
+#: launcher.cpp:3700
+msgid "Keyboard keys"
+msgstr "Asignación de teclas"
+
+#. w_button
+#: launcher.cpp:3701
+msgid "Edit keys…"
+msgstr "Editar teclas…"
+
+#. text
+#: launcher.cpp:3709
+msgid "Off: drawn as on the PS3. The game reads these when it starts."
+msgstr "Desactivados: se dibuja como en PS3. El juego los lee al iniciarse."
+
+#: launcher.cpp:3752
+msgid "no AA"
+msgstr "sin AA"
+
+#: launcher.cpp:3754
+msgid "frame generation"
+msgstr "generación de fotogramas"
+
+#: launcher.cpp:3754
+msgid "ANR FG"
+msgstr "ANR FG"
+
+#: launcher.cpp:3755
+msgid "no cap"
+msgstr "sin límite"
+
+#. w_button
+#: launcher.cpp:3765
+msgid "PLAY"
+msgstr "JUGAR"
+
+#: launcher.cpp:3766
+msgid "QUIT"
+msgstr "SALIR"
+
+#: launcher.cpp:3766
+msgid "SAVE"
+msgstr "GUARDAR"
+
+#. text_w, w_button
+#: launcher.cpp:3766 launcher.cpp:3866 launcher.cpp:3867
+msgid "DEFAULTS"
+msgstr "RESTABLECER"
+
+#: launcher.cpp:3791
+msgid "%ls preset"
+msgstr "Preajuste %ls"
+
+#: launcher.cpp:3792
+msgid "Custom setup"
+msgstr "Personalizado"
+
+#. text, glow_text
+#: launcher.cpp:3845 launcher.cpp:3846
+msgid "KEYBOARD KEYS"
+msgstr "ASIGNACIÓN DE TECLAS"
+
+#. text
+#: launcher.cpp:3847
+msgid "Click an action, then press a key or a mouse button. Backspace clears it, Esc gives up. Edit ascension-r.ini to give an action more than one key."
+msgstr "Haz clic en una acción y pulsa una tecla o un botón del mouse. Retroceso la borra, Esc cancela. Edita ascension-r.ini para dar a una acción más de una tecla."
+
+#. text
+#: launcher.cpp:3860
+msgid "Press a key or button"
+msgstr "Pulsa una tecla o botón"
+
+#. text
+#: launcher.cpp:3860
+msgid "(none)"
+msgstr "(ninguna)"
+
+#. text_w, w_button
+#: launcher.cpp:3866 launcher.cpp:3869
+msgid "CANCEL"
+msgstr "CANCELAR"
+
+#. w_button
+#: launcher.cpp:3868
+msgid "OK"
+msgstr "ACEPTAR"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "Stopped"
+msgstr "Detenido"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "The game could not be prepared"
+msgstr "No se pudo preparar el juego"
+
+#. toast
+#: launcher.cpp:4148
+msgid "Game ready"
+msgstr "Juego listo"
+
+#: launcher.cpp:4161
+msgid "another release"
+msgstr "otra edición"
+
+#: launcher.cpp:4161
+msgid "not decrypted"
+msgstr "sin descifrar"
+
+#: launcher.cpp:4161
+msgid "another build"
+msgstr "otra compilación"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game found"
+msgstr "Juego encontrado"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game folder set"
+msgstr "Carpeta del juego elegida"
+
+#. toast_bad
+#: launcher.cpp:4169 launcher.cpp:4184
+msgid "The game's folder could not be set"
+msgstr "No se pudo establecer la carpeta del juego"
+
+#: launcher.cpp:4171
+msgid "Found %ls in %ls. This port runs %ls 1.12"
+msgstr "Se encontró %ls en %ls. Este port usa %ls 1.12"
+
+#. toast_bad
+#: launcher.cpp:4172
+msgid "Another release of the game"
+msgstr "Otra edición del juego"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "The disc is an ISO"
+msgstr "El disco es una ISO"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "Found the update, not the disc"
+msgstr "Se encontró la actualización, no el disco"
+
+#. toast_bad
+#: launcher.cpp:4181
+msgid "Found the disc, not its update"
+msgstr "Se encontró el disco, no su actualización"
+
+#. toast_bad
+#: launcher.cpp:4182
+msgid "The disc's files are encrypted"
+msgstr "Los archivos del disco están cifrados"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not all of it"
+msgstr "Se encontró el juego, pero no completo"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not 1.12's files"
+msgstr "Se encontró el juego, pero no los archivos de 1.12"
+
+#: launcher.cpp:4186
+msgid "No game in %ls"
+msgstr "No hay juego en %ls"
+
+#. toast_bad
+#: launcher.cpp:4187
+msgid "No game in that folder"
+msgstr "No hay juego en esa carpeta"
+
+#. toast
+#: launcher.cpp:4189
+msgid "No better copy found"
+msgstr "No se encontró una copia mejor"
+
+#: launcher.cpp:4191
+msgid "Not found on this PC. Browse to its folder (%ls)"
+msgstr "No se encontró en este PC. Usa Examinar para ir a su carpeta (%ls)"
+
+#. toast_bad
+#: launcher.cpp:4202 launcher.cpp:4312
+msgid "No shader cache in the settings"
+msgstr "No hay caché de shaders en los ajustes"
+
+#. toast
+#: launcher.cpp:4229
+msgid "No compiled shaders to clear"
+msgstr "No hay shaders compilados que borrar"
+
+#: launcher.cpp:4233
+msgid "Move %.0f MB of compiled shaders to the Recycle Bin?\n\nThe next start builds the vertex shaders first; the rest come as the game reaches them."
+msgstr "¿Mover %.0f MB de shaders compilados a la Papelera de reciclaje?\n\nEl próximo inicio compila primero los vertex shaders; el resto llegan a medida que el juego los necesita."
+
+#. toast_bad
+#: launcher.cpp:4242
+msgid "Not cleared: is the game running?"
+msgstr "No se borraron: ¿se está ejecutando el juego?"
+
+#. toast
+#: launcher.cpp:4243
+msgid "Shaders cleared"
+msgstr "Shaders borrados"
+
+#: launcher.cpp:4294
+msgid "Pixel shaders built: %u new, %u kept from before%s"
+msgstr "Pixel shaders compilados: %u nuevos, %u ya existentes%s"
+
+#: launcher.cpp:4294
+msgid ", some failed"
+msgstr ", algunos fallaron"
+
+#: launcher.cpp:4298
+msgid "Shaders not built: %s"
+msgstr "Shaders sin compilar: %s"
+
+#. toast
+#: launcher.cpp:4301
+msgid "Building shaders stopped"
+msgstr "Compilación de shaders detenida"
+
+#. toast_bad
+#: launcher.cpp:4341 launcher.cpp:4364
+msgid "Could not start building shaders"
+msgstr "No se pudo iniciar la compilación de shaders"
+
+#: launcher.cpp:4442
+msgid "it stopped (%lu)%ls"
+msgstr "se detuvo (%lu)%ls"
+
+#. toast_bad
+#: launcher.cpp:4461
+msgid "No Kit folder beside the program"
+msgstr "No hay carpeta Kit junto al programa"
+
+#. toast_bad
+#: launcher.cpp:4504 launcher.cpp:4527 launcher.cpp:4547
+msgid "Could not start the build"
+msgstr "No se pudo iniciar la compilación"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 25 minutes"
+msgstr "Compilando el código del juego: unos 25 minutos"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 10 minutes"
+msgstr "Compilando el código del juego: unos 10 minutos"
+
+#. toast
+#: launcher.cpp:4574
+msgid "The game's code is built"
+msgstr "Código del juego compilado"
+
+#. toast
+#: launcher.cpp:4575
+msgid "Stopped: Build goes on from there"
+msgstr "Detenido: Compilar continuará desde ahí"
+
+#. toast_bad
+#: launcher.cpp:4576
+msgid "The game's code could not be built"
+msgstr "No se pudo compilar el código del juego"
+
+#. toast_bad
+#: launcher.cpp:4597
+msgid "No build log yet"
+msgstr "Sin registro de compilación"
+
+#: launcher.cpp:4623
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, the log of building the game's code, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "El informe es un archivo zip para que lo adjuntes a un issue en GitHub. El juego no envía nada por sí solo.\n\nContiene los registros de tus últimas sesiones, los botones que pulsaste y los archivos que abrió el juego en ellas, tus ajustes, el registro de la compilación del código del juego, el hardware y las versiones de controladores de este PC, y los registros de Windows de los cierres inesperados de este juego.\n\nLas rutas de carpetas y tu nombre de Windows se ocultan. No incluye archivos del juego."
+
+#: launcher.cpp:4630
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "El informe es un archivo zip para que lo adjuntes a un issue en GitHub. El juego no envía nada por sí solo.\n\nContiene los registros de tus últimas sesiones, los botones que pulsaste y los archivos que abrió el juego en ellas, tus ajustes, el hardware y las versiones de controladores de este PC, y los registros de Windows de los cierres inesperados de este juego.\n\nLas rutas de carpetas y tu nombre de Windows se ocultan. No incluye archivos del juego."
+
+#: launcher.cpp:4638
+msgid "Make the report"
+msgstr "Crear el informe"
+
+#: launcher.cpp:4646
+msgid "Make a problem report?"
+msgstr "¿Crear un informe del problema?"
+
+#: launcher.cpp:4648
+msgid "Include my saves, so the problem can be loaded where it happened"
+msgstr "Incluir mis partidas guardadas, para poder cargar el problema donde ocurrió"
+
+#. toast_bad
+#: launcher.cpp:4662
+msgid "Could not make the report"
+msgstr "No se pudo crear el informe"
+
+#: launcher.cpp:4668
+msgid "%ls\n\nAttach it to a new issue and say what happened and where you were in the game."
+msgstr "%ls\n\nAdjúntalo a un nuevo issue y cuenta qué pasó y en qué parte del juego estabas."
+
+#: launcher.cpp:4671
+msgid "Open GitHub"
+msgstr "Abrir GitHub"
+
+#: launcher.cpp:4671
+msgid "Show the file"
+msgstr "Mostrar el archivo"
+
+#: launcher.cpp:4679
+msgid "The report is ready"
+msgstr "El informe está listo"
+
+#: launcher.cpp:4706
+msgid "The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in the Graphics tab."
+msgstr "La GPU se detuvo tras la swap chain de la generación de fotogramas (AMD FSR), algo que ha ocurrido al iniciar el juego en algunos PC. Desactivarla mantiene todo lo demás, también el escalado de FSR. Puedes volver a activarla en la pestaña Gráficos."
+
+#: launcher.cpp:4712
+msgid "Turn frame generation off"
+msgstr "Desactivar generación de fotogramas"
+
+#: launcher.cpp:4712
+msgid "Keep it on"
+msgstr "Dejarla activada"
+
+#: launcher.cpp:4719
+msgid "The game froze in the last session, with frame generation on"
+msgstr "El juego se congeló en la última sesión, con la generación de fotogramas activada"
+
+#: launcher.cpp:4726
+msgid "The game froze with frame generation on"
+msgstr "El juego se congeló con la generación de fotogramas activada"
+
+#. toast
+#: launcher.cpp:4732
+msgid "Frame generation is off"
+msgstr "Generación de fotogramas desactivada"
+
+#. toast_bad
+#: launcher.cpp:4733
+msgid "Could not save the settings"
+msgstr "No se pudieron guardar los ajustes"
+
+#: launcher.cpp:4745
+msgid "The last session crashed. Make a report of it?"
+msgstr "La última sesión se cerró por un error. ¿Crear un informe?"
+
+#: launcher.cpp:4746
+msgid "The last session lost the graphics device. Make a report of it?"
+msgstr "La última sesión perdió el dispositivo gráfico. ¿Crear un informe?"
+
+#: launcher.cpp:4747
+msgid "The game froze in the last session. Make a report of it?"
+msgstr "El juego se congeló en la última sesión. ¿Crear un informe?"
+
+#: launcher.cpp:4748
+msgid "The last session stopped without saying why. Make a report of it?"
+msgstr "La última sesión se detuvo sin indicar el motivo. ¿Crear un informe?"
+
+#: launcher.cpp:4767
+msgid "The game's folder: %ls, or a folder it is under"
+msgstr "La carpeta del juego: %ls, o una carpeta que la contenga"
+
+#. snprintf
+#: launcher.cpp:4843
+msgid "no zip named"
+msgstr "no se indicó un zip"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "ANR FG's zip (anr-fg-...-addon.zip, or -full.zip)"
+msgstr "Zip de ANR FG (anr-fg-...-addon.zip, o -full.zip)"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "Zip files"
+msgstr "Archivos zip"
+
+#. toast
+#: launcher.cpp:4859
+msgid "ANR FG is in place: the game uses it from the next start"
+msgstr "ANR FG está instalado: el juego lo usará desde el próximo inicio"
+
+#: launcher.cpp:4860
+msgid "ANR FG: "
+msgstr "ANR FG: "
+
+#: launcher.cpp:4870
+msgid "ANR FG is Apex Neural Rendering's frame generation, by Apex Compute, in beta. It is not part of Ascension-R and has no licence of its own, so it is not in the download.\n\nAscension-R can download the newest release's addon zip (about 4 MB) from Apex Compute's own releases on GitHub (github.com/apex-compute/ANR), check it against the SHA-256 GitHub lists and Apex Compute's signature, and set it up in the anr folder beside the program. Nothing else is sent or installed."
+msgstr "ANR FG es la generación de fotogramas de Apex Neural Rendering, de Apex Compute, en beta. No forma parte de Ascension-R y no tiene licencia propia, así que no está incluida en la descarga.\n\nAscension-R puede descargar el zip addon de la versión más reciente (unos 4 MB) desde las propias versiones publicadas por Apex Compute en GitHub (github.com/apex-compute/ANR), comprobarlo con el SHA-256 que indica GitHub y la firma de Apex Compute, e instalarlo en la carpeta anr junto al programa. No se envía ni se instala nada más."
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Download and set up"
+msgstr "Descargar e instalar"
+
+#: launcher.cpp:4878
+msgid "Choose a zip I have"
+msgstr "Elegir un zip que tengo"
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Not now"
+msgstr "Ahora no"
+
+#: launcher.cpp:4885 launcher.cpp:4892
+msgid "Download ANR FG?"
+msgstr "¿Descargar ANR FG?"
+
+#: launcher.cpp:4914
+msgid "%ls%ls%ls %hs (%d MB)"
+msgstr "%ls%ls%ls %hs (%d MB)"
+
+#: launcher.cpp:4915
+msgid " and "
+msgstr " y "
+
+#: launcher.cpp:4918
+msgid "%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\nAscension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the program. Nothing else is sent or installed."
+msgstr "%ls Su DLL es de NVIDIA, bajo la licencia RTX SDK de NVIDIA, así que no está incluida en la descarga.\n\nAscension-R puede descargar %ls desde el propio repositorio DLSS de NVIDIA en GitHub (github.com/NVIDIA/DLSS), comprobarlo con el SHA-256 que guarda Ascension-R y la firma de NVIDIA, y ponerlo en la carpeta dlss junto al programa. No se envía ni se instala nada más."
+
+#: launcher.cpp:4922
+msgid "NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on GeForce RTX 40 and newer cards."
+msgstr "La generación de fotogramas NVIDIA DLSS crea un fotograma entre cada dos con el propio modelo de NVIDIA, en tarjetas GeForce RTX 40 y posteriores."
+
+#: launcher.cpp:4924
+msgid "NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards."
+msgstr "NVIDIA DLSS reconstruye la imagen con el propio modelo de NVIDIA en tarjetas GeForce RTX y otras NVIDIA RTX."
+
+#: launcher.cpp:4935
+msgid "NVIDIA DLSS (beta)"
+msgstr "NVIDIA DLSS (beta)"
+
+#: launcher.cpp:4937 launcher.cpp:4944
+msgid "Download NVIDIA DLSS?"
+msgstr "¿Descargar NVIDIA DLSS?"
+
+#. toast
+#: launcher.cpp:4991
+msgid "The game's code is still being built"
+msgstr "El código del juego aún se está compilando"
+
+#. toast_bad
+#: launcher.cpp:5010
+msgid "Multiplayer could not start"
+msgstr "No se pudo iniciar el multijugador"
+
+#. toast
+#: launcher.cpp:5016 launcher.cpp:5414
+msgid "Saved"
+msgstr "Guardado"
+
+#. pick_file
+#: launcher.cpp:5038
+msgid "Choose rpcs3.exe"
+msgstr "Elegir rpcs3.exe"
+
+#. toast
+#: launcher.cpp:5043
+msgid "Now choose the game's license file (.rap)"
+msgstr "Ahora elige el archivo de licencia del juego (.rap)"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "The game's license file"
+msgstr "Archivo de licencia del juego"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "License file (*.rap)"
+msgstr "Archivo de licencia (*.rap)"
+
+#. toast
+#: launcher.cpp:5064
+msgid "Defaults back: Save or Play keeps them"
+msgstr "Predeterminados restaurados: Guardar o Jugar los conserva"
+
+#: launcher.cpp:5475
+msgid "Multiplayer: cannot find gowa-host: is the address right?"
+msgstr "Multijugador: no se encuentra gowa-host: ¿es correcta la dirección?"
+
+#: launcher.cpp:5494
+msgid "Compiling the game's code"
+msgstr "Compilando el código del juego"
+
+#. snprintf
+#: launcher.cpp:5715 launcher.cpp:5716
+msgid "ANR FG is Windows only"
+msgstr "ANR FG solo funciona en Windows"
+
+#: game_find.cpp:279
+msgid "%.1f GB"
+msgstr "%.1f GB"
+
+#: game_find.cpp:280
+msgid "%.0f MB"
+msgstr "%.0f MB"
+
+#: game_find.cpp:281
+msgid "%llu bytes"
+msgstr "%llu bytes"
+
+#: game_find.cpp:291
+msgid "The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 (File, Install Packages, in that order), then Auto detect"
+msgstr "El disco (%hs) sin su actualización a 1.12: instala las actualizaciones de la 1.04 a la 1.12 en RPCS3 (File, Install Packages, en ese orden) y luego pulsa Autodetectar"
+
+#: game_find.cpp:295
+msgid "The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding PS3_GAME)"
+msgstr "La actualización de %hs está en %ls, pero no su disco: usa Examinar para ir a la carpeta del disco (la que contiene PS3_GAME)"
+
+#: game_find.cpp:299
+msgid "RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse to that folder"
+msgstr "RPCS3 tiene el disco como ISO, %ls: ábrela (Montar), copia todo su contenido a una carpeta y usa Examinar para ir a esa carpeta"
+
+#: game_find.cpp:303
+msgid "The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed"
+msgstr "Los archivos del disco en %ls están cifrados: es un volcado que nunca se descifró. Hace falta una copia descifrada"
+
+#: game_find.cpp:311
+msgid "Not every update is installed: %d file missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "No están instaladas todas las actualizaciones: falta %d archivo, %hs el primero. Instala de la 1.04 a la 1.12, en orden"
+
+#: game_find.cpp:312
+msgid "Not every update is installed: %d files missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "No están instaladas todas las actualizaciones: faltan %d archivos, %hs el primero. Instala de la 1.04 a la 1.12, en orden"
+
+#: game_find.cpp:315
+msgid "Not every update is installed: %d file differs, %hs first. Install 1.04 to 1.12, in order"
+msgstr "No están instaladas todas las actualizaciones: %d archivo es distinto, %hs el primero. Instala de la 1.04 a la 1.12, en orden"
+
+#: game_find.cpp:316
+msgid "Not every update is installed: %d files differ, %hs first. Install 1.04 to 1.12, in order"
+msgstr "No están instaladas todas las actualizaciones: %d archivos son distintos, %hs el primero. Instala de la 1.04 a la 1.12, en orden"
+
+#: game_find.cpp:321
+msgid "Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the disc again"
+msgstr "El disco no está completo: faltan %d de los %d archivos del juego (%ls), %hs el primero. Vuelve a copiar todo el disco"
+
+#: game_find.cpp:326
+msgid "Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again"
+msgstr "El juego no está completo: faltan %d de sus %d archivos (%ls), %hs el primero. Vuelve a instalar el juego"
+
+#: game_find.cpp:329
+msgid "%d of the disc's files is not as the disc has it, %hs first. Copy all of the disc again"
+msgstr "%d de los archivos del disco no coincide con el disco, %hs el primero. Vuelve a copiar todo el disco"
+
+#: game_find.cpp:330
+msgid "%d of the disc's files are not as the disc has them, %hs first. Copy all of the disc again"
+msgstr "%d de los archivos del disco no coinciden con el disco, %hs el primero. Vuelve a copiar todo el disco"
+
+#: game_find.cpp:333
+msgid "%d of the game's files is not as version 1.12 has it, %hs first. Install the game again"
+msgstr "%d de los archivos del juego no coincide con la versión 1.12, %hs el primero. Vuelve a instalar el juego"
+
+#: game_find.cpp:334
+msgid "%d of the game's files are not as version 1.12 has them, %hs first. Install the game again"
+msgstr "%d de los archivos del juego no coinciden con la versión 1.12, %hs el primero. Vuelve a instalar el juego"
+
+#. say
+#: game_find.cpp:936
+msgid "A file is in the way"
+msgstr "Hay un archivo en medio"
+
+#. say
+#: game_find.cpp:946
+msgid "A real folder with files is in the way"
+msgstr "Hay en medio una carpeta real con archivos"
+
+#. say
+#: game_find.cpp:965
+msgid "Not a folder"
+msgstr "No es una carpeta"
+
+#. say
+#: game_find.cpp:968
+msgid "A link cannot lead to a network folder"
+msgstr "Un enlace no puede llevar a una carpeta de red"
+
+#. say
+#: game_find.cpp:970 game_find.cpp:975 game_find.cpp:997
+msgid "Cannot make the link"
+msgstr "No se puede crear el enlace"
+
+#. say
+#: game_find.cpp:1010
+msgid "Cannot replace the link"
+msgstr "No se puede reemplazar el enlace"
+
+#: title_patches.json
+msgid "Disable MLAA"
+msgstr "Sin MLAA"
+
+#: title_patches.json
+msgid "MLAA path off (FSR, DLSS)"
+msgstr "Ruta de MLAA desactivada (FSR, DLSS)"
+
+#: title_patches.json
+msgid "Disable Depth of Field"
+msgstr "Sin profundidad de campo"
+
+#: title_patches.json
+msgid "Disable Motion Blur"
+msgstr "Sin desenfoque de movimiento"
+
+#: title_patches.json
+msgid "Disable Mesh Trimming"
+msgstr "Sin recorte de mallas"
+
+#: title_patches.json
+msgid "Disable Shadows"
+msgstr "Sin sombras"
+
+#: title_patches.json
+msgid "Unlock FPS (experimental)"
+msgstr "Desbloquear FPS (experimental)"
+
+#. Kit build stage
+#: gowa.py
+msgid "Reading the game's code"
+msgstr "Leyendo el código del juego"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the game's code"
+msgstr "Traduciendo el código del juego"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the SPU programs"
+msgstr "Traduciendo los programas SPU"
+
+#. Kit build stage
+#: gowa.py
+msgid "Linking"
+msgstr "Enlazando"
+
+#. Kit build stage
+#: gowa.py
+msgid "Checking the game"
+msgstr "Comprobando el juego"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: what it learned"
+msgstr "Optimizando para este PC: lo aprendido"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the game plays by itself (leave it open)"
+msgstr "Optimizando para este PC: el juego se juega solo (déjalo abierto)"
+
+#. Kit build stage
+#: gowa.py
+msgid "Compiling"
+msgstr "Compilando"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: compiling the training copy"
+msgstr "Optimizando para este PC: compilando la copia de entrenamiento"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the training copy"
+msgstr "Optimizando para este PC: la copia de entrenamiento"
+

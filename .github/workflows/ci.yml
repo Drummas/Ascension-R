@@ -53,6 +53,7 @@ jobs:
           python tests/test_portable_copy.py
           python tests/test_dxc_guards.py
           python tests/test_gametext.py
+          python tests/test_lang.py
           python tests/test_kit_paths.py
           python tests/test_game_module_crt.py
           python tests/test_game_module_hooks.py

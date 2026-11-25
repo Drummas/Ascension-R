@@ -1,0 +1,2718 @@
+# Ascension-R launcher, Indonesian
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8\nLanguage: id\n"
+
+#: launcher.cpp:131
+msgid "What the display reports"
+msgstr "Yang dilaporkan layar"
+
+#: launcher.cpp:131
+msgid "400 nits"
+msgstr "400 nits"
+
+#: launcher.cpp:131
+msgid "600 nits"
+msgstr "600 nits"
+
+#: launcher.cpp:131
+msgid "800 nits"
+msgstr "800 nits"
+
+#: launcher.cpp:131
+msgid "1000 nits"
+msgstr "1000 nits"
+
+#: launcher.cpp:132
+msgid "1500 nits"
+msgstr "1500 nits"
+
+#: launcher.cpp:132
+msgid "2000 nits"
+msgstr "2000 nits"
+
+#: launcher.cpp:133 launcher.cpp:173 launcher.cpp:177 launcher.cpp:222
+msgid "Auto"
+msgstr "Otomatis"
+
+#: launcher.cpp:135
+msgid "100 nits"
+msgstr "100 nits"
+
+#: launcher.cpp:135
+msgid "150 nits"
+msgstr "150 nits"
+
+#: launcher.cpp:135
+msgid "200 nits"
+msgstr "200 nits"
+
+#: launcher.cpp:135
+msgid "250 nits"
+msgstr "250 nits"
+
+#: launcher.cpp:135
+msgid "300 nits"
+msgstr "300 nits"
+
+#: launcher.cpp:137 launcher.cpp:138
+msgid "Windowed"
+msgstr "Berjendela"
+
+#: launcher.cpp:137
+msgid "Borderless fullscreen"
+msgstr "Layar penuh tanpa bingkai"
+
+#: launcher.cpp:138
+msgid "Borderless"
+msgstr "Tanpa bingkai"
+
+#: launcher.cpp:141
+msgid "Default (720p x Windows scale)"
+msgstr "Bawaan (720p x skala Windows)"
+
+#: launcher.cpp:145 launcher.cpp:146 launcher.cpp:154 launcher.cpp:166
+msgid "Off"
+msgstr "Nonaktif"
+
+#: launcher.cpp:145
+msgid "In the title bar"
+msgstr "Di bilah judul"
+
+#: launcher.cpp:145
+msgid "On screen, with CPU/GPU load"
+msgstr "Di layar, dengan beban CPU/GPU"
+
+#: launcher.cpp:146
+msgid "Title bar"
+msgstr "Bilah judul"
+
+#: launcher.cpp:146
+msgid "On screen"
+msgstr "Di layar"
+
+#: launcher.cpp:148
+msgid "As the game sets it"
+msgstr "Seperti yang diatur game"
+
+#: launcher.cpp:149
+msgid "Game"
+msgstr "Game"
+
+#: launcher.cpp:152
+msgid "Off: never, a gap for a moment instead"
+msgstr "Nonaktif: tidak pernah, gantinya ada celah sesaat"
+
+#: launcher.cpp:152
+msgid "Short: a frame waits 33 ms at most"
+msgstr "Singkat: frame menunggu paling lama 33 ms"
+
+#: launcher.cpp:153
+msgid "Full: up to two seconds"
+msgstr "Penuh: hingga dua detik"
+
+#: launcher.cpp:154
+msgid "Short"
+msgstr "Singkat"
+
+#: launcher.cpp:154
+msgid "Full"
+msgstr "Penuh"
+
+#: launcher.cpp:157 launcher.cpp:240
+msgid "Windows language"
+msgstr "Bahasa Windows"
+
+#: launcher.cpp:161 launcher.cpp:162
+msgid "Clean"
+msgstr "Bersih"
+
+#: launcher.cpp:161
+msgid "Retro: pixel font and 8-bit bevels"
+msgstr "Retro: font piksel dan tepi timbul 8-bit"
+
+#: launcher.cpp:162
+msgid "Retro"
+msgstr "Retro"
+
+#: launcher.cpp:164
+msgid "Off: the game's own 60"
+msgstr "Nonaktif: 60 asli game"
+
+#: launcher.cpp:164
+msgid "20 fps, even pace"
+msgstr "20 fps, tempo rata"
+
+#: launcher.cpp:164
+msgid "30 fps, even pace"
+msgstr "30 fps, tempo rata"
+
+#: launcher.cpp:165
+msgid "120 fps (experimental)"
+msgstr "120 fps (eksperimental)"
+
+#: launcher.cpp:165
+msgid "144 fps (experimental)"
+msgstr "144 fps (eksperimental)"
+
+#: launcher.cpp:165
+msgid "Unlocked (experimental)"
+msgstr "Tak terkunci (eksperimental)"
+
+#: launcher.cpp:166
+msgid "20 fps"
+msgstr "20 fps"
+
+#: launcher.cpp:166
+msgid "30 fps"
+msgstr "30 fps"
+
+#: launcher.cpp:166
+msgid "120 fps"
+msgstr "120 fps"
+
+#: launcher.cpp:166
+msgid "144 fps"
+msgstr "144 fps"
+
+#: launcher.cpp:166
+msgid "Unlocked"
+msgstr "Tak terkunci"
+
+#: launcher.cpp:168 launcher.cpp:169 launcher.cpp:3021
+msgid "Bilinear"
+msgstr "Bilinear"
+
+#: launcher.cpp:168
+msgid "Sharp bilinear"
+msgstr "Bilinear tajam"
+
+#: launcher.cpp:168
+msgid "AMD FSR 1"
+msgstr "AMD FSR 1"
+
+#: launcher.cpp:168 launcher.cpp:201 launcher.cpp:202
+msgid "AMD FSR"
+msgstr "AMD FSR"
+
+#: launcher.cpp:168
+msgid "NVIDIA DLSS (RTX cards)"
+msgstr "NVIDIA DLSS (kartu RTX)"
+
+#: launcher.cpp:169
+msgid "Sharp"
+msgstr "Tajam"
+
+#: launcher.cpp:169
+msgid "FSR 1"
+msgstr "FSR 1"
+
+#: launcher.cpp:172
+msgid "Auto: the DLL's own for each mode"
+msgstr "Otomatis: pilihan DLL untuk tiap mode"
+
+#: launcher.cpp:176
+msgid "Auto: the newest the graphics card takes"
+msgstr "Otomatis: versi terbaru yang didukung kartu grafis"
+
+#: launcher.cpp:176
+msgid "FSR 3.1"
+msgstr "FSR 3.1"
+
+#: launcher.cpp:179
+msgid "Discrete"
+msgstr "Diskrit"
+
+#: launcher.cpp:179
+msgid "Integrated"
+msgstr "Terintegrasi"
+
+#: launcher.cpp:181
+msgid "720p, as the game draws it"
+msgstr "720p, seperti yang digambar game"
+
+#: launcher.cpp:181
+msgid "The window's size"
+msgstr "Ukuran jendela"
+
+#: launcher.cpp:182 launcher.cpp:254
+msgid "Window"
+msgstr "Jendela"
+
+#: launcher.cpp:185 launcher.cpp:188
+msgid "As the game draws them"
+msgstr "Seperti yang digambar game"
+
+#: launcher.cpp:186 launcher.cpp:189
+msgid "Game's"
+msgstr "Asli"
+
+#: launcher.cpp:188
+msgid "The internal resolution"
+msgstr "Resolusi internal"
+
+#: launcher.cpp:189
+msgid "Internal"
+msgstr "Internal"
+
+#: launcher.cpp:192
+msgid "The game's"
+msgstr "Asli game"
+
+#: launcher.cpp:195 launcher.cpp:196 launcher.cpp:205
+msgid "On"
+msgstr "Aktif"
+
+#: launcher.cpp:195
+msgid "High quality"
+msgstr "Kualitas tinggi"
+
+#: launcher.cpp:196 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "High"
+msgstr "Tinggi"
+
+#: launcher.cpp:201 launcher.cpp:4883
+msgid "ANR FG (beta)"
+msgstr "ANR FG (beta)"
+
+#: launcher.cpp:202
+msgid "ANR (beta)"
+msgstr "ANR (beta)"
+
+#: launcher.cpp:205
+msgid "On + Boost"
+msgstr "Aktif + Boost"
+
+#: launcher.cpp:207
+msgid "SMAA 1x"
+msgstr "SMAA 1x"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Low"
+msgstr "Rendah"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Medium"
+msgstr "Sedang"
+
+#: launcher.cpp:210
+msgid "High (AMD's)"
+msgstr "Tinggi (standar AMD)"
+
+#: launcher.cpp:210 launcher.cpp:212 launcher.cpp:213 launcher.cpp:215
+msgid "Max"
+msgstr "Maks"
+
+#: launcher.cpp:217 launcher.cpp:219 launcher.cpp:234
+msgid "Normal"
+msgstr "Normal"
+
+#: launcher.cpp:217
+msgid "Half"
+msgstr "Setengah"
+
+#: launcher.cpp:217
+msgid "Quarter"
+msgstr "Seperempat"
+
+#: launcher.cpp:217
+msgid "None"
+msgstr "Tidak ada"
+
+#: launcher.cpp:219
+msgid "One hit"
+msgstr "Sekali pukul"
+
+#: launcher.cpp:221
+msgid "Controller and keyboard"
+msgstr "Kontroler dan keyboard"
+
+#: launcher.cpp:221
+msgid "Controller only"
+msgstr "Hanya kontroler"
+
+#: launcher.cpp:221
+msgid "Keyboard only"
+msgstr "Hanya keyboard"
+
+#: launcher.cpp:222
+msgid "Controller"
+msgstr "Kontroler"
+
+#: launcher.cpp:222
+msgid "Keyboard"
+msgstr "Keyboard"
+
+#: launcher.cpp:224
+msgid "XInput, else SDL3"
+msgstr "XInput, jika tidak SDL3"
+
+#: launcher.cpp:224
+msgid "XInput only"
+msgstr "Hanya XInput"
+
+#: launcher.cpp:224
+msgid "SDL3 for every controller"
+msgstr "SDL3 untuk semua kontroler"
+
+#: launcher.cpp:225
+msgid "XInput"
+msgstr "XInput"
+
+#: launcher.cpp:227
+msgid "24% (XInput's)"
+msgstr "24% (standar XInput)"
+
+#: launcher.cpp:229 launcher.cpp:491
+msgid "Cross"
+msgstr "Silang"
+
+#: launcher.cpp:229 launcher.cpp:492
+msgid "Circle"
+msgstr "Lingkaran"
+
+#: launcher.cpp:231
+msgid "Keep 3"
+msgstr "Simpan 3"
+
+#: launcher.cpp:231
+msgid "Keep 5"
+msgstr "Simpan 5"
+
+#: launcher.cpp:231
+msgid "Keep 10"
+msgstr "Simpan 10"
+
+#: launcher.cpp:236
+msgid "As Windows has the output device"
+msgstr "Sesuai perangkat output di Windows"
+
+#: launcher.cpp:236 launcher.cpp:237
+msgid "Stereo"
+msgstr "Stereo"
+
+#: launcher.cpp:240
+msgid "English (US)"
+msgstr "Inggris (AS)"
+
+#: launcher.cpp:240
+msgid "English (UK)"
+msgstr "Inggris (Britania)"
+
+#: launcher.cpp:240
+msgid "French"
+msgstr "Prancis"
+
+#: launcher.cpp:240
+msgid "Spanish"
+msgstr "Spanyol"
+
+#: launcher.cpp:241
+msgid "German"
+msgstr "Jerman"
+
+#: launcher.cpp:241
+msgid "Italian"
+msgstr "Italia"
+
+#: launcher.cpp:241
+msgid "Dutch"
+msgstr "Belanda"
+
+#: launcher.cpp:241
+msgid "Portuguese"
+msgstr "Portugis"
+
+#: launcher.cpp:241
+msgid "Portuguese (Brazil)"
+msgstr "Portugis (Brasil)"
+
+#: launcher.cpp:242
+msgid "Russian"
+msgstr "Rusia"
+
+#: launcher.cpp:242
+msgid "Japanese"
+msgstr "Jepang"
+
+#: launcher.cpp:242
+msgid "Korean"
+msgstr "Korea"
+
+#: launcher.cpp:242
+msgid "Chinese (traditional)"
+msgstr "Tionghoa (tradisional)"
+
+#: launcher.cpp:243
+msgid "Chinese (simplified)"
+msgstr "Tionghoa (sederhana)"
+
+#: launcher.cpp:243
+msgid "Finnish"
+msgstr "Finlandia"
+
+#: launcher.cpp:243
+msgid "Swedish"
+msgstr "Swedia"
+
+#: launcher.cpp:243
+msgid "Danish"
+msgstr "Denmark"
+
+#: launcher.cpp:243
+msgid "Norwegian"
+msgstr "Norwegia"
+
+#: launcher.cpp:244
+msgid "Polish"
+msgstr "Polandia"
+
+#: launcher.cpp:244
+msgid "Turkish"
+msgstr "Turki"
+
+#: launcher.cpp:248
+msgid "Auto: find players"
+msgstr "Otomatis: cari pemain"
+
+#: launcher.cpp:248
+msgid "Host: this PC"
+msgstr "Host: PC ini"
+
+#: launcher.cpp:248
+msgid "Join a host"
+msgstr "Gabung ke host"
+
+#: launcher.cpp:249
+msgid "Host"
+msgstr "Host"
+
+#: launcher.cpp:249
+msgid "Join"
+msgstr "Gabung"
+
+#: launcher.cpp:255
+msgid "Borderless covers the whole screen."
+msgstr "Tanpa bingkai menutupi seluruh layar."
+
+#: launcher.cpp:256
+msgid "Window size"
+msgstr "Ukuran jendela"
+
+#: launcher.cpp:257
+msgid "In windowed mode. The game draws 720p; the picture is scaled to the window."
+msgstr "Dalam mode berjendela. Game menggambar 720p; gambarnya diskalakan ke jendela."
+
+#. text
+#: launcher.cpp:258 launcher.cpp:3070
+msgid "VSync"
+msgstr "VSync"
+
+#: launcher.cpp:259
+msgid "Wait for the display's refresh: no tearing."
+msgstr "Menunggu refresh layar: tanpa tearing."
+
+#: launcher.cpp:260
+msgid "Frame rate cap"
+msgstr "Batas FPS"
+
+#: launcher.cpp:261
+msgid "20 and 30: an even pace instead of the highest rate the PC reaches. 120, 144 and Unlocked (experimental): the game runs past its 60 at its own speed, as far as the PC and, with VSync, the monitor take it; frame generation is off with them, and the game goes back to 60 once it goes online for multiplayer. With frame generation, off follows the monitor."
+msgstr "20 dan 30: tempo rata, bukan frame rate tertinggi yang bisa dicapai PC. 120, 144 dan Tak terkunci (eksperimental): game berjalan melewati 60 aslinya dengan kecepatannya sendiri, sejauh yang sanggup diikuti PC dan, dengan VSync, monitor; frame generation nonaktif dengan pilihan ini, dan game kembali ke 60 begitu masuk online untuk multiplayer. Dengan frame generation, Nonaktif mengikuti monitor."
+
+#: launcher.cpp:265
+msgid "Frame rate display"
+msgstr "Tampilan frame rate"
+
+#: launcher.cpp:266
+msgid "On screen shows FPS, frame time, the CPU's, GPU's, PPU's, SPU's and RSX's load and a graph of the last frames' times, in the top right corner."
+msgstr "Di layar menampilkan FPS, waktu frame, beban CPU, GPU, PPU, SPU dan RSX, serta grafik waktu frame-frame terakhir, di pojok kanan atas."
+
+#: launcher.cpp:268
+msgid "Ultrawide"
+msgstr "Ultrawide"
+
+#: launcher.cpp:269
+msgid "Draws the game to the full width of a wider screen. The HUD, menus and movies stay 16:9. Takes effect at the next start."
+msgstr "Menggambar game memenuhi seluruh lebar layar yang lebih lebar. HUD, menu dan video tetap 16:9. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:270
+msgid "Shader build indicator"
+msgstr "Indikator kompilasi shader"
+
+#: launcher.cpp:271
+msgid "A spinner in the bottom left corner while the game's new shaders are built, as RPCS3 shows."
+msgstr "Ikon berputar di pojok kiri bawah selama shader baru game dikompilasi, seperti di RPCS3."
+
+#: launcher.cpp:273
+msgid "HDR10 on a display Windows has HDR on for (Settings, System, Display, Use HDR): the game's picture with its highlights raised toward the peak below, the rest at paper white. Not with frame generation. Takes effect at the next start."
+msgstr "HDR10 pada layar yang HDR-nya diaktifkan di Windows (Pengaturan, Sistem, Tampilan, Gunakan HDR): gambar game dengan bagian terangnya dinaikkan menuju kecerahan puncak di bawah, sisanya pada putih kertas. Tidak bisa bersama frame generation. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:276
+msgid "HDR peak brightness"
+msgstr "Kecerahan HDR"
+
+#: launcher.cpp:277
+msgid "How bright the brightest highlights get: fire, the sky, lightning. Auto takes what the display reports."
+msgstr "Seberapa terang bagian paling terang: api, langit, petir. Otomatis memakai nilai yang dilaporkan layar."
+
+#: launcher.cpp:278
+msgid "HDR paper white"
+msgstr "Putih kertas HDR"
+
+#: launcher.cpp:279
+msgid "How bright white is in the rest of the picture and the HUD. Raise it in a bright room."
+msgstr "Seberapa terang warna putih di bagian gambar lainnya dan di HUD. Naikkan di ruangan yang terang."
+
+#: launcher.cpp:280
+msgid "Window style"
+msgstr "Gaya jendela"
+
+#: launcher.cpp:281
+msgid "How this window looks: Clean, smooth at every Windows scale, or Retro, a pixel font and 8-bit bevels. The game is not changed."
+msgstr "Tampilan jendela ini: Bersih, halus di setiap skala Windows, atau Retro, font piksel dan tepi timbul 8-bit. Game tidak berubah."
+
+#: launcher.cpp:283
+msgid "Retro effects"
+msgstr "Efek retro"
+
+#: launcher.cpp:284
+msgid "Scanlines and a neon glow in this window, with the Retro window style. The game is not changed."
+msgstr "Scanline dan cahaya neon di jendela ini, dengan gaya jendela Retro. Game tidak berubah."
+
+#: launcher.cpp:285
+msgid "Graphics card"
+msgstr "Kartu grafis"
+
+#: launcher.cpp:286
+msgid "Internal resolution"
+msgstr "Resolusi internal"
+
+#: launcher.cpp:287
+msgid "What the scene is drawn at. Shadow resolution and Effects resolution below say how large shadows, bloom and blur are drawn. AMD FSR and frame generation go no higher than the window."
+msgstr "Resolusi tempat adegan digambar. Resolusi bayangan dan Resolusi efek di bawah menentukan seberapa besar bayangan, bloom dan blur digambar. AMD FSR dan frame generation tidak melebihi ukuran jendela."
+
+#: launcher.cpp:289
+msgid "Shadow resolution"
+msgstr "Resolusi bayangan"
+
+#: launcher.cpp:290
+msgid "Shadow maps drawn larger: finer shadow edges and less stair-stepping, most of all at a high internal resolution; where the game's shadows are soft the change is small. 4x takes about 120 MB more video memory. Takes effect at the next start."
+msgstr "Shadow map digambar lebih besar: tepi bayangan lebih halus dan efek tangga berkurang, terutama pada resolusi internal tinggi; di tempat bayangan game memang lembut, perubahannya kecil. 4x memakai sekitar 120 MB memori video lebih banyak. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:293
+msgid "Effects resolution"
+msgstr "Resolusi efek"
+
+#: launcher.cpp:294
+msgid "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal resolution above 720p. Takes effect at the next start."
+msgstr "Bloom, blur dan depth of field digambar pada resolusi internal, bukan pada ukuran asli game, 640x360 dan lebih kecil: latar belakang buram dan cahaya lebih halus pada 1440p dan 4K, kecerahan game tetap. Hanya dengan resolusi internal di atas 720p. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:297
+msgid "Field of view"
+msgstr "Bidang pandang"
+
+#: launcher.cpp:298
+msgid "How wide the view is in play, against the game's: wider shows more around Kratos, narrower brings the view in. The in-engine cinematics keep the game's own. Takes effect at the next start."
+msgstr "Seberapa lebar pandangan saat bermain, dibanding aslinya: lebih lebar menampilkan lebih banyak di sekitar Kratos, lebih sempit mendekatkan pandangan. Sinematik dalam engine tetap memakai aslinya. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:300
+msgid "Ambient occlusion"
+msgstr "Ambient occlusion"
+
+#: launcher.cpp:301
+msgid "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with an ultrawide picture. Takes effect at the next start."
+msgstr "Bayangan lembut di sudut, celah dan tempat benda menyentuh tanah, agar gambar terasa lebih dalam, dihitung dari kedalaman adegan sebelum HUD digambar. Tinggi menggambarnya pada resolusi internal, Aktif pada setengahnya. Nonaktif pada gambar ultrawide. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:304
+msgid "Scaling"
+msgstr "Penskalaan"
+
+#: launcher.cpp:305
+msgid "How the picture is scaled to the window. AMD FSR builds the detail from past frames, in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model on RTX cards (beta), its mode set by the internal resolution against the window (DLAA when they match); its DLL comes from NVIDIA's own GitHub when you pick it."
+msgstr "Cara gambar diskalakan ke jendela. AMD FSR menyusun detail dari frame sebelumnya, menggantikan SMAA, dan FSR 1 mengambil alih bila tidak ada adegan. NVIDIA DLSS melakukan hal yang sama dengan model NVIDIA di kartu RTX (beta), modenya ditentukan oleh resolusi internal dibanding jendela (DLAA bila sama); DLL-nya diambil dari GitHub milik NVIDIA sendiri saat Anda memilihnya."
+
+#: launcher.cpp:309
+msgid "FSR version"
+msgstr "Versi FSR"
+
+#: launcher.cpp:310
+msgid "Auto takes the newest the card and its driver have: FSR 4.1 on AMD Radeon RX 6000 and newer (RX 6000: driver 26.10.1 or later), else FSR 3.1. 4.1 gives cleaner edges and thin lines; 3.1 keeps textures a little sharper and is lighter on the GPU."
+msgstr "Otomatis memakai versi terbaru yang dimiliki kartu dan driver-nya: FSR 4.1 di AMD Radeon RX 6000 dan yang lebih baru (RX 6000: driver 26.10.1 atau lebih baru), selain itu FSR 3.1. 4.1 memberi tepi dan garis tipis yang lebih bersih; 3.1 menjaga tekstur sedikit lebih tajam dan lebih ringan bagi GPU."
+
+#: launcher.cpp:313
+msgid "DLSS preset"
+msgstr "Preset DLSS"
+
+#: launcher.cpp:314
+msgid "Only with NVIDIA DLSS. Auto lets the DLL choose for each mode (K for DLAA, Quality and Balanced, M for Performance, L for Ultra Performance). L and M are sharper with less ghosting but cost more, best on RTX 40 and newer."
+msgstr "Hanya dengan NVIDIA DLSS. Otomatis membiarkan DLL memilih untuk tiap mode (K untuk DLAA, Quality dan Balanced, M untuk Performance, L untuk Ultra Performance). L dan M lebih tajam dengan ghosting lebih sedikit tetapi lebih berat, paling baik di RTX 40 dan yang lebih baru."
+
+#: launcher.cpp:316
+msgid "FSR sharpening"
+msgstr "Penajaman FSR"
+
+#: launcher.cpp:317
+msgid "The sharpening pass of FSR (RCAS). Only with FSR scaling."
+msgstr "Tahap penajaman FSR (RCAS). Hanya dengan penskalaan FSR."
+
+#: launcher.cpp:318
+msgid "CAS sharpening"
+msgstr "Penajaman CAS"
+
+#: launcher.cpp:319
+msgid "AMD's contrast adaptive sharpening on the picture with bilinear or sharp bilinear scaling, or NVIDIA DLSS: crisper detail, edges not overdone. AMD FSR has its own (FSR sharpening). Not with frame generation."
+msgstr "Penajaman adaptif kontras dari AMD pada gambar dengan penskalaan bilinear atau bilinear tajam, atau NVIDIA DLSS: detail lebih tajam, tepi tidak berlebihan. AMD FSR punya penajamannya sendiri (Penajaman FSR). Tidak bisa bersama frame generation."
+
+#: launcher.cpp:321
+msgid "Debanding"
+msgstr "Debanding"
+
+#: launcher.cpp:322
+msgid "Smooths the steps in dark gradients, fog and skies, with a fine grain; edges and texture stay as they are. Not with frame generation."
+msgstr "Menghaluskan garis bertingkat pada gradasi gelap, kabut dan langit, dengan butiran halus; tepi dan tekstur tetap seperti semula. Tidak bisa bersama frame generation."
+
+#: launcher.cpp:324
+msgid "Colour vibrance"
+msgstr "Vibrance warna"
+
+#: launcher.cpp:325
+msgid "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. On the whole picture, the game's HUD and menus too."
+msgstr "Warna lebih hidup: warna kusam dinaikkan paling banyak, kulit dan warna yang sudah kuat jauh lebih sedikit. Berlaku pada seluruh gambar, termasuk HUD dan menu game."
+
+#: launcher.cpp:327
+msgid "Contrast"
+msgstr "Kontras"
+
+#: launcher.cpp:328
+msgid "Lit surfaces and highlights stand out more; deep shadows keep their detail, black and white kept."
+msgstr "Permukaan yang tersinari dan bagian terang lebih menonjol; bayangan pekat tetap detail, hitam dan putih tetap terjaga."
+
+#: launcher.cpp:329 launcher.cpp:4717
+msgid "Frame generation"
+msgstr "Frame generation"
+
+#: launcher.cpp:330
+msgid "Twice the frames on screen, with VSync on: the game is held at half the monitor's refresh rate (60 at 120 Hz), a frame is made between each two, about a frame later, and below 25 it stands aside. ANR FG (beta) keeps what moves whole where AMD FSR's can tear it; chosen, the launcher offers to download it from Apex Compute's releases."
+msgstr "Frame di layar jadi dua kali lipat, dengan VSync aktif: game ditahan di setengah refresh rate monitor (60 pada 120 Hz), satu frame dibuat di antara tiap dua frame, sekitar satu frame lebih lambat, dan di bawah 25 fitur ini tidak bekerja. ANR FG (beta) menjaga benda yang bergerak tetap utuh di tempat milik AMD FSR bisa merobeknya; bila dipilih, launcher menawarkan untuk mengunduhnya dari rilis Apex Compute."
+
+#: launcher.cpp:333
+msgid "NVIDIA Reflex"
+msgstr "NVIDIA Reflex"
+
+#: launcher.cpp:334
+msgid "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame generation. Takes effect at the next start."
+msgstr "Input lag lebih rendah di NVIDIA GeForce GTX 900 dan yang lebih baru (beta): tiap frame dimulai selambat yang diizinkan GPU, jadi lebih sedikit frame yang mengantre saat GPU menjadi bagian yang lebih lambat. Boost juga menjaga clock GPU tetap tinggi. Tidak bisa bersama frame generation. Berlaku saat game dijalankan berikutnya."
+
+#: launcher.cpp:337
+msgid "Anti-aliasing"
+msgstr "Anti-aliasing"
+
+#: launcher.cpp:338
+msgid "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling does this itself in play."
+msgstr "Menghaluskan tepi bergerigi setelah game selesai menggambar frame. Hampir tanpa beban. Penskalaan AMD FSR melakukannya sendiri saat bermain."
+
+#: launcher.cpp:340
+msgid "Anisotropic filtering"
+msgstr "Filter anisotropik"
+
+#: launcher.cpp:341
+msgid "Sharper textures seen at an angle. The game itself asks for none."
+msgstr "Tekstur lebih tajam saat dilihat dari sudut miring. Game sendiri tidak memintanya sama sekali."
+
+#: launcher.cpp:342
+msgid "Build shaders in the background"
+msgstr "Kompilasi shader di latar belakang"
+
+#: launcher.cpp:343
+msgid "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things wait for theirs; an effect turns up a moment late."
+msgstr "Shader baru dikompilasi sementara game tetap berjalan, bukan tersendat. Dinding, lantai dan benda padat lainnya menunggu shader-nya; efek muncul sesaat terlambat."
+
+#: launcher.cpp:345
+msgid "Wait for new shaders"
+msgstr "Tunggu shader baru"
+
+#: launcher.cpp:346
+msgid "How long walls and floors wait for their new shaders. Short: 33 ms in all for a frame, no pause; past it a gap shows there until the shader is built. Full: up to two seconds each, no gap but a pause. Off: no wait, a gap for a moment."
+msgstr "Berapa lama dinding dan lantai menunggu shader barunya. Singkat: total 33 ms per frame, tanpa jeda; lewat dari itu tampak celah di sana sampai shader selesai dikompilasi. Penuh: hingga dua detik masing-masing, tanpa celah tetapi ada jeda. Nonaktif: tanpa menunggu, ada celah sesaat."
+
+#: launcher.cpp:349
+msgid "Render thread"
+msgstr "Thread render"
+
+#: launcher.cpp:350
+msgid "The GPU's work is recorded and shown on a thread of its own, beside the one that reads the game's commands: about 10% more frames where that one holds the game back."
+msgstr "Pekerjaan GPU direkam dan ditampilkan di thread tersendiri, di samping thread yang membaca perintah game: frame bertambah sekitar 10% bila thread itu yang menahan game."
+
+#: launcher.cpp:352
+msgid "Build pipelines first"
+msgstr "Kompilasi pipeline dulu"
+
+#: launcher.cpp:353
+msgid "At the start the game waits until the pipelines kept from earlier sessions are built, so none is built while you play: a moment, a few seconds after a GPU driver update."
+msgstr "Saat mulai, game menunggu sampai pipeline yang tersimpan dari sesi sebelumnya selesai dikompilasi, jadi tidak ada yang dikompilasi saat Anda bermain: sebentar saja, beberapa detik setelah pembaruan driver GPU."
+
+#. check_line
+#: launcher.cpp:355 launcher.cpp:2961
+msgid "Pixel shaders built ahead"
+msgstr "Pixel shader dikompilasi lebih dulu"
+
+#: launcher.cpp:356
+msgid "The pixel shaders of the game's files are built before play, after the vertex shaders on the first start (Enter or Start leaves them for the next), or by Build all shaders now below Clear shaders: some minutes, once. Places you reach later wait for fewer of them."
+msgstr "Pixel shader dari file game dikompilasi sebelum bermain, setelah vertex shader saat game pertama kali dijalankan (Enter atau Start menundanya ke lain kali), atau lewat Kompilasi shader di bawah Hapus shader: beberapa menit, sekali saja. Tempat yang Anda capai nanti lebih jarang menunggu shader."
+
+#: launcher.cpp:359
+msgid "Device"
+msgstr "Perangkat"
+
+#: launcher.cpp:360
+msgid "Auto reads a controller and the keyboard and mouse at the same time: either one plays."
+msgstr "Otomatis membaca kontroler serta keyboard dan mouse sekaligus: keduanya bisa dipakai bermain."
+
+#: launcher.cpp:361
+msgid "Controller API"
+msgstr "API kontroler"
+
+#: launcher.cpp:362
+msgid "Auto reads a controller through XInput when it has it (Xbox, most PC pads), else through SDL3 (DualShock 4, DualSense, Switch and others). With DS4Windows, XInput, or one controller counts twice."
+msgstr "Otomatis membaca kontroler lewat XInput bila didukung (Xbox, kebanyakan gamepad PC), selain itu lewat SDL3 (DualShock 4, DualSense, Switch dan lainnya). Dengan DS4Windows, pilih XInput, atau satu kontroler terhitung dua kali."
+
+#: launcher.cpp:364
+msgid "Stick dead zone"
+msgstr "Zona mati stik"
+
+#: launcher.cpp:365
+msgid "How far a stick moves before it counts."
+msgstr "Seberapa jauh stik bergerak sebelum terbaca."
+
+#: launcher.cpp:366
+msgid "Confirm button"
+msgstr "Tombol konfirmasi"
+
+#: launcher.cpp:367
+msgid "The button that confirms in the menus."
+msgstr "Tombol untuk konfirmasi di menu."
+
+#: launcher.cpp:368
+msgid "Vibration"
+msgstr "Getaran"
+
+#: launcher.cpp:368
+msgid "Controller rumble."
+msgstr "Getaran kontroler."
+
+#: launcher.cpp:369
+msgid "Damage to Kratos"
+msgstr "Damage ke Kratos"
+
+#: launcher.cpp:370
+msgid "How much of a hit he takes. None: hits take no health from him."
+msgstr "Seberapa besar serangan yang ia terima. Tidak ada: serangan tidak mengurangi darahnya."
+
+#: launcher.cpp:371
+msgid "Kratos's damage"
+msgstr "Damage dari Kratos"
+
+#: launcher.cpp:372
+msgid "How much his hits take from an enemy. One hit: all of its health."
+msgstr "Seberapa banyak serangannya mengurangi darah musuh. Sekali pukul: seluruh darahnya."
+
+#: launcher.cpp:373
+msgid "Max red orbs"
+msgstr "Orb merah maksimal"
+
+#: launcher.cpp:374
+msgid "The red orbs are held at the most the game allows, 1,000,000. A save made with this on keeps them."
+msgstr "Orb merah ditahan di jumlah terbanyak yang diizinkan game, 1.000.000. Simpanan yang dibuat saat ini aktif tetap memuatnya."
+
+#: launcher.cpp:375
+msgid "Infinite magic and items"
+msgstr "Sihir dan item tak terbatas"
+
+#: launcher.cpp:376
+msgid "The magic and item meters stay full."
+msgstr "Meter sihir dan item tetap penuh."
+
+#: launcher.cpp:377
+msgid "Infinite rage"
+msgstr "Amarah tak terbatas"
+
+#: launcher.cpp:378
+msgid "The rage meter stays full."
+msgstr "Meter amarah tetap penuh."
+
+#: launcher.cpp:379
+msgid "Infinite double jumps"
+msgstr "Lompat ganda tak terbatas"
+
+#: launcher.cpp:380
+msgid "Kratos can jump again in the air, as often as he likes."
+msgstr "Kratos bisa melompat lagi di udara, sesering yang ia mau."
+
+#: launcher.cpp:381
+msgid "Use mods"
+msgstr "Gunakan mod"
+
+#: launcher.cpp:382
+msgid "Off: the game as it is, every mod left out. Below, each one is switched on its own."
+msgstr "Nonaktif: game apa adanya, semua mod tidak dipakai. Di bawah, tiap mod diaktifkan sendiri-sendiri."
+
+#: launcher.cpp:383
+msgid "Write out the game's textures"
+msgstr "Ekspor tekstur game"
+
+#: launcher.cpp:384
+msgid "For making texture mods: each texture the game loads goes once into textures-dump beside the settings, named by the id a picture in its place takes. The game is slower while it is on."
+msgstr "Untuk membuat mod tekstur: tiap tekstur yang dimuat game disimpan sekali ke textures-dump di samping file pengaturan, dinamai dengan id yang dipakai gambar penggantinya. Game lebih lambat selama ini aktif."
+
+#. text
+#: launcher.cpp:386 launcher.cpp:2616 launcher.cpp:3088
+msgid "Multiplayer"
+msgstr "Multiplayer"
+
+#: launcher.cpp:387
+msgid "Auto: the game finds other players itself, as torrents find their peers: no host. Host: this PC runs the matchmaking, for its own game and the players who join it. Join: play through a host's PC. Then Multi-Player on the game's title screen, and Quick Play."
+msgstr "Otomatis: game mencari pemain lain sendiri, seperti torrent mencari peer-nya: tanpa host. Host: PC ini menjalankan matchmaking, untuk game-nya sendiri dan pemain yang bergabung. Gabung: bermain lewat PC host. Lalu pilih Multi-Player di layar judul game, dan Quick Play."
+
+#: launcher.cpp:390
+msgid "Online ID"
+msgstr "ID online"
+
+#: launcher.cpp:391
+msgid "Your name in the game: 3 to 16 letters, digits, - and _, starting with a letter. Every player needs their own."
+msgstr "Nama Anda di game: 3 sampai 16 huruf, angka, - dan _, diawali huruf. Tiap pemain perlu ID sendiri."
+
+#: launcher.cpp:393
+msgid "Host's address"
+msgstr "Alamat host"
+
+#: launcher.cpp:394
+msgid "To join: the address the host's Multiplayer tab shows, or the host's name."
+msgstr "Untuk bergabung: alamat yang tampil di tab Multiplayer milik host, atau nama host."
+
+#: launcher.cpp:395
+msgid "Always relayed"
+msgstr "Selalu lewat relay"
+
+#: launcher.cpp:396
+msgid "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the other players: for a network where joining works and playing does not."
+msgstr "Lalu lintas game Anda lewat PC host (Host, Gabung) atau node para pemain (Otomatis), bukan langsung ke pemain lain: untuk jaringan yang bisa bergabung tetapi tidak bisa bermain."
+
+#: launcher.cpp:398
+msgid "Open the port on the router"
+msgstr "Buka port di router"
+
+#: launcher.cpp:399
+msgid "Auto: asks the router (UPnP) to let other players reach this PC, as torrent clients do. Players who can be reached carry for the ones who cannot."
+msgstr "Otomatis: meminta router (UPnP) agar pemain lain bisa menjangkau PC ini, seperti klien torrent. Pemain yang bisa dijangkau meneruskan lalu lintas bagi yang tidak bisa."
+
+#: launcher.cpp:401
+msgid "Help others connect"
+msgstr "Bantu pemain lain terhubung"
+
+#: launcher.cpp:402
+msgid "Auto: two players who cannot reach each other may talk through your PC (a few pairs at most)."
+msgstr "Otomatis: dua pemain yang tidak bisa saling menjangkau boleh berkomunikasi lewat PC Anda (paling banyak beberapa pasang)."
+
+#: launcher.cpp:403
+msgid "Community nodes"
+msgstr "Node komunitas"
+
+#: launcher.cpp:404
+msgid "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and carry for them: address:port, a comma between."
+msgstr "Otomatis: node yang bisa dijalankan siapa saja di PC yang bisa dijangkau (scripts\\mp_p2p.py community), yang mempertemukan pemain dan meneruskan lalu lintas mereka: alamat:port, dipisah koma."
+
+#: launcher.cpp:406
+msgid "Launcher language"
+msgstr "Bahasa launcher"
+
+#: launcher.cpp:407
+msgid "The language of this window. Windows language follows Windows' display language, and English where this window has no translation. The game's own text and speech are the next row's."
+msgstr "Bahasa jendela ini. Bahasa Windows mengikuti bahasa tampilan Windows, dan bahasa Inggris bila jendela ini belum punya terjemahannya. Teks dan suara game sendiri diatur di baris berikutnya."
+
+#: launcher.cpp:409
+msgid "Language"
+msgstr "Bahasa"
+
+#: launcher.cpp:410
+msgid "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for this one, Triangle for Greek), and keeps it."
+msgstr "Bahasa game: teks dan suara. Disk EU mengambilnya saat pertama kali dijalankan, ketika game bertanya (Silang untuk bahasa ini, Segitiga untuk bahasa Yunani), lalu tetap memakainya."
+
+#: launcher.cpp:412
+msgid "Esc closes the game"
+msgstr "Esc menutup game"
+
+#: launcher.cpp:413
+msgid "Esc is not a PS3 button; off leaves it free."
+msgstr "Esc bukan tombol PS3; Nonaktif membiarkannya bebas."
+
+#: launcher.cpp:414
+msgid "Save backups"
+msgstr "Cadangan simpanan"
+
+#: launcher.cpp:415
+msgid "Copies kept of a save before the game writes over it."
+msgstr "Jumlah salinan simpanan yang disisakan sebelum game menimpanya."
+
+#: launcher.cpp:416
+msgid "Steady audio"
+msgstr "Audio stabil"
+
+#: launcher.cpp:417
+msgid "Runs the game's sound on a thread of its own, so heavy fights do not break it up."
+msgstr "Menjalankan suara game di thread tersendiri, agar pertarungan berat tidak membuatnya putus-putus."
+
+#: launcher.cpp:418
+msgid "Speakers"
+msgstr "Speaker"
+
+#: launcher.cpp:419
+msgid "Auto follows the output device; 7.1 for Windows Sonic or Dolby Atmos for Headphones. Surround also needs the game's Sound Mode (Options, Audio) on 5.1 or 7.1."
+msgstr "Otomatis mengikuti perangkat output; 7.1 untuk Windows Sonic atau Dolby Atmos for Headphones. Surround juga butuh Sound Mode game (Options, Audio) di 5.1 atau 7.1."
+
+#: launcher.cpp:421
+msgid "Bypass sound effects"
+msgstr "Lewati efek suara"
+
+#: launcher.cpp:422
+msgid "The game's sound skips Windows' and the sound card's effects (equalizers, loudness, virtual surround), where the device has a way past them."
+msgstr "Suara game melewati efek Windows dan kartu suara (equalizer, loudness, virtual surround), bila perangkat punya cara untuk melewatinya."
+
+#: launcher.cpp:424
+msgid "Precompile music"
+msgstr "Musik prakompilasi"
+
+#: launcher.cpp:425
+msgid "Music on the screen that builds the shaders at a version's first start, made by the program."
+msgstr "Musik di layar yang mengompilasi shader saat sebuah versi pertama kali dijalankan, dibuat oleh program."
+
+#: launcher.cpp:426
+msgid "Optimise for this PC"
+msgstr "Optimalkan untuk PC ini"
+
+#: launcher.cpp:427
+msgid "When the game's code is built, a training copy first plays the opening by itself, muted, in a window of its own (leave it open), and the build then uses what it counted: 2-3% more frames on the test laptop. It adds about 15 minutes to each build; if anything goes wrong there, the build goes on without it. Turned on after a build, Play builds the game's code again with it."
+msgstr "Saat kode game dikompilasi, sebuah salinan latihan lebih dulu memainkan bagian pembuka sendiri, tanpa suara, di jendelanya sendiri (biarkan terbuka), lalu kompilasi memakai hasil hitungannya: di laptop uji, frame bertambah 2-3%. Waktu tiap kompilasi bertambah sekitar 15 menit; bila ada yang gagal di sana, kompilasi tetap berlanjut tanpanya. Bila diaktifkan setelah kompilasi, Mainkan mengompilasi ulang kode game dengannya."
+
+#: launcher.cpp:431
+msgid "Show this window at start"
+msgstr "Tampilkan jendela ini saat mulai"
+
+#: launcher.cpp:432
+msgid "When off, hold Shift while the game starts to bring it back."
+msgstr "Bila nonaktif, tahan Shift saat game dimulai untuk memunculkannya lagi."
+
+#: launcher.cpp:433
+msgid "Check for updates"
+msgstr "Periksa pembaruan"
+
+#: launcher.cpp:434
+msgid "At most every six hours, asks GitHub whether a newer release is out, and says so here with a link to it."
+msgstr "Paling sering tiap enam jam, menanyakan ke GitHub apakah ada rilis yang lebih baru, lalu memberi tahu di sini dengan tautannya."
+
+#: launcher.cpp:452
+msgid "The PS3's SPU anti-aliasing, whose picture this port never shows, does no work: about 5% faster, and the bloom stays. AMD FSR and frame generation take the game's order without MLAA, which has no bloom or motion blur."
+msgstr "Anti-aliasing SPU milik PS3, yang gambarnya tidak pernah ditampilkan port ini, tidak dijalankan: sekitar 5% fps lebih tinggi, dan bloom tetap ada. AMD FSR dan frame generation memakai urutan game tanpa MLAA, yang tidak punya bloom atau motion blur."
+
+#: launcher.cpp:455
+msgid "The blur of what lies outside the camera's focus."
+msgstr "Efek buram pada apa pun di luar fokus kamera."
+
+#: launcher.cpp:456
+msgid "No blur of what moves fast. With AMD FSR or frame generation it never reaches the screen anyway, and they keep its draws, for what moves."
+msgstr "Tanpa buram pada benda yang bergerak cepat. Dengan AMD FSR atau frame generation efek ini memang tidak pernah sampai ke layar, dan keduanya tetap memakai gambarnya, untuk benda yang bergerak."
+
+#: launcher.cpp:458
+msgid "Keeps the triangles the game drops as too thin for its 720p grid. For Internal resolution above 720p: at 720p it only adds geometry (3% slower at the first level, 11% at the gate)."
+msgstr "Mempertahankan segitiga yang dibuang game karena terlalu tipis untuk grid 720p-nya. Untuk Resolusi internal di atas 720p: pada 720p ini hanya menambah geometri (lebih lambat 3% saat di level pertama, 11% apabila di gerbang)."
+
+#: launcher.cpp:461
+msgid "No dynamic shadows: the biggest saving, about 25% faster in the Megaera fight."
+msgstr "Tanpa bayangan dinamis: penghematan terbesar, sekitar 25% fps lebih tinggi dalam pertarungan melawan Megaera."
+
+#: launcher.cpp:487
+msgid "D-pad up"
+msgstr "Tombol arah atas"
+
+#: launcher.cpp:487
+msgid "Left stick up"
+msgstr "Stik kiri ke atas"
+
+#: launcher.cpp:488
+msgid "D-pad down"
+msgstr "Tombol arah bawah"
+
+#: launcher.cpp:488
+msgid "Left stick down"
+msgstr "Stik kiri ke bawah"
+
+#: launcher.cpp:489
+msgid "D-pad left"
+msgstr "Tombol arah kiri"
+
+#: launcher.cpp:489
+msgid "Left stick left"
+msgstr "Stik kiri ke kiri"
+
+#: launcher.cpp:490
+msgid "D-pad right"
+msgstr "Tombol arah kanan"
+
+#: launcher.cpp:490
+msgid "Left stick right"
+msgstr "Stik kiri ke kanan"
+
+#: launcher.cpp:491
+msgid "Right stick up"
+msgstr "Stik kanan ke atas"
+
+#: launcher.cpp:492
+msgid "Right stick down"
+msgstr "Stik kanan ke bawah"
+
+#: launcher.cpp:493
+msgid "Square"
+msgstr "Kotak"
+
+#: launcher.cpp:493
+msgid "Right stick left"
+msgstr "Stik kanan ke kiri"
+
+#: launcher.cpp:494
+msgid "Triangle"
+msgstr "Segitiga"
+
+#: launcher.cpp:494
+msgid "Right stick right"
+msgstr "Stik kanan ke kanan"
+
+#: launcher.cpp:498
+msgid "Start"
+msgstr "Start"
+
+#: launcher.cpp:498
+msgid "Select"
+msgstr "Select"
+
+#: launcher.cpp:647
+msgid "in the multiplayer menu"
+msgstr "di menu multiplayer"
+
+#: launcher.cpp:647
+msgid "looking for a match"
+msgstr "mencari pertandingan"
+
+#: launcher.cpp:648
+msgid "in a match"
+msgstr "dalam pertandingan"
+
+#. snprintf
+#: launcher.cpp:757
+msgid "Could not write %s."
+msgstr "Tidak dapat menulis %s."
+
+#: launcher.cpp:900
+msgid "Stopping…"
+msgstr "Menghentikan…"
+
+#: launcher.cpp:901
+msgid "Starting…"
+msgstr "Memulai…"
+
+#: launcher.cpp:903
+msgid "%ls · about %ld min left"
+msgstr "%ls · sekitar %ld menit lagi"
+
+#: launcher.cpp:904
+msgid "%ls · about a minute left"
+msgstr "%ls · sekitar semenit lagi"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 25 minutes"
+msgstr "Sekali saja, di PC ini: sekitar 25 menit"
+
+#: launcher.cpp:913
+msgid "Once, on this PC: about 10 minutes"
+msgstr "Sekali saja, di PC ini: sekitar 10 menit"
+
+#: launcher.cpp:916
+msgid "Not built: %ls"
+msgstr "Gagal dikompilasi: %ls"
+
+#: launcher.cpp:925
+msgid "The game's code is partly built"
+msgstr "Kode game baru sebagian dikompilasi"
+
+#: launcher.cpp:926
+msgid "Build goes on where it stopped"
+msgstr "Kompilasi berlanjut dari titik berhentinya"
+
+#: launcher.cpp:928
+msgid "The game's code is not built yet"
+msgstr "Kode game belum dikompilasi"
+
+#: launcher.cpp:932
+msgid "The game's code is from another version"
+msgstr "Kode game berasal dari versi lain"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 25 minutes"
+msgstr "Ulang, di PC ini: sekitar 25 menit"
+
+#: launcher.cpp:933
+msgid "Again, on this PC: about 10 minutes"
+msgstr "Ulang, di PC ini: sekitar 10 menit"
+
+#: launcher.cpp:936
+msgid "The game's code is built without Optimise for this PC"
+msgstr "Kode game dikompilasi tanpa Optimalkan untuk PC ini"
+
+#: launcher.cpp:937
+msgid "Again with it: about 25 minutes"
+msgstr "Ulang dengan fitur itu: sekitar 25 menit"
+
+#. toast_bad
+#: launcher.cpp:940 launcher.cpp:4992
+msgid "No Kit folder to build the game's code with"
+msgstr "Tidak ada folder Kit untuk mengompilasi kode game"
+
+#: launcher.cpp:966
+msgid " Stopping…"
+msgstr " Menghentikan…"
+
+#: launcher.cpp:975
+msgid "Downloading RPCS3: %.1f of %.1f MB, no data for %d s%ls"
+msgstr "Mengunduh RPCS3: %.1f dari %.1f MB, tanpa data selama %d s%ls"
+
+#: launcher.cpp:978
+msgid "Downloading RPCS3: no answer from the server for %d s%ls"
+msgstr "Mengunduh RPCS3: tidak ada jawaban dari server selama %d s%ls"
+
+#: launcher.cpp:982
+msgid ", %ld reconnected"
+msgstr ", %ld kali tersambung ulang"
+
+#: launcher.cpp:983
+msgid "Downloading RPCS3: %.1f of %.1f MB, %.1f MB/s, about %d s left%ls%ls"
+msgstr "Mengunduh RPCS3: %.1f dari %.1f MB, %.1f MB/s, sekitar %d s lagi%ls%ls"
+
+#: launcher.cpp:986
+msgid "Downloading RPCS3: %.1f of %.1f MB%ls"
+msgstr "Mengunduh RPCS3: %.1f dari %.1f MB%ls"
+
+#: launcher.cpp:988
+msgid "Downloading RPCS3: connecting…%ls"
+msgstr "Mengunduh RPCS3: menyambung…%ls"
+
+#: launcher.cpp:992
+msgid "Checking the download…%ls"
+msgstr "Memeriksa unduhan…%ls"
+
+#: launcher.cpp:993
+msgid "Unpacking RPCS3… %d s%ls"
+msgstr "Mengekstrak RPCS3… %d s%ls"
+
+#: launcher.cpp:994
+msgid "Copying the game's files…%ls"
+msgstr "Menyalin file game…%ls"
+
+#: launcher.cpp:995
+msgid "Decrypting the game… %d s%ls"
+msgstr "Mendekripsi game… %d s%ls"
+
+#: launcher.cpp:996
+msgid "Checking the result…%ls"
+msgstr "Memeriksa hasilnya…%ls"
+
+#: launcher.cpp:1065
+msgid "Not the whole game: see the System tab"
+msgstr "Game tidak lengkap: lihat tab Sistem"
+
+#: launcher.cpp:1066
+msgid "Not version 1.12: see the System tab"
+msgstr "Bukan versi 1.12: lihat tab Sistem"
+
+#: launcher.cpp:1067
+msgid "Set the game's folder first"
+msgstr "Atur folder game dulu"
+
+#: launcher.cpp:1072
+msgid "Not set"
+msgstr "Belum diatur"
+
+#: launcher.cpp:1075
+msgid "%ls  ·  update: %ls"
+msgstr "%ls  ·  pembaruan: %ls"
+
+#: launcher.cpp:1096
+msgid "God of War: Ascension · %ls · %ls"
+msgstr "God of War: Ascension · %ls · %ls"
+
+#: launcher.cpp:1100
+msgid "That is %ls %ls. This port runs version 1.12: install the game's update first"
+msgstr "Itu %ls %ls. Port ini menjalankan versi 1.12: pasang pembaruan game dulu"
+
+#: launcher.cpp:1104
+msgid "%ls %ls, but not the GOWA.elf this port was made from: it may not run"
+msgstr "%ls %ls, tetapi bukan GOWA.elf yang menjadi dasar port ini: mungkin tidak bisa berjalan"
+
+#: launcher.cpp:1113
+msgid "To decrypt the game this needs the RPCS3 its update is installed in"
+msgstr "Untuk mendekripsi game, perlu RPCS3 tempat pembaruannya dipasang"
+
+#: launcher.cpp:1114
+msgid "To decrypt the game this needs RPCS3 and its license file (.rap)"
+msgstr "Untuk mendekripsi game, perlu RPCS3 dan file lisensinya (.rap)"
+
+#: launcher.cpp:1115
+msgid "To decrypt the game this needs its license file (.rap)"
+msgstr "Untuk mendekripsi game, perlu file lisensinya (.rap)"
+
+#: launcher.cpp:1116
+msgid "To decrypt the game this needs RPCS3"
+msgstr "Untuk mendekripsi game, perlu RPCS3"
+
+#: launcher.cpp:1119
+msgid "That is %ls %ls. This port runs %ls 1.12"
+msgstr "Itu %ls %ls. Port ini menjalankan %ls 1.12"
+
+#: launcher.cpp:1122
+msgid "No game there. Auto detect looks on every disk, or Browse to its folder"
+msgstr "Tidak ada game di sana. Deteksi otomatis mencari di setiap disk, atau pilih foldernya lewat Telusuri"
+
+#: launcher.cpp:1160
+msgid "Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat."
+msgstr "Diskrit: %s. Terintegrasi: %s, lebih lambat, tetapi lebih hemat daya dan lebih sedikit menghasilkan panas."
+
+#: launcher.cpp:1268 launcher.cpp:1271 launcher.cpp:1344
+msgid "graphics.anr_dll names no folder"
+msgstr "graphics.anr_dll tidak menyebut folder"
+
+#: launcher.cpp:1278
+msgid "the zip was not unpacked: "
+msgstr "zip tidak diekstrak: "
+
+#: launcher.cpp:1284
+msgid "it holds no nvngx_dlssg.dll: pick ANR FG's full or addon zip"
+msgstr "isinya tidak ada nvngx_dlssg.dll: pilih zip full atau addon ANR FG"
+
+#: launcher.cpp:1289
+msgid "the folder there could not be moved aside: is the game running?"
+msgstr "folder di sana tidak bisa dipindahkan: apakah game sedang berjalan?"
+
+#: launcher.cpp:1294
+msgid "its folder could not be put in place"
+msgstr "foldernya tidak bisa dipasang di tempatnya"
+
+#. snprintf
+#: launcher.cpp:1314 launcher.cpp:4819
+msgid "graphics.anr_dll is not a path"
+msgstr "graphics.anr_dll bukan sebuah jalur"
+
+#: launcher.cpp:1347
+msgid "no folder could be made for the download"
+msgstr "folder untuk unduhan tidak bisa dibuat"
+
+#: launcher.cpp:1356
+msgid "its DLL is not signed by Apex Compute, Inc., so it was taken out again"
+msgstr "DLL-nya tidak ditandatangani oleh Apex Compute, Inc., jadi dihapus lagi"
+
+#. toast_bad
+#: launcher.cpp:1387
+msgid "ANR FG: graphics.anr_dll is not a path"
+msgstr "ANR FG: graphics.anr_dll bukan sebuah jalur"
+
+#. toast_bad
+#: launcher.cpp:1394
+msgid "ANR FG: the download could not start"
+msgstr "ANR FG: unduhan tidak bisa dimulai"
+
+#. toast
+#: launcher.cpp:1395
+msgid "Downloading ANR FG: the Play tab shows how far"
+msgstr "Mengunduh ANR FG: progresnya tampil di tab Mainkan"
+
+#: launcher.cpp:1404
+msgid "ANR FG %s is set up, signed by Apex Compute"
+msgstr "ANR FG %s terpasang, ditandatangani Apex Compute"
+
+#: launcher.cpp:1407
+msgid "ANR FG: %s"
+msgstr "ANR FG: %s"
+
+#. toast_bad
+#: launcher.cpp:1440
+msgid "NVIDIA DLSS: the download could not start"
+msgstr "NVIDIA DLSS: unduhan tidak bisa dimulai"
+
+#. toast
+#: launcher.cpp:1441
+msgid "Downloading NVIDIA DLSS: the Play tab shows how far"
+msgstr "Mengunduh NVIDIA DLSS: progresnya tampil di tab Mainkan"
+
+#: launcher.cpp:1449
+msgid "NVIDIA DLSS %s is set up, signed by NVIDIA"
+msgstr "NVIDIA DLSS %s terpasang, ditandatangani NVIDIA"
+
+#: launcher.cpp:1452
+msgid "NVIDIA DLSS: %s"
+msgstr "NVIDIA DLSS: %s"
+
+#: launcher.cpp:1530
+msgid "Smooth"
+msgstr "Lancar"
+
+#: launcher.cpp:1530
+msgid "The default and the fastest: 720p sharpened by AMD FSR 1, SMAA; no dynamic shadows or motion blur."
+msgstr "Bawaan dan tercepat: 720p dipertajam AMD FSR 1, SMAA; tanpa bayangan dinamis dan motion blur."
+
+#: launcher.cpp:1537
+msgid "Balanced"
+msgstr "Seimbang"
+
+#: launcher.cpp:1537
+msgid "1080p by AMD FSR 1, dynamic shadows at 2x, full-size bloom, ambient occlusion; no motion blur."
+msgstr "1080p lewat AMD FSR 1, bayangan dinamis 2x, bloom ukuran penuh, ambient occlusion; tanpa motion blur."
+
+#: launcher.cpp:1544
+msgid "Ultra"
+msgstr "Ultra"
+
+#: launcher.cpp:1544
+msgid "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The slowest."
+msgstr "Semua efek maksimal: resolusi jendela, SMAA, bayangan 4x, ambient occlusion dan bloom. Paling lambat."
+
+#: launcher.cpp:2615
+msgid "Play"
+msgstr "Mainkan"
+
+#: launcher.cpp:2615
+msgid "Graphics"
+msgstr "Grafis"
+
+#: launcher.cpp:2615
+msgid "Display"
+msgstr "Tampilan"
+
+#: launcher.cpp:2615
+msgid "Controls"
+msgstr "Kontrol"
+
+#: launcher.cpp:2615
+msgid "Game patches"
+msgstr "Patch game"
+
+#: launcher.cpp:2615
+msgid "Cheats"
+msgstr "Cheat"
+
+#: launcher.cpp:2616
+msgid "Mods"
+msgstr "Mod"
+
+#: launcher.cpp:2616
+msgid "Trophies"
+msgstr "Trofi"
+
+#: launcher.cpp:2616
+msgid "System"
+msgstr "Sistem"
+
+#: launcher.cpp:2620
+msgid "How the picture is scaled, smoothed and filtered."
+msgstr "Cara gambar diskalakan, dihaluskan dan difilter."
+
+#: launcher.cpp:2620
+msgid "The window, its pace and the frame rate display."
+msgstr "Jendela, temponya, dan tampilan frame rate."
+
+#: launcher.cpp:2621
+msgid "Controller and keyboard."
+msgstr "Kontroler dan keyboard."
+
+#: launcher.cpp:2621
+msgid "Switches that change what the game draws, for speed."
+msgstr "Sakelar yang mengubah apa yang digambar game, demi kecepatan."
+
+#: launcher.cpp:2622
+msgid "For an easier fight. The game reads these when it starts; multiplayer turns them off until the next start."
+msgstr "Untuk pertarungan yang lebih mudah. Game membacanya saat dimulai; multiplayer menonaktifkannya sampai game dijalankan lagi."
+
+#: launcher.cpp:2623
+msgid "Files that change the game, from the mods folder. The game reads them when it starts."
+msgstr "File yang mengubah game, dari folder mods. Game membacanya saat dimulai."
+
+#: launcher.cpp:2624
+msgid "What you have won, from the game's own trophy list."
+msgstr "Yang sudah Anda raih, dari daftar trofi milik game sendiri."
+
+#: launcher.cpp:2625
+msgid "Play with other players: found by the game itself, or through a host."
+msgstr "Bermain dengan pemain lain: ditemukan oleh game sendiri, atau lewat host."
+
+#: launcher.cpp:2626
+msgid "The game's folder, language, saves and this window."
+msgstr "Folder game, bahasa, simpanan dan jendela ini."
+
+#: launcher.cpp:2684
+msgid "%ls available ›"
+msgstr "%ls tersedia ›"
+
+#: launcher.cpp:2696
+msgid "Built %ls"
+msgstr "Dibuat %ls"
+
+#. side_link
+#: launcher.cpp:2719 launcher.cpp:4644 launcher.cpp:4654 launcher.cpp:4677
+msgid "Report a problem"
+msgstr "Laporkan masalah"
+
+#. side_link
+#: launcher.cpp:2720 launcher.cpp:4236
+msgid "Clear shaders"
+msgstr "Hapus shader"
+
+#: launcher.cpp:2722
+msgid "Build all shaders now"
+msgstr "Kompilasi shader"
+
+#: launcher.cpp:2723
+msgid "Building shaders %ld%%"
+msgstr "Kompilasi shader %ld%%"
+
+#: launcher.cpp:2724
+msgid "Reading the game's files"
+msgstr "Membaca file game"
+
+#. side_link
+#: launcher.cpp:2726
+msgid "Open save folder"
+msgstr "Buka folder simpanan"
+
+#: launcher.cpp:2810
+msgid "PS3 code recompiled to x86-64, drawn with Direct3D 12."
+msgstr "Kode PS3 dikompilasi ulang ke x86-64, digambar dengan Direct3D 12."
+
+#. text
+#: launcher.cpp:2816
+msgid "NATIVE PC PORT · STATIC RECOMPILATION"
+msgstr "PORT PC NATIF · REKOMPILASI STATIS"
+
+#. draw_chip
+#: launcher.cpp:2832
+msgid "DIRECT3D 12"
+msgstr "DIRECT3D 12"
+
+#: launcher.cpp:2834
+msgid "INTERNAL: WINDOW"
+msgstr "INTERNAL: JENDELA"
+
+#: launcher.cpp:2835
+msgid "%ls INTERNAL"
+msgstr "%ls INTERNAL"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW PRE-RELEASE"
+msgstr "PRA-RILIS BARU"
+
+#. text
+#: launcher.cpp:2846
+msgid "NEW RELEASE"
+msgstr "RILIS BARU"
+
+#: launcher.cpp:2848
+msgid "%ls is out"
+msgstr "%ls telah dirilis"
+
+#: launcher.cpp:2849
+msgid "Download"
+msgstr "Unduh"
+
+#. w_card
+#: launcher.cpp:2864
+msgid "READY CHECK"
+msgstr "CEK KESIAPAN"
+
+#. check_line
+#: launcher.cpp:2867
+msgid "Looking for the game…"
+msgstr "Mencari game…"
+
+#. w_button
+#: launcher.cpp:2885 launcher.cpp:2957 launcher.cpp:2997 launcher.cpp:3012
+msgid "Stop"
+msgstr "Hentikan"
+
+#. w_button
+#: launcher.cpp:2890
+msgid "Log"
+msgstr "Log"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:3141
+msgid "Try again"
+msgstr "Coba lagi"
+
+#. w_button
+#: launcher.cpp:2891 launcher.cpp:2964
+msgid "Build"
+msgstr "Kompilasi"
+
+#. check_line
+#: launcher.cpp:2896
+msgid "Not decrypted yet (System tab)"
+msgstr "Belum didekripsi (tab Sistem)"
+
+#: launcher.cpp:2897
+msgid "Game files missing (System tab)"
+msgstr "File game hilang (tab Sistem)"
+
+#: launcher.cpp:2898
+msgid "Wrong game files (System tab)"
+msgstr "File game salah (tab Sistem)"
+
+#. check_line
+#: launcher.cpp:2899
+msgid "Not version 1.12 (System tab)"
+msgstr "Bukan versi 1.12 (tab Sistem)"
+
+#. check_line, toast_bad
+#: launcher.cpp:2900 launcher.cpp:4192
+msgid "Game not found"
+msgstr "Game tidak ditemukan"
+
+#. w_button
+#: launcher.cpp:2901
+msgid "Find game"
+msgstr "Cari game"
+
+#. check_line
+#: launcher.cpp:2903
+msgid "Game found, but not version 1.12"
+msgstr "Game ditemukan, tetapi bukan versi 1.12"
+
+#. check_line
+#: launcher.cpp:2904
+msgid "Game found, but another GOWA.elf"
+msgstr "Game ditemukan, tetapi GOWA.elf-nya berbeda"
+
+#: launcher.cpp:2907
+msgid "Game found: %ls %ls"
+msgstr "Game ditemukan: %ls %ls"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profile"
+msgstr "Simpanan: %d profil"
+
+#: launcher.cpp:2913
+msgid "Saves: %d profiles"
+msgstr "Simpanan: %d profil"
+
+#: launcher.cpp:2914
+msgid "No saves yet: a new game makes one"
+msgstr "Belum ada simpanan: game baru akan membuatnya"
+
+#: launcher.cpp:2920
+msgid "Graphics: %ls"
+msgstr "Grafis: %ls"
+
+#: launcher.cpp:2920
+msgid "no Direct3D adapter found"
+msgstr "adapter Direct3D tidak ditemukan"
+
+#: launcher.cpp:2928
+msgid "Game patches: %d of %d on"
+msgstr "Patch game: %d dari %d aktif"
+
+#. check_line
+#: launcher.cpp:2935
+msgid "Keyboard and mouse (Controls tab)"
+msgstr "Keyboard dan mouse (tab Kontrol)"
+
+#: launcher.cpp:2938
+msgid "Controller: %ls, and %d more"
+msgstr "Kontroler: %ls, dan %d lainnya"
+
+#: launcher.cpp:2939
+msgid "Controller: %ls"
+msgstr "Kontroler: %ls"
+
+#. check_line
+#: launcher.cpp:2944
+msgid "No controller found (Controls: controller only)"
+msgstr "Kontroler tidak ditemukan (Kontrol: hanya kontroler)"
+
+#. check_line
+#: launcher.cpp:2945
+msgid "No controller: keyboard and mouse"
+msgstr "Tanpa kontroler: keyboard dan mouse"
+
+#: launcher.cpp:2953
+msgid "Building pixel shaders: %ld%%"
+msgstr "Mengompilasi pixel shader: %ld%%"
+
+#: launcher.cpp:2955
+msgid "Building pixel shaders: reading the game"
+msgstr "Mengompilasi pixel shader: membaca game"
+
+#. check_line
+#: launcher.cpp:2959
+msgid "Pixel shaders compiled as you play"
+msgstr "Pixel shader dikompilasi sambil bermain"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders partly built"
+msgstr "Pixel shader baru sebagian dikompilasi"
+
+#. check_line
+#: launcher.cpp:2963
+msgid "Pixel shaders not built yet"
+msgstr "Pixel shader belum dikompilasi"
+
+#: launcher.cpp:2984
+msgid " + ANR FG%hs%hs"
+msgstr " + ANR FG%hs%hs"
+
+#: launcher.cpp:2987
+msgid " + FSR frames"
+msgstr " + frame FSR"
+
+#: launcher.cpp:2987
+msgid " + DLSS frames"
+msgstr " + frame DLSS"
+
+#: launcher.cpp:2987
+msgid " + Reflex"
+msgstr " + Reflex"
+
+#: launcher.cpp:2992
+msgid "Downloading ANR FG %hs: %lld%%"
+msgstr "Mengunduh ANR FG %hs: %lld%%"
+
+#: launcher.cpp:2994
+msgid "Downloading ANR FG %hs"
+msgstr "Mengunduh ANR FG %hs"
+
+#. check_line
+#: launcher.cpp:2999
+msgid "ANR FG's files are not here yet"
+msgstr "File ANR FG belum ada"
+
+#. w_button
+#: launcher.cpp:3000
+msgid "Get ANR"
+msgstr "Unduh ANR"
+
+#. check_line
+#: launcher.cpp:3002
+msgid "DLSS needs an RTX card: AMD FSR instead"
+msgstr "DLSS butuh kartu RTX: memakai AMD FSR"
+
+#. check_line
+#: launcher.cpp:3003
+msgid "DLSS frame generation needs an RTX 40 or newer: off"
+msgstr "Frame generation DLSS butuh RTX 40 atau lebih baru: nonaktif"
+
+#: launcher.cpp:3007
+msgid "Downloading DLSS %hs: %lld%%"
+msgstr "Mengunduh DLSS %hs: %lld%%"
+
+#: launcher.cpp:3009
+msgid "Downloading DLSS %hs"
+msgstr "Mengunduh DLSS %hs"
+
+#. check_line
+#: launcher.cpp:3014
+msgid "DLSS frame generation's DLL is not here yet"
+msgstr "DLL frame generation DLSS belum ada"
+
+#. check_line
+#: launcher.cpp:3015
+msgid "DLSS's DLL is not here yet"
+msgstr "DLL DLSS belum ada"
+
+#. w_button
+#: launcher.cpp:3016
+msgid "Get DLSS"
+msgstr "Unduh DLSS"
+
+#: launcher.cpp:3018
+msgid "Upscaling: NVIDIA DLSS (beta)%ls"
+msgstr "Upscaling: NVIDIA DLSS (beta)%ls"
+
+#: launcher.cpp:3021
+msgid "Scaling: %ls%ls"
+msgstr "Penskalaan: %ls%ls"
+
+#: launcher.cpp:3027 launcher.cpp:3028
+msgid "Upscaling: AMD FSR %ls%ls"
+msgstr "Upscaling: AMD FSR %ls%ls"
+
+#: launcher.cpp:3029
+msgid "Upscaling: AMD FSR%ls"
+msgstr "Upscaling: AMD FSR%ls"
+
+#: launcher.cpp:3029
+msgid ", the newest the card has"
+msgstr ", versi terbaru yang dimiliki kartu"
+
+#. text
+#: launcher.cpp:3034
+msgid "GAME FOLDER"
+msgstr "FOLDER GAME"
+
+#. text
+#: launcher.cpp:3036
+msgid "SETTINGS FILE"
+msgstr "FILE PENGATURAN"
+
+#. w_card
+#: launcher.cpp:3042
+msgid "YOUR SETUP"
+msgstr "PENGATURAN ANDA"
+
+#. text
+#: launcher.cpp:3054
+msgid "Your own mix of game patches and graphics settings."
+msgstr "Campuran patch game dan pengaturan grafis pilihan Anda sendiri."
+
+#. text
+#: launcher.cpp:3075
+msgid "Frame rate on screen"
+msgstr "Frame rate di layar"
+
+#: launcher.cpp:3082
+msgid "Auto · %d online"
+msgstr "Otomatis · %d online"
+
+#: launcher.cpp:3082
+msgid "Auto · starting"
+msgstr "Otomatis · memulai"
+
+#: launcher.cpp:3083
+msgid "Auto · did not start"
+msgstr "Otomatis · gagal dimulai"
+
+#. text
+#: launcher.cpp:3109
+msgid "Game folder"
+msgstr "Folder game"
+
+#. w_button
+#: launcher.cpp:3110
+msgid "Browse…"
+msgstr "Telusuri…"
+
+#. w_button
+#: launcher.cpp:3111
+msgid "Auto detect"
+msgstr "Deteksi otomatis"
+
+#: launcher.cpp:3116
+msgid "Searching: %ls"
+msgstr "Mencari: %ls"
+
+#: launcher.cpp:3141
+msgid "Choose rpcs3.exe…"
+msgstr "Pilih rpcs3.exe…"
+
+#: launcher.cpp:3141
+msgid "Download RPCS3"
+msgstr "Unduh RPCS3"
+
+#: launcher.cpp:3141
+msgid "Choose .rap…"
+msgstr "Pilih .rap…"
+
+#: launcher.cpp:3250
+msgid "Won %ls"
+msgstr "Diraih %ls"
+
+#: launcher.cpp:3251
+msgid "Won"
+msgstr "Diraih"
+
+#. text
+#: launcher.cpp:3260
+msgid "The trophies come from the game's own files: once the game is found (System tab), they show here."
+msgstr "Trofi diambil dari file game itu sendiri: begitu game ditemukan (tab Sistem), trofi tampil di sini."
+
+#: launcher.cpp:3264
+msgid "Platinum"
+msgstr "Platinum"
+
+#: launcher.cpp:3264
+msgid "Gold"
+msgstr "Emas"
+
+#: launcher.cpp:3264
+msgid "Silver"
+msgstr "Perak"
+
+#: launcher.cpp:3264
+msgid "Bronze"
+msgstr "Perunggu"
+
+#: launcher.cpp:3278
+msgid "%d of %d won  ·  %d%%"
+msgstr "%d dari %d diraih  ·  %d%%"
+
+#. text
+#: launcher.cpp:3306
+msgid "Hidden trophy"
+msgstr "Trofi tersembunyi"
+
+#. text
+#: launcher.cpp:3307
+msgid "What it is for shows once it is won."
+msgstr "Syaratnya tampil setelah trofi diraih."
+
+#. text
+#: launcher.cpp:3308
+msgid "Won in the multiplayer, which this port does not have. The platinum does without it."
+msgstr "Diraih di multiplayer, yang tidak ada di port ini. Platinum bisa didapat tanpanya."
+
+#: launcher.cpp:3314
+msgid "Not in this port"
+msgstr "Tidak ada di port ini"
+
+#: launcher.cpp:3314
+msgid "Not won yet"
+msgstr "Belum diraih"
+
+#. toast_bad
+#: launcher.cpp:3387
+msgid "The mods folder could not be made"
+msgstr "Folder mods tidak bisa dibuat"
+
+#. text
+#: launcher.cpp:3431
+msgid "Mods folder"
+msgstr "Folder mods"
+
+#. w_button
+#: launcher.cpp:3433
+msgid "Open folder…"
+msgstr "Buka folder…"
+
+#. text
+#: launcher.cpp:3438
+msgid "No mods yet. Put a mod's folder or its .zip into the mods folder: it shows here, switched on."
+msgstr "Belum ada mod. Taruh folder mod atau file .zip-nya ke folder mods: mod akan tampil di sini, dalam keadaan aktif."
+
+#: launcher.cpp:3454
+msgid "by "
+msgstr "oleh "
+
+#: launcher.cpp:3454
+msgid "  ·  by "
+msgstr "  ·  oleh "
+
+#: launcher.cpp:3470
+msgid "Not read: %ls"
+msgstr "Tidak terbaca: %ls"
+
+#: launcher.cpp:3473
+msgid "%d file"
+msgstr "%d file"
+
+#: launcher.cpp:3473
+msgid "%d files"
+msgstr "%d file"
+
+#: launcher.cpp:3477
+msgid "%d of them from %ls, above"
+msgstr "%d di antaranya dari %ls, di atas"
+
+#: launcher.cpp:3488
+msgid "archive: %d file"
+msgstr "archive: %d file"
+
+#: launcher.cpp:3488
+msgid "archive: %d files"
+msgstr "archive: %d file"
+
+#: launcher.cpp:3491
+msgid "text: %d file"
+msgstr "text: %d file"
+
+#: launcher.cpp:3491
+msgid "text: %d files"
+msgstr "text: %d file"
+
+#: launcher.cpp:3492
+msgid ", packed when the game starts"
+msgstr ", dikemas saat game dimulai"
+
+#: launcher.cpp:3496
+msgid "textures: %d picture"
+msgstr "textures: %d gambar"
+
+#: launcher.cpp:3496
+msgid "textures: %d pictures"
+msgstr "textures: %d gambar"
+
+#: launcher.cpp:3497
+msgid ", %d more by aliases.txt"
+msgstr ", %d lagi lewat aliases.txt"
+
+#: launcher.cpp:3499
+msgid "not read by this build yet:"
+msgstr "belum dibaca versi ini:"
+
+#: launcher.cpp:3520
+msgid "At the last start the mods' archive and text were not packed: %ls"
+msgstr "Saat terakhir dimulai, archive dan text dari mod tidak dikemas: %ls"
+
+#. text
+#: launcher.cpp:3526
+msgid "The first one in the list wins where two mods have the same file. Mods are files alone: the game's folder is never changed."
+msgstr "Bila dua mod punya file yang sama, yang paling atas di daftar yang dipakai. Mod hanyalah file: folder game tidak pernah diubah."
+
+#. text
+#: launcher.cpp:3528
+msgid "Use mods is off: the game starts without any of them."
+msgstr "Gunakan mod sedang nonaktif: game dimulai tanpa mod apa pun."
+
+#: launcher.cpp:3549
+msgid "other players can reach it"
+msgstr "pemain lain bisa menjangkaunya"
+
+#: launcher.cpp:3550
+msgid "others reach it once introduced"
+msgstr "pemain lain bisa menjangkaunya setelah diperkenalkan"
+
+#: launcher.cpp:3551
+msgid "others reach it only through another node"
+msgstr "pemain lain hanya bisa menjangkaunya lewat node lain"
+
+#: launcher.cpp:3552
+msgid "how others reach it is not known yet"
+msgstr "belum diketahui cara pemain lain menjangkaunya"
+
+#: launcher.cpp:3553
+msgid "Your node is on: %ls."
+msgstr "Node Anda aktif: %ls."
+
+#: launcher.cpp:3554
+msgid "Your node is starting…"
+msgstr "Node Anda sedang dimulai…"
+
+#: launcher.cpp:3555
+msgid "Your node did not start: %ls"
+msgstr "Node Anda gagal dimulai: %ls"
+
+#: launcher.cpp:3556
+msgid "Your node starts once your online ID is set."
+msgstr "Node Anda dimulai setelah ID online Anda diatur."
+
+#: launcher.cpp:3559
+msgid "Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks for Ascension-R players there can see this PC's address while this window or the game is open on Auto. Windows may ask to let Python through: allow it."
+msgstr "Otomatis mencari pemain lain lewat DHT BitTorrent dan di jaringan PC ini: siapa pun yang mencari pemain Ascension-R di sana bisa melihat alamat PC ini selama jendela ini atau game terbuka dengan Otomatis. Windows mungkin meminta izin untuk Python: izinkan."
+
+#: launcher.cpp:3569
+msgid "Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to let Python through: allow it."
+msgstr "Pemain di jaringan PC ini bergabung di %ls. Dari internet: teruskan (forward) TCP 10070 dan 10012 serta TCP dan UDP 36101 ke PC ini di router-nya lalu berikan alamat internetnya kepada mereka, atau ajak semua orang bergabung ke satu jaringan virtual (Tailscale, ZeroTier, Radmin VPN) dan berikan alamat PC ini di sana. Windows mungkin meminta izin untuk Python: izinkan."
+
+#: launcher.cpp:3572
+msgid "this PC's address"
+msgstr "alamat PC ini"
+
+#: launcher.cpp:3576
+msgid "The players you play with see your PC's address. Nothing goes to Sony's servers."
+msgstr "Pemain yang bermain dengan Anda bisa melihat alamat PC Anda. Tidak ada yang dikirim ke server Sony."
+
+#: launcher.cpp:3612
+msgid "ONLINE NOW: %d"
+msgstr "ONLINE SEKARANG: %d"
+
+#. text
+#: launcher.cpp:3616
+msgid "No other player yet. Players show up here while their launcher or game runs on Auto."
+msgstr "Belum ada pemain lain. Pemain muncul di sini selama launcher atau game mereka berjalan dengan Otomatis."
+
+#: launcher.cpp:3625
+msgid " · through another node"
+msgstr " · lewat node lain"
+
+#: launcher.cpp:3626
+msgid " · heard of from another node"
+msgstr " · diketahui dari node lain"
+
+#: launcher.cpp:3631
+msgid "and %d more"
+msgstr "dan %d lainnya"
+
+#: launcher.cpp:3653
+msgid "Which key or mouse button plays each PS3 button."
+msgstr "Tombol keyboard atau mouse untuk tiap tombol PS3."
+
+#. w_label
+#: launcher.cpp:3700
+msgid "Keyboard keys"
+msgstr "Tombol keyboard"
+
+#. w_button
+#: launcher.cpp:3701
+msgid "Edit keys…"
+msgstr "Ubah tombol…"
+
+#. text
+#: launcher.cpp:3709
+msgid "Off: drawn as on the PS3. The game reads these when it starts."
+msgstr "Nonaktif: digambar seperti di PS3. Game membacanya saat dimulai."
+
+#: launcher.cpp:3752
+msgid "no AA"
+msgstr "tanpa AA"
+
+#: launcher.cpp:3754
+msgid "frame generation"
+msgstr "frame generation"
+
+#: launcher.cpp:3754
+msgid "ANR FG"
+msgstr "ANR FG"
+
+#: launcher.cpp:3755
+msgid "no cap"
+msgstr "tanpa batas"
+
+#. w_button
+#: launcher.cpp:3765
+msgid "PLAY"
+msgstr "MAINKAN"
+
+#: launcher.cpp:3766
+msgid "QUIT"
+msgstr "KELUAR"
+
+#: launcher.cpp:3766
+msgid "SAVE"
+msgstr "SIMPAN"
+
+#. text_w, w_button
+#: launcher.cpp:3766 launcher.cpp:3866 launcher.cpp:3867
+msgid "DEFAULTS"
+msgstr "BAWAAN"
+
+#: launcher.cpp:3791
+msgid "%ls preset"
+msgstr "Preset %ls"
+
+#: launcher.cpp:3792
+msgid "Custom setup"
+msgstr "Pengaturan kustom"
+
+#. text, glow_text
+#: launcher.cpp:3845 launcher.cpp:3846
+msgid "KEYBOARD KEYS"
+msgstr "TOMBOL KEYBOARD"
+
+#. text
+#: launcher.cpp:3847
+msgid "Click an action, then press a key or a mouse button. Backspace clears it, Esc gives up. Edit ascension-r.ini to give an action more than one key."
+msgstr "Klik sebuah aksi, lalu tekan tombol keyboard atau mouse. Backspace menghapusnya, Esc membatalkan. Edit ascension-r.ini untuk memberi satu aksi lebih dari satu tombol."
+
+#. text
+#: launcher.cpp:3860
+msgid "Press a key or button"
+msgstr "Tekan sebuah tombol"
+
+#. text
+#: launcher.cpp:3860
+msgid "(none)"
+msgstr "(tidak ada)"
+
+#. text_w, w_button
+#: launcher.cpp:3866 launcher.cpp:3869
+msgid "CANCEL"
+msgstr "BATAL"
+
+#. w_button
+#: launcher.cpp:3868
+msgid "OK"
+msgstr "OK"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "Stopped"
+msgstr "Dihentikan"
+
+#. toast_bad
+#: launcher.cpp:4137
+msgid "The game could not be prepared"
+msgstr "Game tidak bisa disiapkan"
+
+#. toast
+#: launcher.cpp:4148
+msgid "Game ready"
+msgstr "Game siap"
+
+#: launcher.cpp:4161
+msgid "another release"
+msgstr "rilis lain"
+
+#: launcher.cpp:4161
+msgid "not decrypted"
+msgstr "belum didekripsi"
+
+#: launcher.cpp:4161
+msgid "another build"
+msgstr "build lain"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game found"
+msgstr "Game ditemukan"
+
+#. toast
+#: launcher.cpp:4166
+msgid "Game folder set"
+msgstr "Folder game diatur"
+
+#. toast_bad
+#: launcher.cpp:4169 launcher.cpp:4184
+msgid "The game's folder could not be set"
+msgstr "Folder game tidak bisa diatur"
+
+#: launcher.cpp:4171
+msgid "Found %ls in %ls. This port runs %ls 1.12"
+msgstr "Ditemukan %ls di %ls. Port ini menjalankan %ls 1.12"
+
+#. toast_bad
+#: launcher.cpp:4172
+msgid "Another release of the game"
+msgstr "Rilis game yang berbeda"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "The disc is an ISO"
+msgstr "Disknya berupa ISO"
+
+#. toast_bad
+#: launcher.cpp:4177
+msgid "Found the update, not the disc"
+msgstr "Pembaruan ditemukan, disknya tidak"
+
+#. toast_bad
+#: launcher.cpp:4181
+msgid "Found the disc, not its update"
+msgstr "Disk ditemukan, pembaruannya tidak"
+
+#. toast_bad
+#: launcher.cpp:4182
+msgid "The disc's files are encrypted"
+msgstr "File disk terenkripsi"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not all of it"
+msgstr "Game ditemukan, tetapi tidak lengkap"
+
+#. toast_bad
+#: launcher.cpp:4183
+msgid "Found the game, but not 1.12's files"
+msgstr "Game ditemukan, tetapi bukan file 1.12"
+
+#: launcher.cpp:4186
+msgid "No game in %ls"
+msgstr "Tidak ada game di %ls"
+
+#. toast_bad
+#: launcher.cpp:4187
+msgid "No game in that folder"
+msgstr "Tidak ada game di folder itu"
+
+#. toast
+#: launcher.cpp:4189
+msgid "No better copy found"
+msgstr "Tidak ada salinan lebih baik"
+
+#: launcher.cpp:4191
+msgid "Not found on this PC. Browse to its folder (%ls)"
+msgstr "Tidak ditemukan di PC ini. Pilih foldernya lewat Telusuri (%ls)"
+
+#. toast_bad
+#: launcher.cpp:4202 launcher.cpp:4312
+msgid "No shader cache in the settings"
+msgstr "Tidak ada cache shader di pengaturan"
+
+#. toast
+#: launcher.cpp:4229
+msgid "No compiled shaders to clear"
+msgstr "Tidak ada shader terkompilasi untuk dihapus"
+
+#: launcher.cpp:4233
+msgid "Move %.0f MB of compiled shaders to the Recycle Bin?\n\nThe next start builds the vertex shaders first; the rest come as the game reaches them."
+msgstr "Pindahkan %.0f MB shader terkompilasi ke Keranjang Sampah?\n\nSaat game dijalankan berikutnya, vertex shader dikompilasi lebih dulu; sisanya menyusul saat game mencapainya."
+
+#. toast_bad
+#: launcher.cpp:4242
+msgid "Not cleared: is the game running?"
+msgstr "Tidak terhapus: apakah game sedang berjalan?"
+
+#. toast
+#: launcher.cpp:4243
+msgid "Shaders cleared"
+msgstr "Shader dihapus"
+
+#: launcher.cpp:4294
+msgid "Pixel shaders built: %u new, %u kept from before%s"
+msgstr "Pixel shader dikompilasi: %u baru, %u dari sebelumnya%s"
+
+#: launcher.cpp:4294
+msgid ", some failed"
+msgstr ", sebagian gagal"
+
+#: launcher.cpp:4298
+msgid "Shaders not built: %s"
+msgstr "Shader tidak dikompilasi: %s"
+
+#. toast
+#: launcher.cpp:4301
+msgid "Building shaders stopped"
+msgstr "Kompilasi shader dihentikan"
+
+#. toast_bad
+#: launcher.cpp:4341 launcher.cpp:4364
+msgid "Could not start building shaders"
+msgstr "Tidak bisa memulai kompilasi shader"
+
+#: launcher.cpp:4442
+msgid "it stopped (%lu)%ls"
+msgstr "berhenti (%lu)%ls"
+
+#. toast_bad
+#: launcher.cpp:4461
+msgid "No Kit folder beside the program"
+msgstr "Tidak ada folder Kit di samping program"
+
+#. toast_bad
+#: launcher.cpp:4504 launcher.cpp:4527 launcher.cpp:4547
+msgid "Could not start the build"
+msgstr "Tidak bisa memulai kompilasi"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 25 minutes"
+msgstr "Mengompilasi kode game: sekitar 25 menit"
+
+#. toast
+#: launcher.cpp:4552
+msgid "Building the game's code: about 10 minutes"
+msgstr "Mengompilasi kode game: sekitar 10 menit"
+
+#. toast
+#: launcher.cpp:4574
+msgid "The game's code is built"
+msgstr "Kode game selesai dikompilasi"
+
+#. toast
+#: launcher.cpp:4575
+msgid "Stopped: Build goes on from there"
+msgstr "Dihentikan: Kompilasi melanjutkan dari situ"
+
+#. toast_bad
+#: launcher.cpp:4576
+msgid "The game's code could not be built"
+msgstr "Kode game tidak bisa dikompilasi"
+
+#. toast_bad
+#: launcher.cpp:4597
+msgid "No build log yet"
+msgstr "Belum ada log kompilasi"
+
+#: launcher.cpp:4623
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, the log of building the game's code, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "Laporan ini berupa file zip untuk Anda lampirkan ke sebuah issue di GitHub. Game tidak mengirim apa pun sendiri.\n\nIsinya: log sesi terakhir Anda, tombol yang Anda tekan dan file yang dibuka game di sesi itu, pengaturan Anda, log kompilasi kode game, hardware PC ini dan versi driver-nya, serta catatan Windows tentang crash game ini.\n\nJalur folder dan nama Windows Anda disembunyikan. Tidak ada file game di dalamnya."
+
+#: launcher.cpp:4630
+msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
+msgstr "Laporan ini berupa file zip untuk Anda lampirkan ke sebuah issue di GitHub. Game tidak mengirim apa pun sendiri.\n\nIsinya: log sesi terakhir Anda, tombol yang Anda tekan dan file yang dibuka game di sesi itu, pengaturan Anda, hardware PC ini dan versi driver-nya, serta catatan Windows tentang crash game ini.\n\nJalur folder dan nama Windows Anda disembunyikan. Tidak ada file game di dalamnya."
+
+#: launcher.cpp:4638
+msgid "Make the report"
+msgstr "Buat laporan"
+
+#: launcher.cpp:4646
+msgid "Make a problem report?"
+msgstr "Buat laporan masalah?"
+
+#: launcher.cpp:4648
+msgid "Include my saves, so the problem can be loaded where it happened"
+msgstr "Sertakan simpanan saya, agar masalahnya bisa dimuat di tempat terjadinya"
+
+#. toast_bad
+#: launcher.cpp:4662
+msgid "Could not make the report"
+msgstr "Tidak bisa membuat laporan"
+
+#: launcher.cpp:4668
+msgid "%ls\n\nAttach it to a new issue and say what happened and where you were in the game."
+msgstr "%ls\n\nLampirkan ke issue baru, lalu jelaskan apa yang terjadi dan di mana Anda berada dalam game."
+
+#: launcher.cpp:4671
+msgid "Open GitHub"
+msgstr "Buka GitHub"
+
+#: launcher.cpp:4671
+msgid "Show the file"
+msgstr "Tampilkan file"
+
+#: launcher.cpp:4679
+msgid "The report is ready"
+msgstr "Laporan sudah siap"
+
+#: launcher.cpp:4706
+msgid "The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in the Graphics tab."
+msgstr "GPU berhenti di belakang swap chain frame generation (AMD FSR), hal yang pernah terjadi di awal game pada beberapa PC. Menonaktifkannya tetap mempertahankan semua yang lain, termasuk penskalaan FSR. Anda bisa mengaktifkannya lagi di tab Grafis."
+
+#: launcher.cpp:4712
+msgid "Turn frame generation off"
+msgstr "Nonaktifkan frame generation"
+
+#: launcher.cpp:4712
+msgid "Keep it on"
+msgstr "Biarkan aktif"
+
+#: launcher.cpp:4719
+msgid "The game froze in the last session, with frame generation on"
+msgstr "Game macet di sesi terakhir, dengan frame generation aktif"
+
+#: launcher.cpp:4726
+msgid "The game froze with frame generation on"
+msgstr "Game macet dengan frame generation aktif"
+
+#. toast
+#: launcher.cpp:4732
+msgid "Frame generation is off"
+msgstr "Frame generation dinonaktifkan"
+
+#. toast_bad
+#: launcher.cpp:4733
+msgid "Could not save the settings"
+msgstr "Tidak bisa menyimpan pengaturan"
+
+#: launcher.cpp:4745
+msgid "The last session crashed. Make a report of it?"
+msgstr "Sesi terakhir crash. Buat laporannya?"
+
+#: launcher.cpp:4746
+msgid "The last session lost the graphics device. Make a report of it?"
+msgstr "Sesi terakhir kehilangan perangkat grafis. Buat laporannya?"
+
+#: launcher.cpp:4747
+msgid "The game froze in the last session. Make a report of it?"
+msgstr "Game macet di sesi terakhir. Buat laporannya?"
+
+#: launcher.cpp:4748
+msgid "The last session stopped without saying why. Make a report of it?"
+msgstr "Sesi terakhir berhenti tanpa menyebut alasannya. Buat laporannya?"
+
+#: launcher.cpp:4767
+msgid "The game's folder: %ls, or a folder it is under"
+msgstr "Folder game: %ls, atau folder yang menampungnya"
+
+#. snprintf
+#: launcher.cpp:4843
+msgid "no zip named"
+msgstr "tanpa nama zip"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "ANR FG's zip (anr-fg-...-addon.zip, or -full.zip)"
+msgstr "Zip ANR FG (anr-fg-...-addon.zip, atau -full.zip)"
+
+#. pick_file
+#: launcher.cpp:4857
+msgid "Zip files"
+msgstr "File zip"
+
+#. toast
+#: launcher.cpp:4859
+msgid "ANR FG is in place: the game uses it from the next start"
+msgstr "ANR FG terpasang: game memakainya saat dijalankan berikutnya"
+
+#: launcher.cpp:4860
+msgid "ANR FG: "
+msgstr "ANR FG: "
+
+#: launcher.cpp:4870
+msgid "ANR FG is Apex Neural Rendering's frame generation, by Apex Compute, in beta. It is not part of Ascension-R and has no licence of its own, so it is not in the download.\n\nAscension-R can download the newest release's addon zip (about 4 MB) from Apex Compute's own releases on GitHub (github.com/apex-compute/ANR), check it against the SHA-256 GitHub lists and Apex Compute's signature, and set it up in the anr folder beside the program. Nothing else is sent or installed."
+msgstr "ANR FG adalah frame generation Apex Neural Rendering, buatan Apex Compute, masih beta. ANR FG bukan bagian dari Ascension-R dan tidak punya lisensi sendiri, jadi tidak disertakan dalam unduhan.\n\nAscension-R bisa mengunduh zip addon dari rilis terbaru (sekitar 4 MB) dari halaman rilis Apex Compute sendiri di GitHub (github.com/apex-compute/ANR), memeriksanya dengan SHA-256 yang tercantum di GitHub dan tanda tangan Apex Compute, lalu memasangnya di folder anr di samping program. Tidak ada hal lain yang dikirim atau dipasang."
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Download and set up"
+msgstr "Unduh dan pasang"
+
+#: launcher.cpp:4878
+msgid "Choose a zip I have"
+msgstr "Pilih zip yang saya punya"
+
+#: launcher.cpp:4878 launcher.cpp:4930
+msgid "Not now"
+msgstr "Nanti saja"
+
+#: launcher.cpp:4885 launcher.cpp:4892
+msgid "Download ANR FG?"
+msgstr "Unduh ANR FG?"
+
+#: launcher.cpp:4914
+msgid "%ls%ls%ls %hs (%d MB)"
+msgstr "%ls%ls%ls %hs (%d MB)"
+
+#: launcher.cpp:4915
+msgid " and "
+msgstr " dan "
+
+#: launcher.cpp:4918
+msgid "%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\nAscension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the program. Nothing else is sent or installed."
+msgstr "%ls DLL-nya milik NVIDIA, di bawah lisensi RTX SDK NVIDIA, jadi tidak disertakan dalam unduhan.\n\nAscension-R bisa mengunduh %ls dari repositori DLSS milik NVIDIA sendiri di GitHub (github.com/NVIDIA/DLSS), memeriksanya dengan SHA-256 yang disimpan Ascension-R dan tanda tangan NVIDIA, lalu menaruhnya di folder dlss di samping program. Tidak ada hal lain yang dikirim atau dipasang."
+
+#: launcher.cpp:4922
+msgid "NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on GeForce RTX 40 and newer cards."
+msgstr "Frame generation NVIDIA DLSS membuat satu frame di antara tiap dua frame dengan model milik NVIDIA sendiri, di kartu GeForce RTX 40 dan yang lebih baru."
+
+#: launcher.cpp:4924
+msgid "NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards."
+msgstr "NVIDIA DLSS menyusun gambar dengan model milik NVIDIA sendiri di GeForce RTX dan kartu NVIDIA RTX lainnya."
+
+#: launcher.cpp:4935
+msgid "NVIDIA DLSS (beta)"
+msgstr "NVIDIA DLSS (beta)"
+
+#: launcher.cpp:4937 launcher.cpp:4944
+msgid "Download NVIDIA DLSS?"
+msgstr "Unduh NVIDIA DLSS?"
+
+#. toast
+#: launcher.cpp:4991
+msgid "The game's code is still being built"
+msgstr "Kode game masih dikompilasi"
+
+#. toast_bad
+#: launcher.cpp:5010
+msgid "Multiplayer could not start"
+msgstr "Multiplayer tidak bisa dimulai"
+
+#. toast
+#: launcher.cpp:5016 launcher.cpp:5414
+msgid "Saved"
+msgstr "Tersimpan"
+
+#. pick_file
+#: launcher.cpp:5038
+msgid "Choose rpcs3.exe"
+msgstr "Pilih rpcs3.exe"
+
+#. toast
+#: launcher.cpp:5043
+msgid "Now choose the game's license file (.rap)"
+msgstr "Sekarang pilih file lisensi game (.rap)"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "The game's license file"
+msgstr "File lisensi game"
+
+#. pick_file
+#: launcher.cpp:5046
+msgid "License file (*.rap)"
+msgstr "File lisensi (*.rap)"
+
+#. toast
+#: launcher.cpp:5064
+msgid "Defaults back: Save or Play keeps them"
+msgstr "Bawaan dipulihkan: Simpan atau Mainkan akan menyimpannya"
+
+#: launcher.cpp:5475
+msgid "Multiplayer: cannot find gowa-host: is the address right?"
+msgstr "Multiplayer: gowa-host tidak ditemukan: apakah alamatnya benar?"
+
+#: launcher.cpp:5494
+msgid "Compiling the game's code"
+msgstr "Mengompilasi kode game"
+
+#. snprintf
+#: launcher.cpp:5715 launcher.cpp:5716
+msgid "ANR FG is Windows only"
+msgstr "ANR FG hanya untuk Windows"
+
+#: game_find.cpp:279
+msgid "%.1f GB"
+msgstr "%.1f GB"
+
+#: game_find.cpp:280
+msgid "%.0f MB"
+msgstr "%.0f MB"
+
+#: game_find.cpp:281
+msgid "%llu bytes"
+msgstr "%llu byte"
+
+#: game_find.cpp:291
+msgid "The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 (File, Install Packages, in that order), then Auto detect"
+msgstr "Disk (%hs) tanpa pembaruan ke 1.12: pasang pembaruan 1.04 sampai 1.12 di RPCS3 (File, Install Packages, sesuai urutan), lalu Deteksi otomatis"
+
+#: game_find.cpp:295
+msgid "The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding PS3_GAME)"
+msgstr "Pembaruan %hs ada di %ls, tetapi disknya tidak: pilih folder disk lewat Telusuri (folder yang berisi PS3_GAME)"
+
+#: game_find.cpp:299
+msgid "RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse to that folder"
+msgstr "Disk di RPCS3 berupa ISO, %ls: buka (Pasang), salin seluruh isinya ke sebuah folder, lalu pilih folder itu lewat Telusuri"
+
+#: game_find.cpp:303
+msgid "The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed"
+msgstr "File disk di %ls terenkripsi: dump yang belum pernah didekripsi. Diperlukan salinan yang sudah didekripsi"
+
+#: game_find.cpp:311
+msgid "Not every update is installed: %d file missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "Tidak semua pembaruan terpasang: %d file hilang, yang pertama %hs. Pasang 1.04 sampai 1.12, berurutan"
+
+#: game_find.cpp:312
+msgid "Not every update is installed: %d files missing, %hs first. Install 1.04 to 1.12, in order"
+msgstr "Tidak semua pembaruan terpasang: %d file hilang, yang pertama %hs. Pasang 1.04 sampai 1.12, berurutan"
+
+#: game_find.cpp:315
+msgid "Not every update is installed: %d file differs, %hs first. Install 1.04 to 1.12, in order"
+msgstr "Tidak semua pembaruan terpasang: %d file berbeda, yang pertama %hs. Pasang 1.04 sampai 1.12, berurutan"
+
+#: game_find.cpp:316
+msgid "Not every update is installed: %d files differ, %hs first. Install 1.04 to 1.12, in order"
+msgstr "Tidak semua pembaruan terpasang: %d file berbeda, yang pertama %hs. Pasang 1.04 sampai 1.12, berurutan"
+
+#: game_find.cpp:321
+msgid "Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the disc again"
+msgstr "Disk tidak lengkap: %d dari %d file game hilang (%ls), yang pertama %hs. Salin ulang seluruh disk"
+
+#: game_find.cpp:326
+msgid "Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again"
+msgstr "Game tidak lengkap: %d dari %d filenya hilang (%ls), yang pertama %hs. Pasang ulang game"
+
+#: game_find.cpp:329
+msgid "%d of the disc's files is not as the disc has it, %hs first. Copy all of the disc again"
+msgstr "%d file disk tidak sama dengan yang ada di disk, yang pertama %hs. Salin ulang seluruh disk"
+
+#: game_find.cpp:330
+msgid "%d of the disc's files are not as the disc has them, %hs first. Copy all of the disc again"
+msgstr "%d file disk tidak sama dengan yang ada di disk, yang pertama %hs. Salin ulang seluruh disk"
+
+#: game_find.cpp:333
+msgid "%d of the game's files is not as version 1.12 has it, %hs first. Install the game again"
+msgstr "%d file game tidak sama dengan versi 1.12, yang pertama %hs. Pasang ulang game"
+
+#: game_find.cpp:334
+msgid "%d of the game's files are not as version 1.12 has them, %hs first. Install the game again"
+msgstr "%d file game tidak sama dengan versi 1.12, yang pertama %hs. Pasang ulang game"
+
+#. say
+#: game_find.cpp:936
+msgid "A file is in the way"
+msgstr "Ada file yang menghalangi"
+
+#. say
+#: game_find.cpp:946
+msgid "A real folder with files is in the way"
+msgstr "Ada folder sungguhan berisi file yang menghalangi"
+
+#. say
+#: game_find.cpp:965
+msgid "Not a folder"
+msgstr "Bukan folder"
+
+#. say
+#: game_find.cpp:968
+msgid "A link cannot lead to a network folder"
+msgstr "Tautan tidak bisa mengarah ke folder jaringan"
+
+#. say
+#: game_find.cpp:970 game_find.cpp:975 game_find.cpp:997
+msgid "Cannot make the link"
+msgstr "Tidak bisa membuat tautan"
+
+#. say
+#: game_find.cpp:1010
+msgid "Cannot replace the link"
+msgstr "Tidak bisa mengganti tautan"
+
+#: title_patches.json
+msgid "Disable MLAA"
+msgstr "Nonaktifkan MLAA"
+
+#: title_patches.json
+msgid "MLAA path off (FSR, DLSS)"
+msgstr "Jalur MLAA nonaktif (FSR, DLSS)"
+
+#: title_patches.json
+msgid "Disable Depth of Field"
+msgstr "Nonaktifkan depth of field"
+
+#: title_patches.json
+msgid "Disable Motion Blur"
+msgstr "Nonaktifkan motion blur"
+
+#: title_patches.json
+msgid "Disable Mesh Trimming"
+msgstr "Nonaktifkan pemangkasan mesh"
+
+#: title_patches.json
+msgid "Disable Shadows"
+msgstr "Nonaktifkan bayangan"
+
+#: title_patches.json
+msgid "Unlock FPS (experimental)"
+msgstr "Buka kunci FPS (eksperimental)"
+
+#. Kit build stage
+#: gowa.py
+msgid "Reading the game's code"
+msgstr "Membaca kode game"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the game's code"
+msgstr "Menerjemahkan kode game"
+
+#. Kit build stage
+#: gowa.py
+msgid "Translating the SPU programs"
+msgstr "Menerjemahkan program SPU"
+
+#. Kit build stage
+#: gowa.py
+msgid "Linking"
+msgstr "Menautkan"
+
+#. Kit build stage
+#: gowa.py
+msgid "Checking the game"
+msgstr "Memeriksa game"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: what it learned"
+msgstr "Mengoptimalkan untuk PC ini: hasil yang dipelajari"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the game plays by itself (leave it open)"
+msgstr "Mengoptimalkan untuk PC ini: game bermain sendiri (biarkan terbuka)"
+
+#. Kit build stage
+#: gowa.py
+msgid "Compiling"
+msgstr "Mengompilasi"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: compiling the training copy"
+msgstr "Mengoptimalkan untuk PC ini: mengompilasi salinan latihan"
+
+#. Kit build stage
+#: gowa.py
+msgid "Optimising for this PC: the training copy"
+msgstr "Mengoptimalkan untuk PC ini: salinan latihan"
+

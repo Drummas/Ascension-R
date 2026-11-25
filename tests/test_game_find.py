@@ -218,7 +218,7 @@ class GameFind(unittest.TestCase):
         if not clang:
             raise unittest.SkipTest("no clang-cl")
         cmd = [clang, "/nologo", "/O1", "/EHsc", "/std:c++17", "/I" + str(ROOT / "port"), "/I" + cls.tmp,
-               '/DGAME_FILES_INC="test_files.inc"', '/DGAME_FILES_BCES01741_INC="test_disc_files.inc"', src, str(ROOT / "port" / "game_find.cpp"),
+               '/DGAME_FILES_INC="test_files.inc"', '/DGAME_FILES_BCES01741_INC="test_disc_files.inc"', src, str(ROOT / "port" / "game_find.cpp"), str(ROOT / "port" / "i18n.cpp"),
                "/Fe" + cls.exe, "/Fo" + cls.tmp + "\\"]
         r = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=cls.tmp)
         if r.returncode:

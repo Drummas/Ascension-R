@@ -142,7 +142,8 @@ class DiscDecrypt(unittest.TestCase):
         cls.rpcs3_exe = os.path.join(cls.tmp, "bin", "rpcs3.exe")
         os.makedirs(os.path.dirname(cls.rpcs3_exe))
         for name, text, out, more in (("t.cpp", DRIVER, cls.exe, [str(ROOT / "port" / "game_prepare.cpp"),
-                                                                   str(ROOT / "port" / "game_find.cpp")]),
+                                                                   str(ROOT / "port" / "game_find.cpp"),
+                                                                   str(ROOT / "port" / "i18n.cpp")]),
                                       ("rpcs3.c", FAKE_RPCS3, cls.rpcs3_exe, [])):
             src = os.path.join(cls.tmp, name)
             Path(src).write_text(text)

@@ -41,6 +41,8 @@
 #include "win32_compat.h"
 #include "ps3emu/ps3_settings.h"
 #include "game_find.h"
+#include "i18n.h"
+#include <stdarg.h>
 #include "game_prepare.h"
 #include "game_title.h"
 #include "report.h"
@@ -150,6 +152,11 @@ static const char* const k_swait[] = { "off", "short", "full" };
 static const char* const k_swait_n[] = { "Off: never, a gap for a moment instead", "Short: a frame waits 33 ms at most",
                                          "Full: up to two seconds" };
 static const char* const k_swait_s[] = { "Off", "Short", "Full" };
+/* launcher.language (i18n.cpp): each language by its own name. */
+static const char* const k_uilang[] = { "auto", "en", "id", "zh-s", "zh-t", "ru", "es", "pt-br", "de" };
+static const char* const k_uilang_n[] = { "Windows language", "English", "Bahasa Indonesia", "\u7B80\u4F53\u4E2D\u6587",
+                                          "\u7E41\u9AD4\u4E2D\u6587", "\u0420\u0443\u0441\u0441\u043A\u0438\u0439",
+                                          "Espa\u00F1ol", "Portugu\u00EAs (Brasil)", "Deutsch" };
 static const char* const k_style[] = { "clean", "retro" };
 static const char* const k_style_n[] = { "Clean", "Retro: pixel font and 8-bit bevels" };
 static const char* const k_style_s[] = { "Clean", "Retro" };
@@ -396,6 +403,9 @@ static Opt s_opt[] = {
     { T_ONLINE, "online", "nodes", "", "Community nodes", 0, NULL, NULL, 0, NULL,
       "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and "
       "carry for them: address:port, a comma between.", 63 },
+    { T_SYSTEM, "launcher", "language", "auto", "Launcher language", 0, LIST(k_uilang, k_uilang_n), NULL,
+      "The language of this window. Windows language follows Windows' display language, and English where this window "
+      "has no translation. The game's own text and speech are the next row's." },
     { T_SYSTEM, "system", "language", "auto", "Language", 0, LIST(k_lang, k_lang_n), NULL,
       "The game's language: text and speech. The EU disc takes it at its first start, where it asks (Cross for "
       "this one, Triangle for Greek), and keeps it." },
@@ -540,11 +550,11 @@ static Opt* opt_find(const char* section, const char* key)
     return NULL;
 }
 
-/* What a list shows for the option's value. */
+/* What a list shows for the option's value, in the language shown. */
 static const char* opt_name(const Opt& o)
 {
     const int i = opt_index(o, o.cur);
-    return i >= 0 ? o.names[i] : o.cur;
+    return i >= 0 ? T(o.names[i]) : o.cur;
 }
 
 /* An option's short name: its segment's, else its list entry. */
@@ -552,7 +562,7 @@ static const char* opt_short(const Opt* o)
 {
     if (!o) return "";
     const int i = opt_index(*o, o->cur);
-    return i < 0 ? o->cur : o->seg ? o->seg[i] : o->names[i];
+    return i < 0 ? o->cur : T(o->seg ? o->seg[i] : o->names[i]);
 }
 
 #ifdef _WIN32
@@ -634,8 +644,8 @@ static int mp_refresh(void)
 
 static const wchar_t* mp_state_name(const char* st)
 {
-    return !strcmp(st, "lobby") ? L"in the multiplayer menu" : !strcmp(st, "searching") ? L"looking for a match" :
-           !strcmp(st, "playing") ? L"in a match" : L"online";
+    return TW(!strcmp(st, "lobby") ? L"in the multiplayer menu" : !strcmp(st, "searching") ? L"looking for a match" :
+              !strcmp(st, "playing") ? L"in a match" : L"online");
 }
 
 /* Multiplayer as the settings are now: on Auto the node runs, starting again when what it takes changes; on anything
@@ -887,11 +897,12 @@ static int kit_line(wchar_t* b, size_t n)
     AcquireSRWLockShared(&s_kit.lock);
     const long left = s_kit.left;
     const int secs = (int)((GetTickCount64() - s_kit.started) / 1000);
-    if (s_kit.stopped) swprintf(b, n, L"Stopping\x2026");
-    else if (!s_kit.what[0]) swprintf(b, n, L"Starting\x2026");
-    else if (left >= 90) swprintf(b, n, L"%ls \x00B7 about %ld min left", s_kit.what, (left + 30) / 60);
-    else if (left >= 0) swprintf(b, n, L"%ls \x00B7 about a minute left", s_kit.what);
-    else swprintf(b, n, L"%ls \x00B7 %d:%02d", s_kit.what, secs / 60, secs % 60);
+    if (s_kit.stopped) swprintf(b, n, TW(L"Stopping\x2026"));
+    else if (!s_kit.what[0]) swprintf(b, n, TW(L"Starting\x2026"));
+    /* The stage, as gowa.py's PROGRESS.phase names it (in the catalog, scripts/lang.py). */
+    else if (left >= 90) swprintf(b, n, TW(L"%ls \x00B7 about %ld min left"), TW(s_kit.what), (left + 30) / 60);
+    else if (left >= 0) swprintf(b, n, TW(L"%ls \x00B7 about a minute left"), TW(s_kit.what));
+    else swprintf(b, n, L"%ls \x00B7 %d:%02d", TW(s_kit.what), secs / 60, secs % 60);
     ReleaseSRWLockShared(&s_kit.lock);
     return 2;
 }
@@ -902,7 +913,7 @@ static int kit_need(wchar_t* b, size_t n, const wchar_t** hint)
     *hint = kit_optimise() ? L"Once, on this PC: about 25 minutes" : L"Once, on this PC: about 10 minutes";
     AcquireSRWLockShared(&s_kit.lock);
     const int failed = s_kit.err[0] != 0;
-    if (failed) swprintf(b, n, L"Not built: %ls", s_kit.err);
+    if (failed) swprintf(b, n, TW(L"Not built: %ls"), s_kit.err);
     ReleaseSRWLockShared(&s_kit.lock);
     if (failed) {
         *hint = L"";   /* Log and Try again leave no room: the log says the rest */
@@ -911,22 +922,22 @@ static int kit_need(wchar_t* b, size_t n, const wchar_t** hint)
     switch (kit_state()) {
     case 1:
         if (s_kit.partly) {
-            swprintf(b, n, L"The game's code is partly built");
+            swprintf(b, n, TW(L"The game's code is partly built"));
             *hint = L"Build goes on where it stopped";
         } else {
-            swprintf(b, n, L"The game's code is not built yet");
+            swprintf(b, n, TW(L"The game's code is not built yet"));
         }
         return 0;
     case 2:
-        swprintf(b, n, L"The game's code is from another version");
+        swprintf(b, n, TW(L"The game's code is from another version"));
         *hint = kit_optimise() ? L"Again, on this PC: about 25 minutes" : L"Again, on this PC: about 10 minutes";
         return 0;
     case 4:
-        swprintf(b, n, L"The game's code is built without Optimise for this PC");
+        swprintf(b, n, TW(L"The game's code is built without Optimise for this PC"));
         *hint = L"Again with it: about 25 minutes";   /* or Optimise off again, which plays what is there */
         return 0;
     default:
-        swprintf(b, n, L"No Kit folder to build the game's code with");
+        swprintf(b, n, TW(L"No Kit folder to build the game's code with"));
         *hint = L"";
         return -1;
     }
@@ -961,29 +972,29 @@ static int prep_line(wchar_t* b, size_t n, float* frac)
         const int quiet = p.data_at ? (int)((now - p.data_at) / 1000) : secs;
         if (p.total > 0) f = (float)((double)p.done / (double)p.total);
         if (quiet >= 4 && p.total > 0) {
-            swprintf(b, n, L"Downloading RPCS3: %.1f of %.1f MB, no data for %d s%ls", mb, total, quiet, tail);
+            swprintf(b, n, TW(L"Downloading RPCS3: %.1f of %.1f MB, no data for %d s%ls"), mb, total, quiet, tail);
             level = 0;
         } else if (quiet >= 4) {
-            swprintf(b, n, L"Downloading RPCS3: no answer from the server for %d s%ls", quiet, tail);
+            swprintf(b, n, TW(L"Downloading RPCS3: no answer from the server for %d s%ls"), quiet, tail);
             level = 0;
         } else if (p.speed > 0 && p.total > 0) {
             wchar_t again[32] = L"";
-            if (p.retries) swprintf(again, 32, L", %ld reconnected", (long)p.retries);
-            swprintf(b, n, L"Downloading RPCS3: %.1f of %.1f MB, %.1f MB/s, about %d s left%ls%ls", mb, total, p.speed / 1048576.0,
+            if (p.retries) swprintf(again, 32, TW(L", %ld reconnected"), (long)p.retries);
+            swprintf(b, n, TW(L"Downloading RPCS3: %.1f of %.1f MB, %.1f MB/s, about %d s left%ls%ls"), mb, total, p.speed / 1048576.0,
                      (int)((p.total - p.done) / p.speed), again, tail);
         } else if (p.done > 0) {
-            swprintf(b, n, L"Downloading RPCS3: %.1f of %.1f MB%ls", mb, total, tail);
+            swprintf(b, n, TW(L"Downloading RPCS3: %.1f of %.1f MB%ls"), mb, total, tail);
         } else {
-            swprintf(b, n, L"Downloading RPCS3: connecting\x2026%ls", tail);
+            swprintf(b, n, TW(L"Downloading RPCS3: connecting\x2026%ls"), tail);
         }
         break;
     }
-    case GP_VERIFY:  swprintf(b, n, L"Checking the download\x2026%ls", tail); break;
-    case GP_UNPACK:  swprintf(b, n, L"Unpacking RPCS3\x2026 %d s%ls", secs, tail); break;
-    case GP_COPY:    swprintf(b, n, L"Copying the game's files\x2026%ls", tail); break;
-    case GP_DECRYPT: swprintf(b, n, L"Decrypting the game\x2026 %d s%ls", secs, tail); break;
-    case GP_CHECK:   swprintf(b, n, L"Checking the result\x2026%ls", tail); break;
-    default:         swprintf(b, n, L"Starting\x2026%ls", tail); break;
+    case GP_VERIFY:  swprintf(b, n, TW(L"Checking the download\x2026%ls"), tail); break;
+    case GP_UNPACK:  swprintf(b, n, TW(L"Unpacking RPCS3\x2026 %d s%ls"), secs, tail); break;
+    case GP_COPY:    swprintf(b, n, TW(L"Copying the game's files\x2026%ls"), tail); break;
+    case GP_DECRYPT: swprintf(b, n, TW(L"Decrypting the game\x2026 %d s%ls"), secs, tail); break;
+    case GP_CHECK:   swprintf(b, n, TW(L"Checking the result\x2026%ls"), tail); break;
+    default:         swprintf(b, n, TW(L"Starting\x2026%ls"), tail); break;
     }
     if (frac) *frac = f;
     return level;
@@ -1061,7 +1072,7 @@ static const wchar_t* game_path_shown(void)
     if (GetFileAttributesW(s_game.link_vfs) == INVALID_FILE_ATTRIBUTES) return L"Not set";
     if (!s_game.g.disc || !s_game.g.update[0]) return s_game.g.dir;
     static wchar_t b[2 * GAME_PATH_MAX + 32];   /* a disc: its folder and its update's */
-    swprintf(b, sizeof b / sizeof b[0], L"%ls  \x00B7  update: %ls", s_game.g.dir, s_game.g.update);
+    swprintf(b, sizeof b / sizeof b[0], TW(L"%ls  \x00B7  update: %ls"), s_game.g.dir, s_game.g.update);
     return b;
 }
 
@@ -1082,15 +1093,15 @@ static int game_status(wchar_t* b, size_t n)
 #ifdef PORT_GAME_MODULE
         if (s_kit.running) return kit_line(b, n);
 #endif
-        swprintf(b, n, L"God of War: Ascension \x00B7 %ls \x00B7 %ls", W(g.title_id), game_version());
+        swprintf(b, n, TW(L"God of War: Ascension \x00B7 %ls \x00B7 %ls"), W(g.title_id), game_version());
         return 1;
     case GAME_OTHER_BUILD:
         if (g.other_version) {
-            swprintf(b, n, L"That is %ls %ls. This port runs version 1.12: install the game's update first",
+            swprintf(b, n, TW(L"That is %ls %ls. This port runs version 1.12: install the game's update first"),
                      W(g.title_id), game_version());
             return -1;
         }
-        swprintf(b, n, L"%ls %ls, but not the GOWA.elf this port was made from: it may not run", W(g.title_id),
+        swprintf(b, n, TW(L"%ls %ls, but not the GOWA.elf this port was made from: it may not run"), W(g.title_id),
                  game_version());
         return 0;
     case GAME_INCOMPLETE:
@@ -1099,16 +1110,16 @@ static int game_status(wchar_t* b, size_t n)
     case GAME_NO_ELF:
         if (s_prep.thread) return prep_line(b, n, NULL);
         if (s_prep.err[0]) swprintf(b, n, L"%ls", s_prep.err);
-        else if (g.disc) swprintf(b, n, L"To decrypt the game this needs the RPCS3 its update is installed in");
-        else swprintf(b, n, !s_prep.rap[0] && !s_prep.rpcs3[0] ? L"To decrypt the game this needs RPCS3 and its license file (.rap)"
-                            : !s_prep.rap[0] ? L"To decrypt the game this needs its license file (.rap)"
-                                             : L"To decrypt the game this needs RPCS3");
+        else if (g.disc) swprintf(b, n, TW(L"To decrypt the game this needs the RPCS3 its update is installed in"));
+        else swprintf(b, n, !s_prep.rap[0] && !s_prep.rpcs3[0] ? TW(L"To decrypt the game this needs RPCS3 and its license file (.rap)")
+                            : !s_prep.rap[0] ? TW(L"To decrypt the game this needs its license file (.rap)")
+                                             : TW(L"To decrypt the game this needs RPCS3"));
         return -1;
     case GAME_OTHER_TITLE:
-        swprintf(b, n, L"That is %ls %ls. This port runs %ls 1.12", W(g.title_id), game_version(), game_titles_line());
+        swprintf(b, n, TW(L"That is %ls %ls. This port runs %ls 1.12"), W(g.title_id), game_version(), game_titles_line());
         return -1;
     default:
-        swprintf(b, n, L"No game there. Auto detect looks on every disk, or Browse to its folder");
+        swprintf(b, n, TW(L"No game there. Auto detect looks on every disk, or Browse to its folder"));
         return -1;
     }
 }
@@ -1138,7 +1149,36 @@ static int gpu_first(IDXGIFactory6* f, DXGI_GPU_PREFERENCE pref, DXGI_ADAPTER_DE
 /* The GPU Windows calls fast and the one it calls low-power: what the renderer asks for
  * graphics.gpu, so the name shown is the one the game runs on. The same adapter twice is a PC with
  * one GPU, and the row is not shown. */
-static struct { char name[2][128]; char desc[360]; int n; bool nvidia; } s_gpus;
+static struct { char name[2][128]; char desc[1024]; int n; bool nvidia; } s_gpus;
+
+/* The Graphics card row's line, in the language shown. */
+static void gpu_desc(void)
+{
+    Opt* o = opt_find("graphics", "gpu");
+    if (!o || s_gpus.n != 2) return;
+    snprintf(s_gpus.desc, sizeof s_gpus.desc,
+             T("Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat."), s_gpus.name[0],
+             s_gpus.name[1]);
+    o->desc = s_gpus.desc;
+}
+
+/* The window's language, and what is made from it once. */
+static void lang_set(const char* code)
+{
+    i18n_set(code);
+    gpu_desc();
+}
+
+/* A format's text as a string (the mods' status lines). */
+static std::wstring fmt_w(const wchar_t* f, ...)
+{
+    wchar_t b[1024];
+    va_list ap;
+    va_start(ap, f);
+    vswprintf(b, sizeof b / sizeof b[0], f, ap);
+    va_end(ap);
+    return b;
+}
 
 static void gpu_detect(void)
 {
@@ -1163,13 +1203,8 @@ static void gpu_detect(void)
     /* NVIDIA Reflex: only an NVIDIA GPU has it (a row set on stays in the file: the game says why it is off). */
     if (!s_gpus.nvidia) opt_find("graphics", "reflex")->tab = -1;
     Opt* o = opt_find("graphics", "gpu");
-    if (s_gpus.n == 2) {
-        snprintf(s_gpus.desc, sizeof s_gpus.desc, "Discrete: %s. Integrated: %s, slower, but it uses less power and makes less heat.",
-                 s_gpus.name[0], s_gpus.name[1]);
-        o->desc = s_gpus.desc;
-    } else {
-        o->tab = -1;
-    }
+    if (s_gpus.n == 2) gpu_desc();
+    else o->tab = -1;
 }
 
 static const char* gpu_chosen(void)
@@ -1366,10 +1401,10 @@ static void anr_dl_end(void)
     if (s_anr_dl.thread) { WaitForSingleObject(s_anr_dl.thread, 2000); CloseHandle(s_anr_dl.thread); s_anr_dl.thread = NULL; }
     char b[480];
     if (!s_anr_dl.result[0]) {
-        snprintf(b, sizeof b, "ANR FG %s is set up, signed by Apex Compute", s_anr_dl.tag);
+        snprintf(b, sizeof b, T("ANR FG %s is set up, signed by Apex Compute"), s_anr_dl.tag);
         toast(b);
     } else {
-        snprintf(b, sizeof b, "ANR FG: %s", s_anr_dl.result);
+        snprintf(b, sizeof b, T("ANR FG: %s"), s_anr_dl.result);
         toast_bad(b);
     }
 }
@@ -1411,10 +1446,10 @@ static void dlss_dl_end(void)
     if (s_dlss_dl.thread) { WaitForSingleObject(s_dlss_dl.thread, 2000); CloseHandle(s_dlss_dl.thread); s_dlss_dl.thread = NULL; }
     char b[480];
     if (!s_dlss_dl.result[0]) {
-        snprintf(b, sizeof b, "NVIDIA DLSS %s is set up, signed by NVIDIA", k_dlss_dll_version);
+        snprintf(b, sizeof b, T("NVIDIA DLSS %s is set up, signed by NVIDIA"), k_dlss_dll_version);
         toast(b);
     } else {
-        snprintf(b, sizeof b, "NVIDIA DLSS: %s", s_dlss_dl.result);
+        snprintf(b, sizeof b, T("NVIDIA DLSS: %s"), s_dlss_dl.result);
         toast_bad(b);
     }
 }
@@ -1977,6 +2012,7 @@ static int sharp(IDWriteTextFormat* f)
 {
     if (clean() || !s_fonts || (f != s_tf_cap && f != s_tf_head && f != s_tf_btn && f != s_tf_title && f != s_tf_play))
         return 0;
+    if (!strncmp(i18n_code(), "zh", 2) || !strcmp(i18n_code(), "ru")) return 0;   /* other fonts' letters */
     const float dot = f->GetFontSize() * s_px / 8.0f;
     return fabsf(dot - floorf(dot + 0.5f)) < 0.01f;
 }
@@ -1984,7 +2020,15 @@ static int sharp(IDWriteTextFormat* f)
 static IDWriteTextLayout* layout(const wchar_t* s, IDWriteTextFormat* f, float w, float h)
 {
     IDWriteTextLayout* l = NULL;
-    if (FAILED(s_dw->CreateTextLayout(s, (UINT32)wcslen(s), f, w, h, &l))) return NULL;
+    s = TW(s);   /* the language shown: its translation of the English, or the English (i18n.cpp) */
+    const UINT32 n = (UINT32)wcslen(s);
+    if (FAILED(s_dw->CreateTextLayout(s, n, f, w, h, &l))) return NULL;
+    /* The font Windows falls back to for Han characters follows the locale: Microsoft YaHei for zh-CN, JhengHei for
+     * zh-TW; with en-us it would be the simplified forms in both. */
+    const char* c = i18n_code();
+    if (!strcmp(c, "zh-s")) l->SetLocaleName(L"zh-cn", DWRITE_TEXT_RANGE{ 0, n });
+    else if (!strcmp(c, "zh-t")) l->SetLocaleName(L"zh-tw", DWRITE_TEXT_RANGE{ 0, n });
+    else if (!strcmp(c, "ru")) l->SetLocaleName(L"ru-ru", DWRITE_TEXT_RANGE{ 0, n });
     return l;
 }
 /* Text in a box, its first pixel on a whole device pixel. */
@@ -1998,7 +2042,24 @@ static void text(const wchar_t* s, IDWriteTextFormat* f, D2D1_RECT_F r, unsigned
     if (!(l = layout(s, f, w, h))) return;
     DWRITE_TEXT_METRICS m;
     float x = snap(r.left);
-    if (SUCCEEDED(l->GetMetrics(&m))) x = snap(r.left + m.left) - m.left;
+    if (SUCCEEDED(l->GetMetrics(&m))) {
+        x = snap(r.left + m.left) - m.left;
+        /* Shots: a text its box cuts (a translation longer than the English, scripts/lang.py) is named in the log. */
+        static const int shots = getenv("GOWA_LAUNCHER_SHOT") != NULL;
+        const float line = m.lineCount ? m.height / (float)m.lineCount : m.height;   /* a heading's box is a line's ink */
+        float whole = 0.0f;   /* a one-line text's own width: wider than its box, it is cut to "..." */
+        if (shots && f != s_tf_path && f->GetWordWrapping() == DWRITE_WORD_WRAPPING_NO_WRAP) {
+            IDWriteTextLayout* u = layout(s, f, 4096.0f, h);
+            DWRITE_TEXT_METRICS um;
+            if (u && SUCCEEDED(u->GetMetrics(&um))) whole = um.width;
+            if (u) u->Release();
+        }
+        if (shots && (m.height - h > 0.5f * line || m.width > w + 1.0f || whole > w + 1.0f)) {
+            char u[1600];
+            if (!WideCharToMultiByte(CP_UTF8, 0, TW(s), -1, u, sizeof u, NULL, NULL)) u[0] = 0;
+            fprintf(stderr, "[launcher] does not fit (%.0fx%.0f in %.0fx%.0f): %s\n", m.width, m.height, w, h, u);
+        }
+    }
     s_d->SetTextAntialiasMode(sharp(f) ? D2D1_TEXT_ANTIALIAS_MODE_ALIASED : D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     s_br->SetColor(col(rgb, a));
     s_d->DrawTextLayout(D2D1::Point2F(x, r.top), l, s_br, D2D1_DRAW_TEXT_OPTIONS_CLIP);
@@ -2023,8 +2084,10 @@ static const wchar_t* UP(const wchar_t* s)
     static int k;
     wchar_t* b = buf[k++ & 3];
     size_t i = 0;
-    for (; s[i] && i < 159; i++) b[i] = (wchar_t)towupper(s[i]);
+    s = TW(s);   /* translated before its capitals */
+    for (; s[i] && i < 159; i++) b[i] = s[i];
     b[i] = 0;
+    CharUpperBuffW(b, (DWORD)i);   /* every script's capitals, as Windows has them */
     return b;
 }
 
@@ -2625,7 +2688,7 @@ static void draw_sidebar(void)
     text(W("v" AR_VERSION), s_tf_small, R(58, 38, SIDE_W - 72, 16), hovered(H_UPDATE_OPEN) ? C_TEXT2 : C_MUTED);
     if (update_shown()) {   /* in place of the day it was built: the newer release, a link to its page */
         wchar_t b[80];
-        swprintf(b, 80, L"%ls available \x203A", W(update_ver()));
+        swprintf(b, 80, TW(L"%ls available \x203A"), W(update_ver()));
         const D2D1_RECT_F t = R(18, 59, SIDE_W - 36, 16);
         const int hov = hovered(H_UPDATE_OPEN);
         text(b, s_tf_small, t, hov ? C_GOLD_HI : C_GOLD);
@@ -2633,9 +2696,12 @@ static void draw_sidebar(void)
         hit(R(14, 36, SIDE_W - 30, 42), H_UPDATE_OPEN);
     } else {
         static const char d[] = __DATE__;   /* "Mmm dd yyyy", the day padded with a space */
-        char b[40];
-        snprintf(b, sizeof b, "Built %d %.3s %.4s", atoi(d + 4), d, d + 7);
-        text(UP(W(b)), s_tf_cap, R(18, 62, SIDE_W - 36, 12), C_DIM);
+        static const char k_mon[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
+        const char* mp = strstr(k_mon, std::string(d, 3).c_str());
+        wchar_t day[64], b[96];
+        if (!i18n_date(atoi(d + 7), mp ? (int)(mp - k_mon) / 3 + 1 : 1, atoi(d + 4), day, 64)) day[0] = 0;
+        swprintf(b, 96, TW(L"Built %ls"), day);
+        text(UP(b), s_tf_cap, R(18, 62, SIDE_W - 36, 12), C_DIM);
     }
     float y = 86.0f;
     for (int t = 0; t < T_N; t++) {
@@ -2660,9 +2726,9 @@ static void draw_sidebar(void)
     side_link(k_ic_flag, L"Report a problem", by, H_REPORT);
     side_link(k_ic_trash, L"Clear shaders", by + 36, H_SHADERS);
     wchar_t pb[64];
-    if (!s_pb.running) swprintf(pb, 64, L"Build all shaders now");
-    else if (s_pb.total > 0) swprintf(pb, 64, L"Building shaders %ld%%", (long)((s_pb.done * 100LL) / s_pb.total));
-    else swprintf(pb, 64, L"Reading the game's files");
+    if (!s_pb.running) swprintf(pb, 64, TW(L"Build all shaders now"));
+    else if (s_pb.total > 0) swprintf(pb, 64, TW(L"Building shaders %ld%%"), (long)((s_pb.done * 100LL) / s_pb.total));
+    else swprintf(pb, 64, TW(L"Reading the game's files"));
     side_link(k_ic_bolt, pb, by + 72, H_PREBUILD);
     side_link(k_ic_folder, L"Open save folder", by + 108, H_SAVES);
 }
@@ -2772,8 +2838,8 @@ static void draw_play(void)
         cx += draw_chip(UP(b), cx, cy) + 8;
         cx += draw_chip(L"DIRECT3D 12", cx, cy) + 8;
         const Opt* rs = opt_find("graphics", "render_scale");
-        if (rs && ps3_settings_ieq(rs->cur, "native")) swprintf(b, 80, L"INTERNAL: WINDOW");
-        else swprintf(b, 80, L"%ls INTERNAL", UP(W(rs ? opt_short(rs) : "720p")));
+        if (rs && ps3_settings_ieq(rs->cur, "native")) swprintf(b, 80, TW(L"INTERNAL: WINDOW"));
+        else swprintf(b, 80, TW(L"%ls INTERNAL"), UP(W(rs ? opt_short(rs) : "720p")));
         draw_chip(b, cx, cy);
     }
     /* A newer release, over the scene on the right, until its notice is closed (then the sidebar's line stays). */
@@ -2786,7 +2852,7 @@ static void draw_play(void)
         icon(k_ic_up, bx + 16, by + 24, C_GOLD);
         text(s_upd.rel.prerelease ? L"NEW PRE-RELEASE" : L"NEW RELEASE", s_tf_cap, R(bx + 44, by + 14, 180, 12), C_CYAN);
         wchar_t b[80];
-        swprintf(b, 80, L"%ls is out", W(update_ver()));
+        swprintf(b, 80, TW(L"%ls is out"), W(update_ver()));
         const wchar_t* go = L"Download";   /* its release's page, where the downloads are */
         const float gw = snap(text_w(go, s_tf_btn) + 32.0f), gx = bx + bw - 42 - gw;
         text(b, s_tf_ui_b, R(bx + 44, by + 30, gx - bx - 52, 22), C_TEXT);
@@ -2845,20 +2911,20 @@ static void draw_play(void)
                                                         : L"Game found, but another GOWA.elf");
     } else {
         wchar_t b[100];
-        swprintf(b, 100, L"Game found: %ls %ls", s_game.g.title_id[0] ? W(s_game.g.title_id) : L"GOWA.elf", game_version());
+        swprintf(b, 100, TW(L"Game found: %ls %ls"), s_game.g.title_id[0] ? W(s_game.g.title_id) : TW(L"GOWA.elf"), game_version());
         check_line(lx, y, lw, 1, b);
     }
     y += 32;
     {
         wchar_t b[200];
-        if (s_rc.profiles > 0) swprintf(b, 200, L"Saves: %d profile%ls", s_rc.profiles, s_rc.profiles == 1 ? L"" : L"s");
-        else swprintf(b, 200, L"No saves yet: a new game makes one");
+        if (s_rc.profiles > 0) swprintf(b, 200, s_rc.profiles == 1 ? TW(L"Saves: %d profile") : TW(L"Saves: %d profiles"), s_rc.profiles);
+        else swprintf(b, 200, TW(L"No saves yet: a new game makes one"));
         check_line(lx, y, lw, s_rc.profiles > 0 ? 1 : 0, b);
     }
     y += 32;
     {
         wchar_t b[300];
-        swprintf(b, 300, L"Graphics: %ls", gpu_chosen()[0] ? W(gpu_chosen()) : L"no Direct3D adapter found");
+        swprintf(b, 300, TW(L"Graphics: %ls"), gpu_chosen()[0] ? W(gpu_chosen()) : TW(L"no Direct3D adapter found"));
         check_line(lx, y, lw, gpu_chosen()[0] ? 1 : -1, b);
     }
     y += 32;
@@ -2866,7 +2932,7 @@ static void draw_play(void)
         int n = 0;
         for (int i = 0; i < s_npopt; i++) n += opt_on(s_popt[i]);
         wchar_t b[200];
-        swprintf(b, 200, L"Game patches: %d of %d on", n, s_npopt);
+        swprintf(b, 200, TW(L"Game patches: %d of %d on"), n, s_npopt);
         check_line(lx, y, lw, 1, b);
     }
     y += 32;
@@ -2876,8 +2942,8 @@ static void draw_play(void)
             check_line(lx, y, lw, 2, L"Keyboard and mouse (Controls tab)");
         else if (s_rc.pad) {
             wchar_t b[220];
-            if (s_rc.pad > 1) swprintf(b, 220, L"Controller: %ls, and %d more", W(s_rc.pad_name), s_rc.pad - 1);
-            else swprintf(b, 220, L"Controller: %ls", W(s_rc.pad_name));
+            if (s_rc.pad > 1) swprintf(b, 220, TW(L"Controller: %ls, and %d more"), W(s_rc.pad_name), s_rc.pad - 1);
+            else swprintf(b, 220, TW(L"Controller: %ls"), W(s_rc.pad_name));
             check_line(lx, y, lw, 1, b);
         }
         else
@@ -2891,9 +2957,9 @@ static void draw_play(void)
         if (s_pb.running) {
             wchar_t b[120];
             if (s_pb.total > 0)
-                swprintf(b, 120, L"Building pixel shaders: %ld%%", (long)((s_pb.done * 100LL) / s_pb.total));
+                swprintf(b, 120, TW(L"Building pixel shaders: %ld%%"), (long)((s_pb.done * 100LL) / s_pb.total));
             else
-                swprintf(b, 120, L"Building pixel shaders: reading the game");
+                swprintf(b, 120, TW(L"Building pixel shaders: reading the game"));
             check_line(lx, y, lw - 106, 2, b);
             w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_PREBUILD, B_PLAIN);
         } else if (pb && !opt_on(*pb)) {
@@ -2922,7 +2988,7 @@ static void draw_play(void)
         const int dmiss = dlss_missing(dneed);
         wchar_t anr_tail[48];
         const std::string label = anr && !s_anr_dl.running ? anr_label() : std::string();
-        swprintf(anr_tail, 48, L" + ANR FG%hs%hs", label.empty() ? "" : " ", label.c_str());
+        swprintf(anr_tail, 48, TW(L" + ANR FG%hs%hs"), label.empty() ? "" : " ", label.c_str());
         const Opt* rx = opt_find("graphics", "reflex");
         const bool reflex = rx && rx->tab >= 0 && !ps3_settings_ieq(rx->cur, "off");
         const wchar_t* tail = anr ? anr_tail : fgon ? L" + FSR frames" : dlssg ? L" + DLSS frames" : reflex ? L" + Reflex" : L"";
@@ -2930,9 +2996,9 @@ static void draw_play(void)
         if (anr && s_anr_dl.running) {
             const long long total = s_anr_dl.p.total, done = s_anr_dl.p.done;
             if (total > 0)
-                swprintf(b, 200, L"Downloading ANR FG %hs: %lld%%", s_anr_dl.tag, done * 100 / total);
+                swprintf(b, 200, TW(L"Downloading ANR FG %hs: %lld%%"), s_anr_dl.tag, done * 100 / total);
             else
-                swprintf(b, 200, L"Downloading ANR FG %hs", s_anr_dl.tag);
+                swprintf(b, 200, TW(L"Downloading ANR FG %hs"), s_anr_dl.tag);
             check_line(lx, y, lw - 106, 2, b);
             draw_progress(lx + 26, y + 28, lw - 26 - 106, total > 0 ? (float)done / (float)total : -1.0f, 0, 8.0f);
             w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_ANR_STOP, B_PLAIN);
@@ -2945,9 +3011,9 @@ static void draw_play(void)
         } else if (dneed && s_dlss_dl.running) {
             const long long total = s_dlss_dl.p.total, done = s_dlss_dl.p.done;
             if (total > 0)
-                swprintf(b, 200, L"Downloading DLSS %hs: %lld%%", k_dlss_dll_version, done * 100 / total);
+                swprintf(b, 200, TW(L"Downloading DLSS %hs: %lld%%"), k_dlss_dll_version, done * 100 / total);
             else
-                swprintf(b, 200, L"Downloading DLSS %hs", k_dlss_dll_version);
+                swprintf(b, 200, TW(L"Downloading DLSS %hs"), k_dlss_dll_version);
             check_line(lx, y, lw - 106, 2, b);
             draw_progress(lx + 26, y + 28, lw - 26 - 106, total > 0 ? (float)done / (float)total : -1.0f, 0, 8.0f);
             w_button(L"Stop", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_STOP, B_PLAIN);
@@ -2956,18 +3022,18 @@ static void draw_play(void)
                                                             : L"DLSS's DLL is not here yet");
             w_button(L"Get DLSS", R(lx + lw - 96, y - 2, 96, 30), H_DLSS_GET, B_PLAIN);
         } else if (dlss) {
-            swprintf(b, 200, L"Upscaling: NVIDIA DLSS (beta)%ls", tail);
+            swprintf(b, 200, TW(L"Upscaling: NVIDIA DLSS (beta)%ls"), tail);
             check_line(lx, y, lw, 1, b);
         } else if (!fsr) {
-            swprintf(b, 200, L"Scaling: %ls%ls", W(sc ? opt_name(*sc) : "Bilinear"), tail);
+            swprintf(b, 200, TW(L"Scaling: %ls%ls"), W(sc ? opt_name(*sc) : T("Bilinear")), tail);
             check_line(lx, y, lw, 2, b);
         } else {
             const Opt* fv = opt_find("graphics", "fsr_version");
             const char* want = fv && !ps3_settings_ieq(fv->cur, "auto") ? fv->cur : "";
             const char* seen = fsr_seen_for(want);
-            if (seen) swprintf(b, 200, L"Upscaling: AMD FSR %ls%ls", W(seen), tail);
-            else if (*want) swprintf(b, 200, L"Upscaling: AMD FSR %ls%ls", W(want), tail);
-            else swprintf(b, 200, L"Upscaling: AMD FSR%ls", *tail ? tail : L", the newest the card has");
+            if (seen) swprintf(b, 200, TW(L"Upscaling: AMD FSR %ls%ls"), W(seen), tail);
+            else if (*want) swprintf(b, 200, TW(L"Upscaling: AMD FSR %ls%ls"), W(want), tail);
+            else swprintf(b, 200, TW(L"Upscaling: AMD FSR%ls"), *tail ? tail : TW(L", the newest the card has"));
             check_line(lx, y, lw, 1, b);
         }
     }
@@ -3020,8 +3086,8 @@ static void draw_play(void)
     if (const Opt* m = opt_find("online", "mode")) {   /* Multiplayer: what it is on; on Auto, who is online */
         wchar_t b[120];
         if (ps3_settings_ieq(m->cur, "auto"))
-            swprintf(b, 120, s_mp_status == 1 ? L"Auto \x00B7 %d online" : s_mp_status == 2 ? L"Auto \x00B7 starting" :
-                     s_mp_status < 0 ? L"Auto \x00B7 did not start" : L"Auto", s_mp_total);
+            swprintf(b, 120, s_mp_status == 1 ? TW(L"Auto \x00B7 %d online") : s_mp_status == 2 ? TW(L"Auto \x00B7 starting") :
+                     s_mp_status < 0 ? TW(L"Auto \x00B7 did not start") : TW(L"Auto"), s_mp_total);
         else
             swprintf(b, 120, L"%ls", W(opt_short(m)));
         const D2D1_RECT_F r = R(rx, ry, rw, SW_H);
@@ -3054,7 +3120,7 @@ static void draw_game_row(float x, float y, float w)
     if (busy) {
         wchar_t b[GAME_PATH_MAX + 16];
         AcquireSRWLockShared(&s_find.lock);
-        swprintf(b, sizeof b / sizeof b[0], L"Searching: %ls", s_find.now);
+        swprintf(b, sizeof b / sizeof b[0], TW(L"Searching: %ls"), s_find.now);
         ReleaseSRWLockShared(&s_find.lock);
         icon(k_ic_search, x, y + 79, C_GOLD);
         text(b, s_tf_path, R(x + 26, y + 74, w - 26, 26), C_TEXT2);
@@ -3184,12 +3250,12 @@ static ID2D1Bitmap* tro_bitmap(int id, int won)
 /* "Won 18 Nov 2026", from Unix seconds. */
 static void tro_date(long long t, wchar_t* out, size_t n)
 {
-    static const wchar_t* const mon[12] = { L"Jan", L"Feb", L"Mar", L"Apr", L"May", L"Jun",
-                                            L"Jul", L"Aug", L"Sep", L"Oct", L"Nov", L"Dec" };
     const time_t tt = (time_t)t;
     struct tm tm;
-    if (t > 0 && !localtime_s(&tm, &tt)) swprintf(out, n, L"Won %d %ls %d", tm.tm_mday, mon[tm.tm_mon], tm.tm_year + 1900);
-    else swprintf(out, n, L"Won");
+    wchar_t d[64];
+    if (t > 0 && !localtime_s(&tm, &tt) && i18n_date(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, d, 64))
+        swprintf(out, n, TW(L"Won %ls"), d);
+    else swprintf(out, n, TW(L"Won"));
 }
 
 /* The tab's card from y: what is won of the set and of each grade, then each trophy as the game numbers them. top,
@@ -3216,13 +3282,13 @@ static void tro_draw(float x, float y, float w, float top, float bottom)
     const D2D1_RECT_F tr = R(x, y + 18, w - 250, 20);
     text(UP(W(t.set.title)), s_tf_head, tr, C_GOLD);
     glow_text(UP(W(t.set.title)), s_tf_head, tr, C_GOLD, 0.5f);
-    swprintf(b, 96, L"%d of %d won  \x00B7  %d%%", won, all, all ? won * 100 / all : 0);
+    swprintf(b, 96, TW(L"%d of %d won  \x00B7  %d%%"), won, all, all ? won * 100 / all : 0);
     text(b, s_tf_ui_b, R(x + w - 250, y + 16, 250, 22), C_TEXT, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
     draw_progress(x, y + 48, w, all ? (float)won / (float)all : 0.0f, 0, 12.0f);
     float gx = x;
     for (int g = 1; g <= 4; g++) {
         fill(R(gx, y + 80, 10, 10), tro_grade_rgb(g));
-        swprintf(b, 96, L"%ls  %d / %d", gname[g], g_won[g], g_all[g]);
+        swprintf(b, 96, L"%ls  %d / %d", TW(gname[g]), g_won[g], g_all[g]);
         text(b, s_tf_small, R(gx + 18, y + 75, 200, 20), C_TEXT2);
         gx += snap(18.0f + text_w(b, s_tf_small) + 32.0f);
     }
@@ -3252,7 +3318,7 @@ static void tro_draw(float x, float y, float w, float top, float bottom)
         const float cx = x + w - 168.0f;   /* on the right: its grade, and when it was won */
         text(UP(gname[e->grade]), s_tf_cap, R(cx, ry + 18, 168, 14), gc, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
         if (got) tro_date(t.when[i], b, 96);
-        else swprintf(b, 96, L"%ls", na ? L"Not in this port" : L"Not won yet");
+        else swprintf(b, 96, L"%ls", na ? TW(L"Not in this port") : TW(L"Not won yet"));
         text(b, s_tf_small, R(cx, ry + 38, 168, 20), got ? C_OK : C_DIM, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
         ry += TRO_ROW_H;
     }
@@ -3408,15 +3474,15 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
         unsigned sc = C_DIM;
         const wchar_t* const sep = L"  \x00B7  ";
         if (!m.error.empty()) {
-            st = std::wstring(L"Not read: ") + W(m.error.c_str());
+            st = fmt_w(TW(L"Not read: %ls"), W(m.error.c_str()));
             sc = C_WARN_T;
         } else {
-            if (m.files || !m.usrdirs.empty()) st = std::to_wstring(m.files) + (m.files == 1 ? L" file" : L" files");
+            if (m.files || !m.usrdirs.empty()) st = fmt_w(TW(m.files == 1 ? L"%d file" : L"%d files"), m.files);
             if (m.on && m.shadowed) {
                 const ModInfo* by = NULL;
                 for (const ModInfo& o : s_mods.mods) if (o.id == m.shadowed_by) by = &o;
-                st += sep + std::to_wstring(m.shadowed) + L" of them from " +
-                      (by ? std::wstring(W(by->name.c_str())) : m.shadowed_by) + L", above";
+                st += sep + fmt_w(TW(L"%d of them from %ls, above"), m.shadowed,
+                                  by ? W(by->name.c_str()) : m.shadowed_by.c_str());
                 sc = C_WARN_T;
             }
             /* Its archive\ and text\: what the last start packed of them, or that the next one packs them. */
@@ -3426,18 +3492,18 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
             } else if (m.archive_files || m.text_files) {
                 std::wstring p;
                 if (m.archive_files)
-                    p += L"archive: " + std::to_wstring(m.archive_files) + (m.archive_files == 1 ? L" file" : L" files");
+                    p += fmt_w(TW(m.archive_files == 1 ? L"archive: %d file" : L"archive: %d files"), m.archive_files);
                 if (m.text_files)
-                    p += (p.empty() ? L"" : L", ") + std::wstring(L"text: ") + std::to_wstring(m.text_files) +
-                         (m.text_files == 1 ? L" file" : L" files");
-                st += (st.empty() ? L"" : sep) + p + (lit ? L", packed when the game starts" : L"");
+                    p += (p.empty() ? L"" : L", ") +
+                         fmt_w(TW(m.text_files == 1 ? L"text: %d file" : L"text: %d files"), m.text_files);
+                st += (st.empty() ? L"" : sep) + p + (lit ? TW(L", packed when the game starts") : L"");
             }
             if (m.texture_files || m.texture_aliases)
-                st += (st.empty() ? L"" : sep) + std::wstring(L"textures: ") + std::to_wstring(m.texture_files) +
-                      (m.texture_files == 1 ? L" picture" : L" pictures") +
-                      (m.texture_aliases ? L", " + std::to_wstring(m.texture_aliases) + L" more by aliases.txt" : L"");
+                st += (st.empty() ? L"" : sep) +
+                      fmt_w(TW(m.texture_files == 1 ? L"textures: %d picture" : L"textures: %d pictures"), m.texture_files) +
+                      (m.texture_aliases ? fmt_w(TW(L", %d more by aliases.txt"), m.texture_aliases) : std::wstring());
             if (!m.later.empty()) {
-                st += sep + std::wstring(L"not read by this build yet:");
+                st += sep + std::wstring(TW(L"not read by this build yet:"));
                 for (size_t j = 0; j < m.later.size(); j++) st += (j ? L", " : L" ") + std::wstring(W(m.later[j].c_str()));
                 sc = C_WARN_T;
             }
@@ -3458,7 +3524,7 @@ static void mods_draw(float x, float y, float w, float top, float bottom)
     w_rule(x, y, w);
     if (use && !s_mods.pack_error.empty()) {   /* the last start could not pack them */
         icon(k_ic_warn, x, y + 13, C_WARN);
-        text((std::wstring(L"At the last start the mods' archive and text were not packed: ") + W(s_mods.pack_error.c_str()))
+        text(fmt_w(TW(L"At the last start the mods' archive and text were not packed: %ls"), W(s_mods.pack_error.c_str()))
                  .c_str(),
              s_tf_small, R(x + 26, y + 8, w - 26, 26), C_WARN_T);
         return;
@@ -3487,14 +3553,14 @@ static int online_notes(const wchar_t* out[5], unsigned rgb[5])
     }
     const Opt* m = opt_find("online", "mode");
     if (m && ps3_settings_ieq(m->cur, "auto")) {
-        const wchar_t* reach = !strcmp(s_mp_nat, "open") ? L"other players can reach it" :
-                               !strcmp(s_mp_nat, "easy") ? L"others reach it once introduced" :
-                               !strcmp(s_mp_nat, "hard") ? L"others reach it only through another node" :
-                               L"how others reach it is not known yet";
-        if (s_mp_status == 1) swprintf(node, 400, L"Your node is on: %ls.", reach);
-        else if (s_mp_status == 2) swprintf(node, 400, L"Your node is starting\x2026");
-        else if (s_mp_status < 0) swprintf(node, 400, L"Your node did not start: %ls", W(s_mp_why));
-        else swprintf(node, 400, L"Your node starts once your online ID is set.");
+        const wchar_t* reach = TW(!strcmp(s_mp_nat, "open") ? L"other players can reach it" :
+                                  !strcmp(s_mp_nat, "easy") ? L"others reach it once introduced" :
+                                  !strcmp(s_mp_nat, "hard") ? L"others reach it only through another node" :
+                                  L"how others reach it is not known yet");
+        if (s_mp_status == 1) swprintf(node, 400, TW(L"Your node is on: %ls."), reach);
+        else if (s_mp_status == 2) swprintf(node, 400, TW(L"Your node is starting\x2026"));
+        else if (s_mp_status < 0) swprintf(node, 400, TW(L"Your node did not start: %ls"), W(s_mp_why));
+        else swprintf(node, 400, TW(L"Your node starts once your online ID is set."));
         out[n] = node;
         rgb[n++] = s_mp_status < 0 ? C_BAD : C_TEXT2;
         out[n] = L"Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks "
@@ -3507,10 +3573,10 @@ static int online_notes(const wchar_t* out[5], unsigned rgb[5])
             gowa_online_lan(lan, sizeof lan);
             lan_read = 1;
         }
-        swprintf(host, 1400, L"Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 "
+        swprintf(host, 1400, TW(L"Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 "
                  L"and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone "
                  L"join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to "
-                 L"let Python through: allow it.", lan[0] ? W(lan) : L"this PC's address");
+                 L"let Python through: allow it."), lan[0] ? W(lan) : TW(L"this PC's address"));
         out[n] = host;
         rgb[n++] = C_TEXT2;
     }
@@ -3550,7 +3616,7 @@ static void online_draw(float x, float y, float w)
     /* Online now: the players the node knows of, what each is doing, and how it reaches them. */
     w_rule(x, y, w);
     wchar_t b[200];
-    swprintf(b, 200, L"ONLINE NOW: %d", s_mp_total);
+    swprintf(b, 200, TW(L"ONLINE NOW: %d"), s_mp_total);
     text(b, s_tf_head, R(x, y + 10, w, 18), C_GOLD);
     y += 34.0f;
     if (!s_mp_n) {
@@ -3563,13 +3629,13 @@ static void online_draw(float x, float y, float w)
         const unsigned dot = !strcmp(p.state, "searching") ? C_GOLD : !strcmp(p.state, "playing") ? C_CYAN : C_OK;
         fill(R(x + 2, y + 8, 8, 8), dot);
         text(W(p.name), s_tf_ui_b, R(x + 22, y, 200, 22), C_TEXT);
-        swprintf(b, 200, L"%ls%ls", mp_state_name(p.state), !strcmp(p.how, "through") ? L" \x00B7 through another node" :
-                 !strcmp(p.how, "heard") ? L" \x00B7 heard of from another node" : L"");
+        swprintf(b, 200, L"%ls%ls", mp_state_name(p.state), !strcmp(p.how, "through") ? TW(L" \x00B7 through another node") :
+                 !strcmp(p.how, "heard") ? TW(L" \x00B7 heard of from another node") : L"");
         text(b, s_tf_desc, R(x + 230, y + 1, w - 230, 22), C_TEXT2);
         y += 24.0f;
     }
     if (s_mp_n > 10 || s_mp_total > s_mp_n) {
-        swprintf(b, 200, L"and %d more", s_mp_total - (s_mp_n < 10 ? s_mp_n : 10));
+        swprintf(b, 200, TW(L"and %d more"), s_mp_total - (s_mp_n < 10 ? s_mp_n : 10));
         text(b, s_tf_desc, R(x + 22, y, w - 22, 22), C_MUTED);
     }
 }
@@ -3584,7 +3650,9 @@ static void draw_settings(int tab)
         text(UP(k_tab_name[tab]), s_tf_title, t, C_GOLD);
         glow_text(UP(k_tab_name[tab]), s_tf_title, t, C_NEON, 0.7f);
     }
-    text(k_tab_desc[tab], s_tf_ui, R(SIDE_W + 72, 68, 640, 24), C_TEXT);
+    /* The tab's line: two smaller lines where it is longer than the box (Cheats', and many in other languages). */
+    if (text_w(k_tab_desc[tab], s_tf_ui) <= 640.0f) text(k_tab_desc[tab], s_tf_ui, R(SIDE_W + 72, 68, 640, 24), C_TEXT);
+    else text(k_tab_desc[tab], s_tf_desc, R(SIDE_W + 72, 62, 640, 42), C_TEXT);
     const float cw = WIN_W - SIDE_W - 48, cy = hh + 14, rx = x0 + 24, rw = cw - 48;
     /* The rows of the tab, then what follows them. */
     Opt* rows[MAX_POPT + N_OPT];
@@ -3690,10 +3758,10 @@ static void summary(wchar_t* out, size_t n)
     const bool high = c && (ps3_settings_ieq(c->cur, "unlocked") || atof(c->cur) > 60.5);   /* frame generation goes off */
     swprintf(out, n, L"%ls  \x00B7  %ls  \x00B7  %ls  \x00B7  %ls",
              W(opt_short(opt_find("display", "mode"))), W(opt_short(opt_find("graphics", "scaling"))),
-             a && ps3_settings_ieq(a->cur, "smaa") ? L"SMAA" : L"no AA",
+             a && ps3_settings_ieq(a->cur, "smaa") ? TW(L"SMAA") : TW(L"no AA"),
              high ? W(opt_short(c)) :
-             g && ps3_settings_ieq(g->cur, "on") ? L"frame generation" : g && ps3_settings_ieq(g->cur, "anr") ? L"ANR FG" :
-             c && !ps3_settings_ieq(c->cur, "off") ? W(opt_short(c)) : L"no cap");
+             g && ps3_settings_ieq(g->cur, "on") ? TW(L"frame generation") : g && ps3_settings_ieq(g->cur, "anr") ? TW(L"ANR FG") :
+             c && !ps3_settings_ieq(c->cur, "off") ? W(opt_short(c)) : TW(L"no cap"));
 }
 
 static void draw_footer(void)
@@ -3729,8 +3797,8 @@ static void draw_footer(void)
         text(msg, s_tf_ui_b, R(box.left + 40, box.top, bw - 50, 40), C_TEXT);
     } else {
         wchar_t p[80];
-        if (pn >= 0) swprintf(p, 80, L"%ls preset", W(k_presets[pn].name));
-        else swprintf(p, 80, L"Custom setup");
+        if (pn >= 0) swprintf(p, 80, TW(L"%ls preset"), TW(W(k_presets[pn].name)));
+        else swprintf(p, 80, TW(L"Custom setup"));
         text(UP(p), s_tf_head, R(SIDE_W + 20, y + 18, tw, 18), C_GOLD);
         text(sum, s_tf_small, R(SIDE_W + 20, y + 40, tw, 20), C_MUTED);
     }
@@ -3775,7 +3843,7 @@ static void draw_dropdown(void)
  * binding clicked waits, gold, for a key or a mouse button. */
 static void kb_draw(void)
 {
-    const float pw = 720.0f, ph = 600.0f, px = snap((WIN_W - pw) * 0.5f), py = snap((WIN_H - ph) * 0.5f);
+    const float pw = 860.0f, ph = 600.0f, px = snap((WIN_W - pw) * 0.5f), py = snap((WIN_H - ph) * 0.5f);
     const D2D1_RECT_F panel = R(px, py, pw, ph);
     fill(R(px + 6, py + 6, pw, ph), 0x000000, 0.5f);   /* a hard shadow */
     fill(panel, C_CARD);
@@ -3787,7 +3855,13 @@ static void kb_draw(void)
     glow_text(L"KEYBOARD KEYS", s_tf_head, t, C_GOLD, 0.5f);
     text(L"Click an action, then press a key or a mouse button. Backspace clears it, Esc gives up. Edit "
          L"ascension-r.ini to give an action more than one key.", s_tf_desc, R(px + 24, py + 52, pw - 48, 40), C_MUTED);
-    const float colw = (pw - 48.0f - 24.0f) * 0.5f, lw = 130.0f;
+    const float colw = (pw - 48.0f - 24.0f) * 0.5f;
+    float lw = 130.0f;   /* as wide as the longest action's name in the language shown */
+    for (int i = 0; i < N_KB; i++) {
+        const float nw = snap(text_w(W(k_kb[i][1]), s_tf_ui) + 8.0f);
+        if (nw > lw) lw = nw;
+    }
+    if (lw > colw * 0.45f) lw = snap(colw * 0.45f);
     for (int i = 0; i < N_KB; i++) {
         const float x = px + 24.0f + (float)(i % 2) * (colw + 24.0f), y = py + 100.0f + (float)(i / 2) * 36.0f;
         const int id = H_KBIND + i, wait = s_capture == i;
@@ -4109,7 +4183,7 @@ static void find_done(void)
         }
         else toast_bad("The game's folder could not be set");
     } else if (b.state == GAME_OTHER_TITLE) {
-        swprintf(s_game.note, n, L"Found %ls in %ls. This port runs %ls 1.12", W(b.title_id), b.dir, game_titles_line());
+        swprintf(s_game.note, n, TW(L"Found %ls in %ls. This port runs %ls 1.12"), W(b.title_id), b.dir, game_titles_line());
         toast_bad("Another release of the game");
     } else if (b.state == GAME_INCOMPLETE && b.disc && (b.disc_lack == DISC_NO_GAME || b.disc_lack == DISC_ISO) &&
                (picked || s_game.g.state < GAME_NO_ELF)) {
@@ -4124,12 +4198,12 @@ static void find_done(void)
                       : b.files_missing ? "Found the game, but not all of it" : "Found the game, but not 1.12's files");
         else toast_bad("The game's folder could not be set");
     } else if (picked) {
-        swprintf(s_game.note, n, L"No game in %ls", s_find.under);
+        swprintf(s_game.note, n, TW(L"No game in %ls"), s_find.under);
         toast_bad("No game in that folder");
     } else if (s_game.g.state >= GAME_NO_ELF) {
         toast("No better copy found");
     } else {
-        swprintf(s_game.note, n, L"Not found on this PC. Browse to its folder (%ls)", game_titles_line());
+        swprintf(s_game.note, n, TW(L"Not found on this PC. Browse to its folder (%ls)"), game_titles_line());
         toast_bad("Game not found");
     }
 }
@@ -4171,10 +4245,10 @@ static void clear_shaders(void)
         return;
     }
     wchar_t m[200];
-    swprintf(m, 200, L"Move %.0f MB of compiled shaders to the Recycle Bin?\n\n"
-                     L"The next start builds the vertex shaders first; the rest come as the game reaches them.",
+    swprintf(m, 200, TW(L"Move %.0f MB of compiled shaders to the Recycle Bin?\n\n"
+                     L"The next start builds the vertex shaders first; the rest come as the game reaches them."),
              (double)bytes / 1048576.0);
-    if (MessageBoxW(s_main, m, L"Clear shaders", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
+    if (MessageBoxW(s_main, m, TW(L"Clear shaders"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
     SHFILEOPSTRUCTW op = {};
     op.hwnd = s_main;
     op.wFunc = FO_DELETE;
@@ -4232,11 +4306,11 @@ static void pb_end(void)
     unsigned c = 0, had = 0, failed = 0;
     if (sscanf(s_pb.result, "prebuild: done %u %u %u", &c, &had, &failed) == 3) {
         char m[160];
-        snprintf(m, sizeof m, "Pixel shaders built: %u new, %u kept from before%s", c, had, failed ? ", some failed" : "");
+        snprintf(m, sizeof m, T("Pixel shaders built: %u new, %u kept from before%s"), c, had, failed ? T(", some failed") : "");
         toast(m);
     } else if (!strncmp(s_pb.result, "prebuild: error ", 16)) {
         char m[220];
-        snprintf(m, sizeof m, "Shaders not built: %s", s_pb.result + 16);
+        snprintf(m, sizeof m, T("Shaders not built: %s"), s_pb.result + 16);
         toast_bad(m);
     } else {
         toast("Building shaders stopped");
@@ -4380,7 +4454,7 @@ static DWORD WINAPI kit_reader(LPVOID)
     AcquireSRWLockExclusive(&s_kit.lock);
     if (s_kit.stopped) s_kit.err[0] = 0;   /* stopped is not failed */
     else if (!s_kit.done && !s_kit.err[0]) {
-        swprintf(s_kit.err, sizeof s_kit.err / sizeof s_kit.err[0], L"it stopped (%lu)%ls", code, s_kit.last[0] ? L": " : L"");
+        swprintf(s_kit.err, sizeof s_kit.err / sizeof s_kit.err[0], TW(L"it stopped (%lu)%ls"), code, s_kit.last[0] ? L": " : L"");
         const size_t k = wcslen(s_kit.err);
         kit_copy(s_kit.err + k, sizeof s_kit.err / sizeof s_kit.err[0] - k, s_kit.last);
     }
@@ -4558,36 +4632,41 @@ static task_dialog_fn task_dialog(void)
 /* heading: why it is offered, or NULL when the player asked. */
 static void report_make(const wchar_t* heading)
 {
+    /* Two whole texts, not one with a part between #ifdefs: each is translated as it is shown. */
+#ifdef PORT_GAME_MODULE
     static const wchar_t what[] =
         L"The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\n"
         L"It holds the logs of your last sessions, your button presses and the files the game opened in them, your "
-#ifdef PORT_GAME_MODULE
         L"settings, the log of building the game's code, this PC's hardware and driver versions, and Windows' records of "
         L"crashes of this game.\n\n"
-#else
-        L"settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\n"
-#endif
         L"Folder paths and your Windows name are hidden. No game files are in it.";
+#else
+    static const wchar_t what[] =
+        L"The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\n"
+        L"It holds the logs of your last sessions, your button presses and the files the game opened in them, your "
+        L"settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\n"
+        L"Folder paths and your Windows name are hidden. No game files are in it.";
+#endif
     const task_dialog_fn td = task_dialog();
     BOOL saves = FALSE;
     if (td) {
-        TASKDIALOG_BUTTON make = { 100, L"Make the report" };
+        TASKDIALOG_BUTTON make = { 100, TW(L"Make the report") };
         TASKDIALOGCONFIG c = {};
         c.cbSize = sizeof c;
         c.hwndParent = s_main;
         c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
         c.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-        c.pszWindowTitle = L"Report a problem";
+        c.pszWindowTitle = TW(L"Report a problem");
         c.pszMainIcon = heading ? TD_WARNING_ICON : TD_INFORMATION_ICON;
-        c.pszMainInstruction = heading ? heading : L"Make a problem report?";
-        c.pszContent = what;
-        c.pszVerificationText = L"Include my saves, so the problem can be loaded where it happened";
+        c.pszMainInstruction = TW(heading ? heading : L"Make a problem report?");
+        c.pszContent = TW(what);
+        c.pszVerificationText = TW(L"Include my saves, so the problem can be loaded where it happened");
         c.cButtons = 1;
         c.pButtons = &make;
         c.nDefaultButton = 100;
         int pressed = 0;
         if (FAILED(td(&c, &pressed, NULL, &saves)) || pressed != 100) return;
-    } else if (MessageBoxW(s_main, what, L"Report a problem", MB_OKCANCEL | MB_ICONINFORMATION) != IDOK) {
+    } else if (MessageBoxW(s_main, TW(what), TW(L"Report a problem"), MB_OKCANCEL | MB_ICONINFORMATION) != IDOK) {
         return;
     }
     HCURSOR was = SetCursor(LoadCursorA(NULL, (LPCSTR)IDC_WAIT));
@@ -4601,25 +4680,25 @@ static void report_make(const wchar_t* heading)
     wchar_t path[1300];
     MultiByteToWideChar(CP_ACP, 0, made, -1, path, 1300);
     wchar_t done[1500];
-    swprintf(done, 1500, L"%ls\n\nAttach it to a new issue and say what happened and where you were in the game.", path);
+    swprintf(done, 1500, TW(L"%ls\n\nAttach it to a new issue and say what happened and where you were in the game."), path);
     int pressed = 0;
     if (td) {
-        TASKDIALOG_BUTTON b[2] = { { 101, L"Open GitHub" }, { 102, L"Show the file" } };
+        TASKDIALOG_BUTTON b[2] = { { 101, TW(L"Open GitHub") }, { 102, TW(L"Show the file") } };
         TASKDIALOGCONFIG c = {};
         c.cbSize = sizeof c;
         c.hwndParent = s_main;
         c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
         c.dwCommonButtons = TDCBF_CLOSE_BUTTON;
-        c.pszWindowTitle = L"Report a problem";
+        c.pszWindowTitle = TW(L"Report a problem");
         c.pszMainIcon = TD_INFORMATION_ICON;
-        c.pszMainInstruction = L"The report is ready";
+        c.pszMainInstruction = TW(L"The report is ready");
         c.pszContent = done;
         c.cButtons = 2;
         c.pButtons = b;
         c.nDefaultButton = 102;
         td(&c, &pressed, NULL, NULL);
     } else {
-        MessageBoxW(s_main, done, L"Report a problem", MB_OK | MB_ICONINFORMATION);
+        MessageBoxW(s_main, done, TW(L"Report a problem"), MB_OK | MB_ICONINFORMATION);
         pressed = 102;
     }
     if (pressed == 101) ShellExecuteW(s_main, L"open", k_issue_url, NULL, NULL, SW_SHOWNORMAL);
@@ -4645,21 +4724,21 @@ static int fg_offer(void)
     int pressed = 0;
     const task_dialog_fn td = task_dialog();
     if (td) {
-        TASKDIALOG_BUTTON b[2] = { { 100, L"Turn frame generation off" }, { 101, L"Keep it on" } };
+        TASKDIALOG_BUTTON b[2] = { { 100, TW(L"Turn frame generation off") }, { 101, TW(L"Keep it on") } };
         TASKDIALOGCONFIG c = {};
         c.cbSize = sizeof c;
         c.hwndParent = s_main;
         c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
-        c.pszWindowTitle = L"Frame generation";
+        c.pszWindowTitle = TW(L"Frame generation");
         c.pszMainIcon = TD_WARNING_ICON;
-        c.pszMainInstruction = L"The game froze in the last session, with frame generation on";
-        c.pszContent = what;
+        c.pszMainInstruction = TW(L"The game froze in the last session, with frame generation on");
+        c.pszContent = TW(what);
         c.cButtons = 2;
         c.pButtons = b;
         c.nDefaultButton = 100;
         if (FAILED(td(&c, &pressed, NULL, NULL))) return 1;
     } else {
-        pressed = MessageBoxW(s_main, what, L"The game froze with frame generation on", MB_YESNO | MB_ICONWARNING) == IDYES
+        pressed = MessageBoxW(s_main, TW(what), TW(L"The game froze with frame generation on"), MB_YESNO | MB_ICONWARNING) == IDYES
                       ? 100 : 101;
     }
     if (pressed != 100) return 1;
@@ -4700,7 +4779,7 @@ static void game_browse(void)
     d->SetOptions(o | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST);
     {
         wchar_t t[160];
-        swprintf(t, sizeof t / sizeof t[0], L"The game's folder: %ls, or a folder it is under", game_titles_line());
+        swprintf(t, sizeof t / sizeof t[0], TW(L"The game's folder: %ls, or a folder it is under"), game_titles_line());
         d->SetTitle(t);
     }
     IShellItem* start = NULL;
@@ -4727,9 +4806,9 @@ static int pick_file(const wchar_t* title, const wchar_t* kind, const wchar_t* s
 {
     IFileOpenDialog* d = NULL;
     if (FAILED(CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&d)))) return 0;
-    COMDLG_FILTERSPEC f = { kind, spec };
+    COMDLG_FILTERSPEC f = { TW(kind), spec };
     d->SetFileTypes(1, &f);
-    d->SetTitle(title);
+    d->SetTitle(TW(title));
     int ok = 0;
     if (SUCCEEDED(d->Show(s_main))) {
         IShellItem* it = NULL;
@@ -4811,21 +4890,21 @@ static void anr_offer(void)
     int pressed = 0;
     const task_dialog_fn td = task_dialog();
     if (td) {
-        TASKDIALOG_BUTTON b[3] = { { 100, L"Download and set up" }, { 101, L"Choose a zip I have" }, { 102, L"Not now" } };
+        TASKDIALOG_BUTTON b[3] = { { 100, TW(L"Download and set up") }, { 101, TW(L"Choose a zip I have") }, { 102, TW(L"Not now") } };
         TASKDIALOGCONFIG c = {};
         c.cbSize = sizeof c;
         c.hwndParent = s_main;
         c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
-        c.pszWindowTitle = L"ANR FG (beta)";
+        c.pszWindowTitle = TW(L"ANR FG (beta)");
         c.pszMainIcon = TD_INFORMATION_ICON;
-        c.pszMainInstruction = L"Download ANR FG?";
-        c.pszContent = what;
+        c.pszMainInstruction = TW(L"Download ANR FG?");
+        c.pszContent = TW(what);
         c.cButtons = 3;
         c.pButtons = b;
         c.nDefaultButton = 100;
         if (FAILED(td(&c, &pressed, NULL, NULL))) return;
     } else {
-        pressed = MessageBoxW(s_main, what, L"Download ANR FG?", MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
+        pressed = MessageBoxW(s_main, TW(what), TW(L"Download ANR FG?"), MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
     }
     if (pressed == 100) anr_dl_start();
     else if (pressed == 101) anr_zip_pick();
@@ -4847,37 +4926,37 @@ static void dlss_offer(int which)
 {
     if (s_dlss_dl.running || !which) return;
     wchar_t what[1200], files[160];
-    swprintf(files, 160, L"%ls%ls%ls %hs (%d MB)", which & DLSS_SR ? L"nvngx_dlss.dll" : L"",
-             which == (DLSS_SR | DLSS_FG) ? L" and " : L"", which & DLSS_FG ? L"nvngx_dlssg.dll" : L"",
+    swprintf(files, 160, TW(L"%ls%ls%ls %hs (%d MB)"), which & DLSS_SR ? L"nvngx_dlss.dll" : L"",
+             which == (DLSS_SR | DLSS_FG) ? TW(L" and ") : L"", which & DLSS_FG ? L"nvngx_dlssg.dll" : L"",
              k_dlss_dll_version, dlss_download_mb(which));
     swprintf(what, 1200,
-             L"%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\n"
+             TW(L"%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\n"
              L"Ascension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check "
              L"it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the "
-             L"program. Nothing else is sent or installed.",
-             which == DLSS_FG ? L"NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on "
-                                L"GeForce RTX 40 and newer cards."
-                              : L"NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX "
-                                L"cards.",
+             L"program. Nothing else is sent or installed."),
+             which == DLSS_FG ? TW(L"NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on "
+                                L"GeForce RTX 40 and newer cards.")
+                              : TW(L"NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX "
+                                L"cards."),
              files);
     int pressed = 0;
     const task_dialog_fn td = task_dialog();
     if (td) {
-        TASKDIALOG_BUTTON b[2] = { { 100, L"Download and set up" }, { 102, L"Not now" } };
+        TASKDIALOG_BUTTON b[2] = { { 100, TW(L"Download and set up") }, { 102, TW(L"Not now") } };
         TASKDIALOGCONFIG c = {};
         c.cbSize = sizeof c;
         c.hwndParent = s_main;
         c.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
-        c.pszWindowTitle = L"NVIDIA DLSS (beta)";
+        c.pszWindowTitle = TW(L"NVIDIA DLSS (beta)");
         c.pszMainIcon = TD_INFORMATION_ICON;
-        c.pszMainInstruction = L"Download NVIDIA DLSS?";
-        c.pszContent = what;
+        c.pszMainInstruction = TW(L"Download NVIDIA DLSS?");
+        c.pszContent = TW(what);
         c.cButtons = 2;
         c.pButtons = b;
         c.nDefaultButton = 100;
         if (FAILED(td(&c, &pressed, NULL, NULL))) return;
     } else {
-        pressed = MessageBoxW(s_main, what, L"Download NVIDIA DLSS?", MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
+        pressed = MessageBoxW(s_main, TW(what), TW(L"Download NVIDIA DLSS?"), MB_YESNO | MB_ICONQUESTION) == IDYES ? 100 : 102;
     }
     if (pressed == 100) dlss_dl_start(which);
 }
@@ -4885,6 +4964,7 @@ static void dlss_offer(int which)
 /* What follows a choice: ANR FG or NVIDIA DLSS chosen without its files asks whether to fetch them. */
 static void opt_changed(const Opt& o)
 {
+    if (!strcmp(o.section, "launcher") && !strcmp(o.key, "language")) lang_set(o.cur);
     if (!strcmp(o.section, "online")) online_sync();
     if (!strcmp(o.key, "frame_generation") && ps3_settings_ieq(o.cur, "anr") && !anr_present() && !s_anr_dl.running)
         anr_offer();
@@ -4995,6 +5075,7 @@ static void act(int id)
             for (int i = 0; i < N_OPT; i++) if (!s_opt[i].text) opt_set(s_opt[i], s_opt[i].def);   /* a name stays */
             for (int i = 0; i < s_npopt; i++) opt_set(s_popt[i], s_popt[i].def);
             online_sync();
+            if (const Opt* l = opt_find("launcher", "language")) lang_set(l->cur);
             toast("Defaults back: Save or Play keeps them");
             break;
         }
@@ -5406,7 +5487,7 @@ static void shot_state(int what, int on)
             opt_set(*m, "join");
             opt_set(*sv, "192.168.1.2");
             s_edit = (int)(sv - s_opt);
-            snprintf(s_online_err, sizeof s_online_err, "Multiplayer: cannot find gowa-host: is the address right?");
+            snprintf(s_online_err, sizeof s_online_err, "%s", T("Multiplayer: cannot find gowa-host: is the address right?"));
         } else {
             opt_set(*m, mode);
             opt_set(*sv, server);
@@ -5425,7 +5506,7 @@ static void shot_state(int what, int on)
         s_kit.permille = on ? 420 : 0;
         s_kit.left = on ? 360 : -1;
         s_kit.started = GetTickCount64();
-        swprintf(s_kit.what, 200, L"%ls", on ? L"Compiling the game's code" : L"");
+        swprintf(s_kit.what, 200, L"%ls", on ? TW(L"Compiling the game's code") : L"");
     }
     if (what == S_KIT_NEED) {
         static int state;
@@ -5522,6 +5603,11 @@ extern "C" int gowa_launcher(void)
     }
 
     for (int i = 0; i < N_OPT; i++) opt_set(s_opt[i], ps3_settings_str(s_opt[i].section, s_opt[i].key, NULL, s_opt[i].def));
+    {   /* the window's language (GOWA_LAUNCHER_LANG over the row, for the shots) */
+        const char* e = getenv("GOWA_LAUNCHER_LANG");
+        const Opt* l = opt_find("launcher", "language");
+        lang_set(e && *e ? e : l ? l->cur : "auto");
+    }
     popt_init();
     for (int i = 0; i < s_npopt; i++)
         opt_set(s_popt[i], ps3_settings_str(s_popt[i].section, s_popt[i].key, NULL, s_popt[i].def));

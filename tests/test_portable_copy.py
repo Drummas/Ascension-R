@@ -49,7 +49,8 @@ class PortableCopy(unittest.TestCase):
         src = os.path.join(cls.tmp, "t.cpp")
         Path(src).write_text(DRIVER)
         cmd = [clang, "/nologo", "/O1", "/EHsc", "/std:c++17", "/I" + str(ROOT / "port"), src,
-               str(ROOT / "port" / "portable_copy.cpp"), str(ROOT / "port" / "game_find.cpp"), "/Fe" + cls.exe,
+               str(ROOT / "port" / "portable_copy.cpp"), str(ROOT / "port" / "game_find.cpp"), str(ROOT / "port" / "i18n.cpp"),
+               "/Fe" + cls.exe,
                "/Fo" + cls.tmp + "\\"]
         r = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=cls.tmp)
         if r.returncode:

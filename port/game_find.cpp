@@ -11,6 +11,7 @@
  * (game_files.inc, and game_files_<id>.inc for a disc). The search only reads. No game file is copied or changed.
  */
 #include "game_find.h"
+#include "i18n.h"
 #include "game_title.h"
 
 #ifdef _WIN32
@@ -275,9 +276,9 @@ static const char* name_shown(const char* path)
 
 static void bytes_text(unsigned long long b, wchar_t* out, size_t n)
 {
-    if (b >= 1000000000ull) swprintf(out, n, L"%.1f GB", (double)b / 1e9);
-    else if (b >= 1000000ull) swprintf(out, n, L"%.0f MB", (double)b / 1e6);
-    else swprintf(out, n, L"%llu bytes", b);
+    if (b >= 1000000000ull) swprintf(out, n, TW(L"%.1f GB"), (double)b / 1e9);
+    else if (b >= 1000000ull) swprintf(out, n, TW(L"%.0f MB"), (double)b / 1e6);
+    else swprintf(out, n, TW(L"%llu bytes"), b);
 }
 
 /* What to install: the updates 1.04 to 1.12, in that order, when only their files are at fault, else the game again.
@@ -287,19 +288,19 @@ void game_files_text(const GameInfo* g, wchar_t* out, size_t n)
 {
     switch (g->disc ? g->disc_lack : DISC_WHOLE) {
     case DISC_NO_UPDATE:
-        swprintf(out, n, L"The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 "
-                         L"(File, Install Packages, in that order), then Auto detect", g->title_id);
+        swprintf(out, n, TW(L"The disc (%hs) without its update to 1.12: install the updates 1.04 to 1.12 in RPCS3 "
+                         L"(File, Install Packages, in that order), then Auto detect"), g->title_id);
         return;
     case DISC_NO_GAME:
-        swprintf(out, n, L"The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding "
-                         L"PS3_GAME)", g->title_id, g->update);
+        swprintf(out, n, TW(L"The update of %hs is in %ls, but not its disc: Browse to the disc's folder (the one holding "
+                         L"PS3_GAME)"), g->title_id, g->update);
         return;
     case DISC_ISO:
-        swprintf(out, n, L"RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse "
-                         L"to that folder", g->iso);
+        swprintf(out, n, TW(L"RPCS3 has the disc as an ISO, %ls: open it (Mount), copy all of it into a folder, and Browse "
+                         L"to that folder"), g->iso);
         return;
     case DISC_ENCRYPTED:
-        swprintf(out, n, L"The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed",
+        swprintf(out, n, TW(L"The disc's files in %ls are encrypted: a dump never decrypted. A decrypted copy is needed"),
                  g->dir);
         return;
     default:
@@ -307,27 +308,31 @@ void game_files_text(const GameInfo* g, wchar_t* out, size_t n)
     }
     const int one = (g->files_missing ? g->files_missing : g->files_wrong) == 1;
     if (!g->base_bad && g->files_missing) {
-        swprintf(out, n, L"Not every update is installed: %d %ls missing, %hs first. Install 1.04 to 1.12, in order",
-                 g->files_missing, one ? L"file" : L"files", name_shown(g->first_missing));
+        swprintf(out, n, one ? TW(L"Not every update is installed: %d file missing, %hs first. Install 1.04 to 1.12, in order")
+                             : TW(L"Not every update is installed: %d files missing, %hs first. Install 1.04 to 1.12, in order"),
+                 g->files_missing, name_shown(g->first_missing));
     } else if (!g->base_bad) {
-        swprintf(out, n, L"Not every update is installed: %d %ls, %hs first. Install 1.04 to 1.12, in order",
-                 g->files_wrong, one ? L"file differs" : L"files differ", name_shown(g->first_wrong));
+        swprintf(out, n, one ? TW(L"Not every update is installed: %d file differs, %hs first. Install 1.04 to 1.12, in order")
+                             : TW(L"Not every update is installed: %d files differ, %hs first. Install 1.04 to 1.12, in order"),
+                 g->files_wrong, name_shown(g->first_wrong));
     } else if (g->files_missing && g->disc) {
         wchar_t size[32];
         bytes_text(g->bytes_missing, size, sizeof size / sizeof size[0]);
-        swprintf(out, n, L"Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the "
-                         L"disc again", g->files_missing, g->files, size, name_shown(g->first_missing));
+        swprintf(out, n, TW(L"Not the whole disc: %d of the game's %d files missing (%ls), %hs first. Copy all of the "
+                         L"disc again"), g->files_missing, g->files, size, name_shown(g->first_missing));
     } else if (g->files_missing) {
         wchar_t size[32];
         bytes_text(g->bytes_missing, size, sizeof size / sizeof size[0]);
-        swprintf(out, n, L"Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again",
+        swprintf(out, n, TW(L"Not the whole game: %d of its %d files missing (%ls), %hs first. Install the game again"),
                  g->files_missing, g->files, size, name_shown(g->first_missing));
     } else if (g->disc) {
-        swprintf(out, n, L"%d of the disc's files %ls not as the disc has %ls, %hs first. Copy all of the disc again",
-                 g->files_wrong, one ? L"is" : L"are", one ? L"it" : L"them", name_shown(g->first_wrong));
+        swprintf(out, n, one ? TW(L"%d of the disc's files is not as the disc has it, %hs first. Copy all of the disc again")
+                             : TW(L"%d of the disc's files are not as the disc has them, %hs first. Copy all of the disc again"),
+                 g->files_wrong, name_shown(g->first_wrong));
     } else {
-        swprintf(out, n, L"%d of the game's files %ls not as version 1.12 has %ls, %hs first. Install the game again",
-                 g->files_wrong, one ? L"is" : L"are", one ? L"it" : L"them", name_shown(g->first_wrong));
+        swprintf(out, n, one ? TW(L"%d of the game's files is not as version 1.12 has it, %hs first. Install the game again")
+                             : TW(L"%d of the game's files are not as version 1.12 has them, %hs first. Install the game again"),
+                 g->files_wrong, name_shown(g->first_wrong));
     }
 }
 
@@ -920,7 +925,7 @@ static int same_folder(const wchar_t* a, const wchar_t* b)
 
 static void say(wchar_t* err, size_t n, const wchar_t* what, const wchar_t* path)
 {
-    if (err && n) swprintf(err, n, L"%ls: %ls", what, path);
+    if (err && n) swprintf(err, n, L"%ls: %ls", TW(what), path);
 }
 
 int game_link_possible(const wchar_t* link, const wchar_t* target, wchar_t* err, size_t n)
