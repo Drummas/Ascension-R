@@ -107,3 +107,14 @@ Checked at 32:9 after the change: the logos, the notice and the intro movie in t
 screen and the profile menu; the HUD in a hundred screenshots 0.1 s apart as it came up and over the fight; the
 load into play. Not caught: a frame of the HUD half way in (it comes up between two screenshots), the death screen
 and a cutscene's bars.
+
+## Copies of the display were squeezed too (issue #48, 2026-11-25)
+
+Since 0.3.1 (Disable MLAA on the SPU side keeps MLAA's frame order) a 21:9 player saw the Rage of Ares tutorial as a
+16:9 frame in the middle, its right side the edge columns stretched, its left a repeated strip; the title screen and the
+profile screen did the same here at 2560x1080 (play itself was right in both orders). The title draws copies of its own
+display back over it, through no camera: a main-memory texture at the display's size, which is the rule for its 16:9
+pictures (the studio logos, #23). Those copies are blit snapshots here (the picture as drawn, at the screen's width), so
+the rule squeezed a full-width frame into the 16:9. A texture that is a blit snapshot, kept or blitted in the batch so far
+(`wide_is_snapshot`), is no longer such a picture (ps3recomp 301eb23b): the title screen and the profiles fill the width,
+their menus where they were, the logos as before.
