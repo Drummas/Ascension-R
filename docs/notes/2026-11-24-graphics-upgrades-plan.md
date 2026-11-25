@@ -95,6 +95,9 @@ frame generation for now, and the HUD's white is raised with the rest.
 
 ## 6. Level of detail further away
 
+**Searched 2026-11-25, not found yet**: no LOD tables or strings; the model server's classes and the render core's
+distance-shaped functions are listed in [the note](2026-11-25-lod-search.md) for a probe next.
+
 - Find the game's LOD distance table or its scale and add a patch that multiplies it.
 - Watch: streaming budgets (the VRAM pool is close to full in places, issues #39 and #42); a larger LOD distance
   loads more.
