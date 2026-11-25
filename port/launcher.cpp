@@ -1486,7 +1486,9 @@ static void ready_check(void)
  *     and 16x filtering, no dynamic shadows or motion blur, no extras.
  *   Balanced: 1080p by FSR 1, the dynamic shadows at 2x, bloom, blur and depth of field at the internal resolution,
  *     ambient occlusion at half of it, debanding; no motion blur.
- *   Ultra: the game's every effect, the window's size with bilinear scaling, every extra at its most.
+ *   Ultra: the game's every effect, the window's size with bilinear scaling, every extra at its most, but CAS: it
+ *     sharpened the fine texture of the game's fog into a white grain (the doorway at the top of the stairs past the
+ *     first fight).
  * -----------------------------------------------------------------------*/
 struct Preset { const char* name; const char* desc; const char* on[6]; const char* set[12][3]; };
 static const Preset k_presets[] = {
@@ -1511,7 +1513,7 @@ static const Preset k_presets[] = {
         { "graphics", "frame_generation", "off" }, { "graphics", "antialiasing", "smaa" },
         { "graphics", "anisotropy", "16" }, { "graphics", "shadow_resolution", "4" },
         { "graphics", "effects_resolution", "internal" }, { "graphics", "ambient_occlusion", "high" },
-        { "graphics", "deband", "on" }, { "graphics", "cas", "low" }, { NULL } } },
+        { "graphics", "deband", "on" }, { "graphics", "cas", "off" }, { NULL } } },
 };
 enum { N_PRESET = sizeof k_presets / sizeof k_presets[0] };
 
