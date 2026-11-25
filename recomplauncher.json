@@ -282,11 +282,11 @@
     },
     {
       "id": "preset", "label": "Preset", "group": "Game patches",
-      "help": "Smooth, the default, is the fastest: no dynamic shadows, motion blur or MLAA. Balanced keeps the shadows. Faithful draws everything as on the PS3.",
+      "help": "Smooth, the default, is the fastest: no dynamic shadows, motion blur or MLAA. Balanced keeps the shadows. Ultra has every effect at its most: the window's resolution with SMAA (AMD FSR and frame generation lose the bloom), 4x shadows, effects at full resolution, high-quality ambient occlusion, 16x filtering, debanding and light CAS. The slowest: the game's own shadows and motion blur cost most of it.",
       "choices": [
-        { "label": "Smooth", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off" } },
-        { "label": "Balanced", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off" } },
-        { "label": "Faithful", "set": { "patches/disable_mlaa": "off", "patches/disable_motion_blur": "off", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off" } }
+        { "label": "Smooth", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off" } },
+        { "label": "Balanced", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off" } },
+        { "label": "Ultra", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "off", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "on", "graphics/render_scale": "native", "graphics/scaling": "bilinear", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "4", "graphics/effects_resolution": "internal", "graphics/ambient_occlusion": "high", "graphics/deband": "on", "graphics/cas": "low" } }
       ],
       "defaults": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off" }
     },

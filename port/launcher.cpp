@@ -1477,16 +1477,32 @@ static void ready_check(void)
 }
 
 /* ---------------------------------------------------------------------------
- * Presets: the patch sets the Play tab offers
+ * Presets: the patch sets the Play tab offers, and the graphics settings each one sets
+ *
+ * A preset is the game patches it switches on (the rest off) and the settings it gives a value. Smooth and Balanced
+ * set the costly extras back (shadow and effects resolution, ambient occlusion) and leave the scaling to the player.
+ * Ultra sets the picture too: the game's every effect (MLAA aside: its picture is never shown, only its cost), the
+ * scene at the window's size with SMAA, since AMD FSR and frame generation take the frame order without the bloom and
+ * the motion blur, and every extra at its most.
  * -----------------------------------------------------------------------*/
-struct Preset { const char* name; const char* desc; const char* on[6]; };
+struct Preset { const char* name; const char* desc; const char* on[6]; const char* set[12][3]; };
 static const Preset k_presets[] = {
     { "Smooth", "The default and the fastest: no dynamic shadows, motion blur or MLAA.",
-      { "disable_mlaa", "disable_motion_blur", "disable_shadows", NULL } },
+      { "disable_mlaa", "disable_motion_blur", "disable_shadows", NULL },
+      { { "graphics", "shadow_resolution", "1" }, { "graphics", "effects_resolution", "game" },
+        { "graphics", "ambient_occlusion", "off" }, { NULL } } },
     { "Balanced", "Keeps the dynamic shadows; no motion blur or MLAA.",
-      { "disable_mlaa", "disable_motion_blur", NULL } },
-    { "Faithful", "Everything drawn as on the PS3. The slowest.",
-      { NULL } },
+      { "disable_mlaa", "disable_motion_blur", NULL },
+      { { "graphics", "shadow_resolution", "1" }, { "graphics", "effects_resolution", "game" },
+        { "graphics", "ambient_occlusion", "off" }, { NULL } } },
+    { "Ultra", "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The "
+               "slowest.",
+      { "disable_mlaa", "disable_mesh_trimming", NULL },
+      { { "graphics", "render_scale", "native" }, { "graphics", "scaling", "bilinear" },
+        { "graphics", "frame_generation", "off" }, { "graphics", "antialiasing", "smaa" },
+        { "graphics", "anisotropy", "16" }, { "graphics", "shadow_resolution", "4" },
+        { "graphics", "effects_resolution", "internal" }, { "graphics", "ambient_occlusion", "high" },
+        { "graphics", "deband", "on" }, { "graphics", "cas", "low" }, { NULL } } },
 };
 enum { N_PRESET = sizeof k_presets / sizeof k_presets[0] };
 
@@ -1495,12 +1511,16 @@ static int preset_has(const Preset& p, const char* id)
     for (int i = 0; p.on[i]; i++) if (!strcmp(p.on[i], id)) return 1;
     return 0;
 }
-/* The preset the patches match, or -1. */
+/* The preset the patches and the settings match, or -1. */
 static int preset_now(void)
 {
     for (int k = 0; k < N_PRESET; k++) {
         int same = 1;
         for (int i = 0; i < s_npopt && same; i++) same = opt_on(s_popt[i]) == preset_has(k_presets[k], s_popt[i].key);
+        for (int i = 0; k_presets[k].set[i][0] && same; i++) {
+            const Opt* o = opt_find(k_presets[k].set[i][0], k_presets[k].set[i][1]);
+            same = !o || ps3_settings_ieq(o->cur, k_presets[k].set[i][2]);
+        }
         if (same) return k;
     }
     return -1;
@@ -1508,6 +1528,8 @@ static int preset_now(void)
 static void preset_apply(int k)
 {
     for (int i = 0; i < s_npopt; i++) opt_set(s_popt[i], preset_has(k_presets[k], s_popt[i].key) ? "on" : "off");
+    for (int i = 0; k_presets[k].set[i][0]; i++)
+        if (Opt* o = opt_find(k_presets[k].set[i][0], k_presets[k].set[i][1])) opt_set(*o, k_presets[k].set[i][2]);
 }
 
 /* ---------------------------------------------------------------------------
@@ -2959,7 +2981,7 @@ static void draw_play(void)
         }
         hit(s, H_PRESET + k);
     }
-    text(pn >= 0 ? W(k_presets[pn].desc) : L"Your own mix of game patches (Game patches tab).", s_tf_desc,
+    text(pn >= 0 ? W(k_presets[pn].desc) : L"Your own mix of game patches and graphics settings.", s_tf_desc,
          R(rx, cy + 92, rw, 36), C_MUTED);
     float ry = cy + 136;
     const char* quick[][2] = { { "display", "mode" }, { "display", "frame_cap" } };
@@ -3697,7 +3719,7 @@ static void draw_footer(void)
     } else {
         wchar_t p[80];
         if (pn >= 0) swprintf(p, 80, L"%ls preset", W(k_presets[pn].name));
-        else swprintf(p, 80, L"Custom patches");
+        else swprintf(p, 80, L"Custom setup");
         text(UP(p), s_tf_head, R(SIDE_W + 20, y + 18, tw, 18), C_GOLD);
         text(sum, s_tf_small, R(SIDE_W + 20, y + 40, tw, 20), C_MUTED);
     }

@@ -54,7 +54,7 @@ problems further in.
 
 ## Features
 
-- **Launcher:** a ready check, three presets (Smooth, Balanced, Faithful) and every setting below, in a Clean or a Retro
+- **Launcher:** a ready check, three presets (Smooth, Balanced, Ultra) and every setting below, in a Clean or a Retro
   look. It finds the game's folder by itself, and says when a newer release is out, with a link to it.
 - **Picture:** internal resolution from 1x to 4x or native, AMD FSR 1 and AMD FSR scaling (FSR 4.1 on AMD Radeon RX 6000 and
   newer, FSR 3.1 on other cards), NVIDIA DLSS on RTX cards in beta (see the FAQ), frame generation by AMD FSR or, in
