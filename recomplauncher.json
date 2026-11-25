@@ -184,7 +184,7 @@
         { "label": "FSR 1", "set": { "graphics/scaling": "fsr1" } },
         { "label": "AMD FSR", "set": { "graphics/scaling": "fsr3" } }
       ],
-      "defaults": { "graphics/scaling": "bilinear" }
+      "defaults": { "graphics/scaling": "fsr1" }
     },
     {
       "id": "fsr_version", "label": "FSR version", "group": "Picture",
@@ -247,7 +247,7 @@
         { "label": "Off", "set": { "graphics/antialiasing": "off" } },
         { "label": "SMAA", "set": { "graphics/antialiasing": "smaa" } }
       ],
-      "defaults": { "graphics/antialiasing": "off" }
+      "defaults": { "graphics/antialiasing": "smaa" }
     },
     {
       "id": "anisotropy", "label": "Texture filtering", "group": "Picture",
@@ -259,7 +259,7 @@
         { "label": "8x", "set": { "graphics/anisotropy": "8" } },
         { "label": "16x", "set": { "graphics/anisotropy": "16" } }
       ],
-      "defaults": { "graphics/anisotropy": "game" }
+      "defaults": { "graphics/anisotropy": "16" }
     },
     {
       "id": "gpu", "label": "Graphics card", "group": "Picture", "advanced": true,
@@ -282,13 +282,13 @@
     },
     {
       "id": "preset", "label": "Preset", "group": "Game patches",
-      "help": "Smooth, the default, is the fastest: no dynamic shadows, motion blur or MLAA. Balanced keeps the shadows. Ultra has every effect at its most: the window's resolution with SMAA (AMD FSR and frame generation lose the bloom), 4x shadows, effects at full resolution, high-quality ambient occlusion, 16x filtering, debanding and light CAS. The slowest: the game's own shadows and motion blur cost most of it.",
+      "help": "Smooth, the default, is the fastest: the game's 720p sharpened by AMD FSR 1, SMAA and 16x filtering, no dynamic shadows or motion blur. Balanced: 1080p by FSR 1, the dynamic shadows at 2x, bloom at full size, ambient occlusion and debanding. Ultra has every effect at its most: the window's resolution with SMAA (AMD FSR and frame generation lose the bloom), 4x shadows, high-quality ambient occlusion and light CAS. The slowest: the game's own shadows and motion blur cost most of it.",
       "choices": [
-        { "label": "Smooth", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off" } },
-        { "label": "Balanced", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off" } },
-        { "label": "Ultra", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "off", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "on", "graphics/render_scale": "native", "graphics/scaling": "bilinear", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "4", "graphics/effects_resolution": "internal", "graphics/ambient_occlusion": "high", "graphics/deband": "on", "graphics/cas": "low" } }
+        { "label": "Smooth", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/render_scale": "1", "graphics/scaling": "fsr1", "graphics/sharpening": "high", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off", "graphics/deband": "off", "graphics/cas": "off" } },
+        { "label": "Balanced", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/render_scale": "1.5", "graphics/scaling": "fsr1", "graphics/sharpening": "medium", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "2", "graphics/effects_resolution": "internal", "graphics/ambient_occlusion": "on", "graphics/deband": "on", "graphics/cas": "off" } },
+        { "label": "Ultra", "set": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "off", "patches/disable_shadows": "off", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "on", "graphics/render_scale": "native", "graphics/scaling": "bilinear", "graphics/sharpening": "high", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "4", "graphics/effects_resolution": "internal", "graphics/ambient_occlusion": "high", "graphics/deband": "on", "graphics/cas": "low" } }
       ],
-      "defaults": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off" }
+      "defaults": { "patches/disable_mlaa": "on", "patches/disable_motion_blur": "on", "patches/disable_shadows": "on", "patches/disable_depth_of_field": "off", "patches/disable_mesh_trimming": "off", "graphics/render_scale": "1", "graphics/scaling": "fsr1", "graphics/sharpening": "high", "graphics/frame_generation": "off", "graphics/antialiasing": "smaa", "graphics/anisotropy": "16", "graphics/shadow_resolution": "1", "graphics/effects_resolution": "game", "graphics/ambient_occlusion": "off", "graphics/deband": "off", "graphics/cas": "off" }
     },
     {
       "id": "mlaa", "label": "MLAA", "group": "Game patches",

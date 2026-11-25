@@ -294,7 +294,7 @@ static Opt s_opt[] = {
       "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the "
       "scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with "
       "an ultrawide picture. Takes effect at the next start." },
-    { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
+    { T_GRAPHICS, "graphics", "scaling", "fsr1", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
       "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
       "in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model "
       "on RTX cards (beta), its mode set by the internal resolution against the window (DLAA when they match); "
@@ -327,10 +327,10 @@ static Opt s_opt[] = {
       "Less input lag on NVIDIA GeForce GTX 900 and newer (beta): each frame starts as late as the GPU allows, so fewer "
       "frames wait their turn when the GPU is the slower part. Boost keeps the GPU's clocks up too. Not with frame "
       "generation. Takes effect at the next start." },   /* gpu_detect: shown with an NVIDIA GPU */
-    { T_GRAPHICS, "graphics", "antialiasing", "off", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
+    { T_GRAPHICS, "graphics", "antialiasing", "smaa", "Anti-aliasing", 0, LIST(k_aa, k_aa_n), k_aa_s,
       "Smooths jagged edges after the game has drawn the frame. Costs next to nothing. AMD FSR scaling "
       "does this itself in play." },
-    { T_GRAPHICS, "graphics", "anisotropy", "game", "Anisotropic filtering", 0, LIST(k_aniso, k_aniso_n), k_aniso_s,
+    { T_GRAPHICS, "graphics", "anisotropy", "16", "Anisotropic filtering", 0, LIST(k_aniso, k_aniso_n), k_aniso_s,
       "Sharper textures seen at an angle. The game itself asks for none." },
     { T_GRAPHICS, "graphics", "async_shaders", "2", "Build shaders in the background", 1, k_async, NULL, 2, NULL,
       "A new shader is built while the game goes on, instead of a stall. Walls, floors and other solid things "
@@ -1479,26 +1479,35 @@ static void ready_check(void)
 /* ---------------------------------------------------------------------------
  * Presets: the patch sets the Play tab offers, and the graphics settings each one sets
  *
- * A preset is the game patches it switches on (the rest off) and the settings it gives a value. Smooth and Balanced
- * set the costly extras back (shadow and effects resolution, ambient occlusion) and leave the scaling to the player.
- * Ultra sets the picture too: the game's every effect (MLAA aside: its picture is never shown, only its cost), the
- * scene at the window's size with SMAA, since AMD FSR and frame generation take the frame order without the bloom and
- * the motion blur, and every extra at its most.
+ * A preset is the game patches it switches on (the rest off) and the picture settings it gives a value; the three set
+ * the same ones, as steps. MLAA is off in all: its picture is never shown, only its cost. None uses AMD FSR or frame
+ * generation, which take the frame order without the bloom and the motion blur; AMD FSR 1 upscales without it.
+ *   Smooth (this port's defaults, so a first start shows it): the game's 720p sharpened up to the window by FSR 1, SMAA
+ *     and 16x filtering, no dynamic shadows or motion blur, no extras.
+ *   Balanced: 1080p by FSR 1, the dynamic shadows at 2x, bloom, blur and depth of field at the internal resolution,
+ *     ambient occlusion at half of it, debanding; no motion blur.
+ *   Ultra: the game's every effect, the window's size with bilinear scaling, every extra at its most.
  * -----------------------------------------------------------------------*/
 struct Preset { const char* name; const char* desc; const char* on[6]; const char* set[12][3]; };
 static const Preset k_presets[] = {
-    { "Smooth", "The default and the fastest: no dynamic shadows, motion blur or MLAA.",
+    { "Smooth", "The default and the fastest: 720p sharpened by AMD FSR 1, SMAA; no dynamic shadows or motion blur.",
       { "disable_mlaa", "disable_motion_blur", "disable_shadows", NULL },
-      { { "graphics", "shadow_resolution", "1" }, { "graphics", "effects_resolution", "game" },
-        { "graphics", "ambient_occlusion", "off" }, { NULL } } },
-    { "Balanced", "Keeps the dynamic shadows; no motion blur or MLAA.",
+      { { "graphics", "render_scale", "1" }, { "graphics", "scaling", "fsr1" }, { "graphics", "sharpening", "high" },
+        { "graphics", "frame_generation", "off" }, { "graphics", "antialiasing", "smaa" },
+        { "graphics", "anisotropy", "16" }, { "graphics", "shadow_resolution", "1" },
+        { "graphics", "effects_resolution", "game" }, { "graphics", "ambient_occlusion", "off" },
+        { "graphics", "deband", "off" }, { "graphics", "cas", "off" }, { NULL } } },
+    { "Balanced", "1080p by AMD FSR 1, dynamic shadows at 2x, full-size bloom, ambient occlusion; no motion blur.",
       { "disable_mlaa", "disable_motion_blur", NULL },
-      { { "graphics", "shadow_resolution", "1" }, { "graphics", "effects_resolution", "game" },
-        { "graphics", "ambient_occlusion", "off" }, { NULL } } },
+      { { "graphics", "render_scale", "1.5" }, { "graphics", "scaling", "fsr1" }, { "graphics", "sharpening", "medium" },
+        { "graphics", "frame_generation", "off" }, { "graphics", "antialiasing", "smaa" },
+        { "graphics", "anisotropy", "16" }, { "graphics", "shadow_resolution", "2" },
+        { "graphics", "effects_resolution", "internal" }, { "graphics", "ambient_occlusion", "on" },
+        { "graphics", "deband", "on" }, { "graphics", "cas", "off" }, { NULL } } },
     { "Ultra", "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The "
                "slowest.",
       { "disable_mlaa", "disable_mesh_trimming", NULL },
-      { { "graphics", "render_scale", "native" }, { "graphics", "scaling", "bilinear" },
+      { { "graphics", "render_scale", "native" }, { "graphics", "scaling", "bilinear" }, { "graphics", "sharpening", "high" },
         { "graphics", "frame_generation", "off" }, { "graphics", "antialiasing", "smaa" },
         { "graphics", "anisotropy", "16" }, { "graphics", "shadow_resolution", "4" },
         { "graphics", "effects_resolution", "internal" }, { "graphics", "ambient_occlusion", "high" },

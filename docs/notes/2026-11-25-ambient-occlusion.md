@@ -59,3 +59,9 @@ Megaera's arena, the bench route: nine runs at 1440p while it was built (most wi
 - Transparent things drawn after the scene's depth (fire, water, particles) take the shade of what is behind them.
 - Ultrawide: the occlusion would need the widened projection.
 - The blur keeps to depth only; thin things against a far background can keep a faint edge.
+
+## Later the same day: On drew stripes
+
+On (half the render's size) drew horizontal stripes on floors seen at a low angle: each half-size pixel's depth was read
+at the edge of two of the render's pixels and put half a pixel away. Points are now taken at the middle of the pixel
+their depth comes from. Found and checked with the Balanced preset (note 2026-11-25-presets.md).
