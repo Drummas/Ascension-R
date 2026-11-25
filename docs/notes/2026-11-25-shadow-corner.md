@@ -49,5 +49,8 @@ i5-12400F, RX 6700 XT, 1080p, shadows on:
 
 ## Not this
 
-The same scene's Dodge tutorial shows two other things, not looked into yet: strong banding (posterized sky and
-shading) and a lighter rectangle under the tutorial's panel, at any shadow setting.
+The same scene's Dodge tutorial looked banded, with a lighter rectangle under the tutorial's panel, in screenshots
+viewed scaled down. At full size the sky and the dark corners are smooth (the banding was the scaled-down viewing), and
+the rectangle is the panel's own shade: a quad from the panel down to about two thirds of the screen, a 32x256 gradient
+that fades downwards, its left edge faded by the vertex's third texture coordinate (from 0 to 1 over the left eighth of
+the screen), as the game draws it. RenderDoc and the port's own dumps of the frame agree.
