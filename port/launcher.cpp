@@ -193,6 +193,8 @@ static const char* const k_aa_n[] = { "Off", "SMAA 1x" };
 static const char* const k_aa_s[] = { "Off", "SMAA" };
 static const char* const k_sharp[] = { "off", "low", "medium", "high", "max" };
 static const char* const k_sharp_n[] = { "Off", "Low", "Medium", "High (AMD's)", "Max" };
+/* graphics.cas (ps3recomp's post_final): the same levels, CAS's. */
+static const char* const k_cas_n[] = { "Off", "Low", "Medium", "High", "Max" };
 static const char* const k_sharp_s[] = { "Off", "Low", "Medium", "High", "Max" };
 static const char* const k_grade[] = { "off", "low", "medium", "high", "max" };       /* vibrance, contrast */
 static const char* const k_grade_n[] = { "Off", "Low", "Medium", "High", "Max" };
@@ -292,6 +294,12 @@ static Opt s_opt[] = {
       "Ultra Performance). L and M are sharper with less ghosting but cost more, best on RTX 40 and newer." },
     { T_GRAPHICS, "graphics", "sharpening", "high", "FSR sharpening", 0, LIST(k_sharp, k_sharp_n), k_sharp_s,
       "The sharpening pass of FSR (RCAS). Only with FSR scaling." },
+    { T_GRAPHICS, "graphics", "cas", "off", "CAS sharpening", 0, LIST(k_sharp, k_cas_n), k_cas_n,
+      "AMD's contrast adaptive sharpening on the picture with bilinear or sharp bilinear scaling, or NVIDIA DLSS: "
+      "crisper detail, edges not overdone. AMD FSR has its own (FSR sharpening). Not with frame generation." },
+    { T_GRAPHICS, "graphics", "deband", "off", "Debanding", 1, SW,
+      "Smooths the steps in dark gradients, fog and skies, with a fine grain; edges and texture stay as they are. "
+      "Not with frame generation." },
     { T_GRAPHICS, "graphics", "vibrance", "off", "Colour vibrance", 0, LIST(k_grade, k_grade_n), k_grade_n,
       "Livelier colours: the dull ones raised the most, skin and colours that are strong already far less. "
       "On the whole picture, the game's HUD and menus too." },

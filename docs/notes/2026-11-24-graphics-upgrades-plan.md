@@ -18,7 +18,7 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 | 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does): **done** (HDR) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
 | 5 | field of view setting | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
 | 6 | level of detail kept further away | far models and detail no longer drop early | large | yes: the LOD distances |
-| 7 | debanding (dither) at the output, and CAS sharpening for DLSS and bilinear | no banding in dark fog and skies; a crisper picture without FSR | small | no |
+| 7 | debanding (dither) at the output, and CAS sharpening for DLSS and bilinear: **done** (Debanding, CAS sharpening) | no banding in dark fog and skies; a crisper picture without FSR | small | no |
 | 8 | HD texture pack tools: dump, upscale, back into the mods folder | sharper textures; the players' own, made from their own game | small to medium | no |
 
 ## 1. Shadow maps at a higher resolution
@@ -97,6 +97,9 @@ frame generation for now, and the HUD's white is raised with the rest.
   loads more.
 
 ## 7. Debanding and CAS
+
+**Done 2026-11-25** as `graphics.deband` and `graphics.cas` (a row of its own, off by default, since FSR sharpening
+defaults to high): see [the note](2026-11-25-deband-cas.md).
 
 - A blue-noise dither of 1/255 in the post pass's last shader: dark gradients stop banding at no visible cost.
 - AMD CAS (MIT) after DLSS and bilinear scaling, with the FSR sharpening setting's levels.

@@ -124,6 +124,14 @@ costs about 1 ms of GPU time a frame (On) or 2 ms (High). Transparent things suc
 behind them, and it is off with an ultrawide picture. Off by default; the
 [note](notes/2026-11-25-ambient-occlusion.md) has how it works and what was measured.
 
+## Debanding and CAS sharpening
+
+**Debanding** in the launcher's Graphics tab (`graphics.deband`) smooths the steps in dark gradients, fog and skies
+and adds a fine grain; edges and texture stay as they are. **CAS sharpening** (`graphics.cas` = off, low, medium,
+high, max) is AMD's contrast adaptive sharpening for bilinear or sharp bilinear scaling and NVIDIA DLSS; AMD FSR has
+its own (FSR sharpening). Both are one pass at the window's size before the overlay, off by default and off with frame
+generation. The [note](notes/2026-11-25-deband-cas.md) has how they work.
+
 ## Ultrawide
 
 Ultrawide in the launcher's Display tab (`display.ultrawide`, off by default) draws the game to the full width of a screen

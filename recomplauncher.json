@@ -195,6 +195,27 @@
       "defaults": { "graphics/sharpening": "high" }
     },
     {
+      "id": "cas", "label": "CAS sharpening", "group": "Picture",
+      "help": "AMD's contrast adaptive sharpening with bilinear scaling or NVIDIA DLSS. AMD FSR has its own. Not with frame generation.",
+      "choices": [
+        { "label": "Off", "set": { "graphics/cas": "off" } },
+        { "label": "Low", "set": { "graphics/cas": "low" } },
+        { "label": "Medium", "set": { "graphics/cas": "medium" } },
+        { "label": "High", "set": { "graphics/cas": "high" } },
+        { "label": "Max", "set": { "graphics/cas": "max" } }
+      ],
+      "defaults": { "graphics/cas": "off" }
+    },
+    {
+      "id": "deband", "label": "Debanding", "group": "Picture",
+      "help": "Smooths the steps in dark gradients, fog and skies, with a fine grain. Not with frame generation.",
+      "choices": [
+        { "label": "Off", "set": { "graphics/deband": "off" } },
+        { "label": "On", "set": { "graphics/deband": "on" } }
+      ],
+      "defaults": { "graphics/deband": "off" }
+    },
+    {
       "id": "frame_generation", "label": "Frame generation", "group": "Picture",
       "help": "Twice the frames on screen, with VSync on. The game runs at half the monitor's refresh, and it adds about a frame of delay. AMD FSR makes them, or ANR FG (beta), Apex Neural Rendering's, which Ascension-R's own launcher offers to download from Apex Compute's releases.",
       "choices": [
