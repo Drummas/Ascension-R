@@ -168,6 +168,10 @@ static const char* const k_shres_s[] = { "Game's", "2x", "4x" };
 static const char* const k_fxres[] = { "game", "internal" };
 static const char* const k_fxres_n[] = { "As the game draws them", "The internal resolution" };
 static const char* const k_fxres_s[] = { "Game's", "Internal" };
+/* graphics.ambient_occlusion (ps3recomp's ao_draw). */
+static const char* const k_ao[] = { "off", "on", "high" };
+static const char* const k_ao_n[] = { "Off", "On", "High quality" };
+static const char* const k_ao_s[] = { "Off", "On", "High" };
 /* graphics.frame_generation: anr has ANR FG's DLL make the frames in FSR's swap chain (beta, PORT_ANR). dlss, NVIDIA
  * DLSS Frame Generation through Streamline (ps3recomp's rsx_sl.cpp), is turned off (main.cpp; D3D12_DLSSG_TEST=1
  * for tests) and has no choice here; the code that fetches and checks its DLL stays for then. */
@@ -255,6 +259,10 @@ static Opt s_opt[] = {
       "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: "
       "smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal "
       "resolution above 720p. Takes effect at the next start." },
+    { T_GRAPHICS, "graphics", "ambient_occlusion", "off", "Ambient occlusion", 0, LIST(k_ao, k_ao_n), k_ao_s,
+      "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the "
+      "scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with "
+      "an ultrawide picture. Takes effect at the next start." },
     { T_GRAPHICS, "graphics", "scaling", "bilinear", "Scaling", 0, LIST(k_scale, k_scale_n), k_scale_s,
       "How the picture is scaled to the window. AMD FSR builds the detail from past frames, "
       "in place of SMAA, and FSR 1 takes over where there is no scene. NVIDIA DLSS does the same with NVIDIA's model "

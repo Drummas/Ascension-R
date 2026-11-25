@@ -143,6 +143,16 @@
       "defaults": { "graphics/effects_resolution": "game" }
     },
     {
+      "id": "ambient_occlusion", "label": "Ambient occlusion", "group": "Picture",
+      "help": "Soft shade in corners, gaps and where things meet the ground, worked out from the scene's depth. High draws it at the internal resolution, On at half of it.",
+      "choices": [
+        { "label": "Off", "set": { "graphics/ambient_occlusion": "off" } },
+        { "label": "On", "set": { "graphics/ambient_occlusion": "on" } },
+        { "label": "High quality", "set": { "graphics/ambient_occlusion": "high" } }
+      ],
+      "defaults": { "graphics/ambient_occlusion": "off" }
+    },
+    {
       "id": "scaling", "label": "Scaling", "group": "Picture",
       "help": "How the picture is fitted to the window. AMD FSR builds detail from past frames and needs MLAA off.",
       "choices": [

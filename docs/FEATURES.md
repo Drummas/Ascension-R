@@ -114,6 +114,16 @@ at a new scale compiles part of the shaders again. Disable Mesh Trimming in Game
 route it made no visible difference at 2x. The [note](notes/2026-11-08-internal-resolution.md) has what was measured
 and what has not been tried.
 
+## Ambient occlusion
+
+**Ambient occlusion** in the launcher's Graphics tab (`graphics.ambient_occlusion` = off, on, high) adds soft shade
+where things meet and in corners and gaps, worked out from the scene's depth and the game's camera after the scene is
+drawn and before its HUD goes on, so the HUD stays as it is. On draws it at half the internal resolution, High at all
+of it; it fades out with distance as the game's fog does and leaves the sky alone. At 4K internal on an RX 6700 XT it
+costs about 1 ms of GPU time a frame (On) or 2 ms (High). Transparent things such as fire take the shade of what is
+behind them, and it is off with an ultrawide picture. Off by default; the
+[note](notes/2026-11-25-ambient-occlusion.md) has how it works and what was measured.
+
 ## Ultrawide
 
 Ultrawide in the launcher's Display tab (`display.ultrawide`, off by default) draws the game to the full width of a screen

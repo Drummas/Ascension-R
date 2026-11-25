@@ -14,7 +14,7 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 |---|---|---|---|---|
 | 1 | shadow maps at 2x or 4x: **done** (Shadow resolution) | sharp shadows instead of blocky, blurred ones; most of all outdoors | medium | no |
 | 2 | bloom, blur and depth of field at the internal resolution: **done** (Effects resolution) | smooth glow and light, no shimmer on bright edges at high resolutions | medium | no |
-| 3 | ambient occlusion (GTAO or SSAO) | corners, gaps and where things meet the floor darken softly: a deeper, more solid scene | medium to large | no |
+| 3 | ambient occlusion (GTAO or SSAO): **done** (Ambient occlusion) | corners, gaps and where things meet the floor darken softly: a deeper, more solid scene | medium to large | no |
 | 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
 | 5 | field of view setting | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
 | 6 | level of detail kept further away | far models and detail no longer drop early | large | yes: the LOD distances |
@@ -54,6 +54,9 @@ and the like in a frame capture) at the game's size, so bloom and blur are upsca
 - With the MLAA path on, the bloom is drawn after MLAA's composite: check both paths.
 
 ## 3. Ambient occlusion
+
+**Done 2026-11-25** as `graphics.ambient_occlusion` = off, on, high: an SAO-like obscurance rather than GTAO, at the
+HUD's clear from the scene's own depth; see [the note](2026-11-25-ambient-occlusion.md). About 1-2 ms at 4K internal.
 
 A pass after the opaque scene and before the HUD, from the depth the FSR inputs' pass already makes (R32 at the render's
 size, 0 near) and the camera's projection.
