@@ -143,6 +143,14 @@ next start, and the first session compiles part of the shaders again.
 Frame generation works without its pass for moving objects at these widths. The
 [note](notes/2026-11-10-ultrawide.md) has what was measured and what has not been tried.
 
+## Field of view
+
+**Field of view** in the launcher's Graphics tab (`graphics.fov`, 80% to 140% of the game's) widens or narrows the view
+in play: wider shows more around Kratos, narrower brings the view in (the camera at the Aegaeon fight pulls far back).
+The game's own culling follows, so nothing goes missing at the edges. It applies while the game's camera controller
+runs, which is play; loading and the cameras of the menus and the HUD keep the game's own, and the change eases in and
+out. It multiplies with Ultrawide. The [note](notes/2026-11-25-field-of-view.md) has how play is told apart.
+
 ## Frame rate cap
 
 Frame rate cap in the launcher's Display tab (`display.frame_cap`). Off, the default, is the game's own pace: 60 frames a

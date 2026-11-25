@@ -16,7 +16,7 @@ title's camera (`rsx_fsr3_pose_get`), the point before the HUD is drawn (`fg_mar
 | 2 | bloom, blur and depth of field at the internal resolution: **done** (Effects resolution) | smooth glow and light, no shimmer on bright edges at high resolutions | medium | no |
 | 3 | ambient occlusion (GTAO or SSAO): **done** (Ambient occlusion) | corners, gaps and where things meet the floor darken softly: a deeper, more solid scene | medium to large | no |
 | 4 | HDR output (HDR10, the SDR picture expanded, as Windows' AutoHDR does): **done** (HDR) | fire, lava and sky glow on an HDR display while the shadows stay deep | medium | no |
-| 5 | field of view setting | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
+| 5 | field of view setting: **done** (Field of view) | a wider view, most of all at 21:9 and 32:9; asked for in #39 (camera at the Aegaeon fight) | medium to large | yes: the camera's field of view |
 | 6 | level of detail kept further away | far models and detail no longer drop early | large | yes: the LOD distances |
 | 7 | debanding (dither) at the output, and CAS sharpening for DLSS and bilinear: **done** (Debanding, CAS sharpening) | no banding in dark fog and skies; a crisper picture without FSR | small | no |
 | 8 | HD texture pack tools: dump, upscale, back into the mods folder | sharper textures; the players' own, made from their own game | small to medium | no |
@@ -82,6 +82,9 @@ frame generation for now, and the HUD's white is raised with the rest.
 - A setting `display.hdr` = off, on, with peak brightness and paper white.
 
 ## 5. Field of view
+
+**Done 2026-11-25** as `graphics.fov` (0.8 to 1.4) at the ultrawide hook, play cameras only: see
+[the note](2026-11-25-field-of-view.md).
 
 - Find where the game builds its projection from a field of view (the vertical one is in the camera the FSR inputs
   read: about 36 degrees in play) and add a patch that scales it, as the other title patches do.

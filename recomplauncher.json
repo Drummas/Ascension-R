@@ -152,6 +152,20 @@
       "defaults": { "graphics/effects_resolution": "game" }
     },
     {
+      "id": "fov", "label": "Field of view", "group": "Picture",
+      "help": "How wide the view is in play, against the game's. The in-engine cinematics keep the game's own.",
+      "choices": [
+        { "label": "80%", "set": { "graphics/fov": "0.8" } },
+        { "label": "90%", "set": { "graphics/fov": "0.9" } },
+        { "label": "The game's", "set": { "graphics/fov": "1" } },
+        { "label": "110%", "set": { "graphics/fov": "1.1" } },
+        { "label": "120%", "set": { "graphics/fov": "1.2" } },
+        { "label": "130%", "set": { "graphics/fov": "1.3" } },
+        { "label": "140%", "set": { "graphics/fov": "1.4" } }
+      ],
+      "defaults": { "graphics/fov": "1" }
+    },
+    {
       "id": "ambient_occlusion", "label": "Ambient occlusion", "group": "Picture",
       "help": "Soft shade in corners, gaps and where things meet the ground, worked out from the scene's depth. High draws it at the internal resolution, On at half of it.",
       "choices": [

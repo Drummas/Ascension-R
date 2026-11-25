@@ -175,6 +175,10 @@ static const char* const k_shres_s[] = { "Game's", "2x", "4x" };
 static const char* const k_fxres[] = { "game", "internal" };
 static const char* const k_fxres_n[] = { "As the game draws them", "The internal resolution" };
 static const char* const k_fxres_s[] = { "Game's", "Internal" };
+/* graphics.fov (ultrawide.cpp): the play camera's view, a factor of the game's. */
+static const char* const k_fov[] = { "0.8", "0.9", "1", "1.1", "1.2", "1.3", "1.4" };
+static const char* const k_fov_n[] = { "80%", "90%", "The game's", "110%", "120%", "130%", "140%" };
+static const char* const k_fov_s[] = { "80%", "90%", "Game's", "110%", "120%", "130%", "140%" };
 /* graphics.ambient_occlusion (ps3recomp's ao_draw). */
 static const char* const k_ao[] = { "off", "on", "high" };
 static const char* const k_ao_n[] = { "Off", "On", "High quality" };
@@ -276,6 +280,9 @@ static Opt s_opt[] = {
       "Bloom, blur and depth of field drawn at the internal resolution, not at the game's 640x360 and smaller: "
       "smoother blurred backgrounds and glow at 1440p and 4K, the game's brightness kept. Only with an internal "
       "resolution above 720p. Takes effect at the next start." },
+    { T_GRAPHICS, "graphics", "fov", "1", "Field of view", 0, LIST(k_fov, k_fov_n), k_fov_s,
+      "How wide the view is in play, against the game's: wider shows more around Kratos, narrower brings the view in. "
+      "The in-engine cinematics keep the game's own. Takes effect at the next start." },
     { T_GRAPHICS, "graphics", "ambient_occlusion", "off", "Ambient occlusion", 0, LIST(k_ao, k_ao_n), k_ao_s,
       "Soft shade in corners, gaps and where things meet the ground, for a deeper picture, worked out from the "
       "scene's depth before the HUD goes on. High draws it at the internal resolution, On at half of it. Off with "
