@@ -8,7 +8,8 @@
   on the first start, and their paths are made relative with them.
 - **Releases:** the Release workflow compiles `Ascension-R.exe` and packages the Kit with no game files on the
   machine that makes it, since the launcher holds none of the game's code, and the release page appears only once
-  its files are on it.
+  its files are on it. A runner that has only the Windows SDK and LLVM fetches the rest the package takes
+  (`scripts/release_sdks.py`), each download checked against the SHA-256 `gowa.py` pins.
 
 ## v0.4.1
 

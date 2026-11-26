@@ -20,7 +20,9 @@
 # ../fsr-sdk, Streamline in ../streamline-sdk, SDL3 in ../sdl3, an embeddable Python in ../python-embed, LLVM and
 # llvm-project's license texts (local.json, or ../llvm, ../llvm-license). Set the repository variable RELEASE_RUNNER
 # (Settings > Variables) to a runner that has them, e.g. "self-hosted, windows, x64"; without it the job runs on
-# windows-latest, which has MSVC, LLVM and the Windows SDK, and stops at the first thing it lacks, saying what it is.
+# windows-latest, which has MSVC, LLVM and the Windows SDK, and scripts/release_sdks.py fetches the rest from where each
+# one is published -- FFmpeg's source built there with MinGW-w64's gcc and nasm -- checking every download against the
+# SHA-256 gowa.py pins for it.
 #
 # The release is made as a draft and published only once its files are on it: a run that cannot build the exe or
 # package the Kit leaves a draft, never a public release page with nothing to download.
@@ -129,6 +131,9 @@ jobs:
     runs-on: ${{ vars.RELEASE_RUNNER || 'windows-latest' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Where the hosted runner keeps clang-cl, lld-link and llvm-profdata (the Kit's own LLVM): a release machine with
+      # an LLVM elsewhere points at it in local.json, or sets this to it.
+      GOWA_LLVM_BIN: C:\Program Files\LLVM\bin
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -165,6 +170,20 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "$tag"
+
+      # A release machine has the SDKs package takes. A runner that has only the Windows SDK and LLVM gets MinGW-w64's
+      # gcc and nasm (FFmpeg is built from its tarball in the package step) and then the SDKs, from where each is
+      # published, into the folders beside the tree that gowa.py looks in.
+      - name: MinGW and nasm, for FFmpeg
+        if: vars.RELEASE_RUNNER == ''
+        shell: bash
+        run: |
+          echo "C:/msys64/mingw64/bin" >> "$GITHUB_PATH"
+          echo "C:/Program Files/NASM" >> "$GITHUB_PATH"
+
+      - name: The SDKs a release takes
+        if: vars.RELEASE_RUNNER == ''
+        run: python scripts/release_sdks.py
 
       # The project's own one-click build and package: the launcher (compiled here, no game), kit\, licenses, and in
       # dist/<version>/kit the zip, audit.txt, the map and FFmpeg's source (which go up) and build-info.txt (which
