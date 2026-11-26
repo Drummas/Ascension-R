@@ -112,6 +112,9 @@ defaults to high): see [the note](2026-11-25-deband-cas.md).
 
 ## 8. HD texture pack tools
 
+Reviewed 2026-11-26: [what a pack needs](2026-11-26-texture-upscale-review.md) (RGBA8 pictures on the render thread do
+not carry a pack; DDS, loading ahead, normal maps' chains, the cache's budget, the tool).
+
 - The mods folder already takes textures by id and dumps them (`mods.dump_textures`, `docs/MODDING.md`).
 - A script that takes a dump, runs an upscaler the player chooses (Real-ESRGAN and the like, run by the player), and
   writes the results back as a mod with `aliases.txt`; the textures stay the player's.
