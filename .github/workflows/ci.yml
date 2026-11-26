@@ -92,7 +92,8 @@ jobs:
             else
               around=$(sed -n '/CMake Error/,$p' launcher-build.log | head -20 | tr '\n' '|' | cut -c 1-2500)
             fi
-            echo "::error::$(head -1 launcher-build.log) -- $around"
+            tailtxt=$(tail -25 launcher-build.log | tr '\n' '|' | cut -c 1-2200)
+            echo "::error::$(head -1 launcher-build.log) -- $around -- TAIL: $tailtxt"
             exit $rc
           fi
           test -f build/Ascension-R.exe
