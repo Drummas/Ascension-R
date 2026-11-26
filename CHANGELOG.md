@@ -1,9 +1,3 @@
-# Changelog
-
-A release takes its notes from this file: the section under the heading that holds the version, up to the next
-heading of the same level. The release workflow (`.github/workflows/release.yml`) reads it through the Auto Release
-action, so the section for a version has to be committed with the `Release: v<version>` commit, before or at it.
-
 ## v0.4.1
 
 **Ascension-R 0.4.1** is the version the launcher's Clean look, the graphics options added since 0.2.0 and the

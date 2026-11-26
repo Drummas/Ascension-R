@@ -3,8 +3,8 @@
 # maps and FFmpeg's source, as `gowa.py package kit` makes them in dist/<version>/kit.
 #
 # The version the commit message names must be the one port/version.h has: the package is named from that file, and a
-# release names the package it builds. Add the version's entry to CHANGELOG.md with the release commit: the action
-# takes the release's notes from it.
+# release names the package it builds. Add the version's entry to CHANGELOG.md with the release commit: the release's
+# notes are that section, and its versions are the file's top-level headings (see the notes step below).
 #
 # A manual run (Actions > Release > Run workflow) has no commit message to read: `release` on makes the release for the
 # commit from port/version.h, and off only builds and packages, to check that it would. `release` is the one input,
@@ -45,8 +45,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     outputs:
-      released: ${{ steps.auto-release.outputs.released }}
-      version: ${{ steps.auto-release.outputs.version }}
+      released: ${{ steps.notes.outputs.released }}
+      version: ${{ steps.notes.outputs.version }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -56,6 +56,9 @@ jobs:
       # commit passes through with nothing made.
       - name: The release, if the commit message says so
         id: auto-release
+        # A release that exists already is not made a second time: the notes below refresh it instead, so another
+        # Release: commit for a version repairs its page rather than stopping the job with a red X.
+        continue-on-error: true
         uses: CupOfTea696/gh-action-auto-release@a8f57f49a805d334ac7abe31b689e7ea24e1ee40 # v1.0.2
         with:
           title: "Ascension-R v$semver: God of War: Ascension PC port"
@@ -66,6 +69,43 @@ jobs:
           regex: "/^Release: v?#{semver}\\b/i"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The notes a release page shows are the version's own section of CHANGELOG.md, as that section stands at this
+      # commit: the action writes them once, and this keeps the page saying what the file says when the section is
+      # edited or a second Release: commit asks for the version again.
+      #
+      # The versions are the file's top-level headings, with no title above them: the action splits the file at its
+      # headings and nests a version under any shallower heading, so a "# Changelog" title would make the notes the
+      # whole file.
+      - name: The release's notes are the changelog's
+        id: notes
+        if: >-
+          always() && !cancelled() &&
+          (steps.auto-release.outputs.released == 'true' || steps.auto-release.outcome == 'failure')
+        shell: bash
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s\n' "$MESSAGE" | head -1 | grep -qiE '^Release: v?[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "The commit message says nothing about a release: nothing to refresh."
+            exit 0
+          fi
+          tag="v$(sed -n 's/^#define[[:space:]]*AR_VERSION[[:space:]]*"\(.*\)"/\1/p' port/version.h)"
+          if [ -z "${tag#v}" ]; then echo "::error::port/version.h has no AR_VERSION"; exit 1; fi
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            echo "::error::$tag is not a release, and the action did not make one (${{ steps.auto-release.outcome }})."
+            exit 1
+          fi
+          awk -v v="$tag" '/^## /{on = ($2 == v); next} on' CHANGELOG.md > "$RUNNER_TEMP/notes.md"
+          if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/notes.md"; then
+            echo "::error::CHANGELOG.md has no \"## $tag\" section: the release's notes would be empty."
+            exit 1
+          fi
+          gh release edit "$tag" --notes-file "$RUNNER_TEMP/notes.md"
+          echo "The notes of $tag are the changelog's section for it."
+          echo "released=true" >> "$GITHUB_OUTPUT"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
 
   publish:
     name: The package, on the release
