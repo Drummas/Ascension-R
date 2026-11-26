@@ -33,8 +33,9 @@ DRIVER = r'''
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
-/* t.exe <ini> <dump dir or -> <command>...: has <id>; picture <id> <w> <h> <r,g,b,a of the base>;
- * dump <id> <w> <h> <r,g,b,a> */
+/* t.exe <ini> <dump dir or -> <command>...: has <id>; picture <id> <w> <h> <r,g,b,a of the base> (a picture read
+ * later waited for, as the backend does: ready(), then asked again); first <id> <w> <h> <r,g,b,a>: the first answer
+ * alone; dump <id> <w> <h> <r,g,b,a> */
 static void parse4(const char* s, unsigned char* px)
 {
     unsigned a, b, c, d;
@@ -55,8 +56,8 @@ int main(int argc, char** argv)
         if (!strcmp(argv[a], "has")) {
             const u64 id = _strtoui64(argv[++a], NULL, 16);
             printf("has %016llx %d\n", (unsigned long long)id, hk->has ? hk->has(id) : -1);
-        } else if (!strcmp(argv[a], "picture") || !strcmp(argv[a], "dump")) {
-            const int pic = !strcmp(argv[a], "picture");
+        } else if (!strcmp(argv[a], "picture") || !strcmp(argv[a], "first") || !strcmp(argv[a], "dump")) {
+            const int pic = strcmp(argv[a], "dump") != 0, wait = !strcmp(argv[a], "picture");
             const u64 id = _strtoui64(argv[++a], NULL, 16);
             const u32 w = (u32)atoi(argv[++a]), h = (u32)atoi(argv[++a]);
             unsigned char px[4];
@@ -66,14 +67,24 @@ int main(int argc, char** argv)
             if (pic) {
                 rsx_tex_picture out;
                 memset(&out, 0, sizeof out);
-                const int got = hk->picture(id, w, h, hk->has(id) == 2 ? base : NULL, &out);
+                int got = hk->picture(id, w, h, hk->has(id) == 2 ? base : NULL, &out);
+                for (int t = 0; wait && got == RSX_TEXPIC_LATER && t < 1000; t++) {
+                    Sleep(5);
+                    if (hk->ready && hk->ready(id)) {
+                        memset(&out, 0, sizeof out);
+                        got = hk->picture(id, w, h, hk->has(id) == 2 ? base : NULL, &out);
+                    }
+                }
                 printf("picture %d %ux%u", got, out.w, out.h);
-                if (got)   /* the four corners and the middle */
+                if (got == 1 && out.form)   /* its own blocks and chain */
+                    printf(" form %u levels %u bytes %llu", out.form, out.levels, (unsigned long long)out.data_bytes);
+                else if (got == 1)   /* the four corners and the middle */
                     for (int k = 0; k < 5; k++) {
                         const u32 x = k == 4 ? out.w / 2 : (k & 1) ? out.w - 1 : 0, y = k == 4 ? out.h / 2 : (k & 2) ? out.h - 1 : 0;
                         const unsigned char* p = out.rgba + ((size_t)y * out.w + x) * 4;
                         printf(" %u,%u,%u,%u", p[0], p[1], p[2], p[3]);
                     }
+                if (got == 1 && (out.flags & RSX_TEXPIC_PLAIN_CHAIN)) printf(" plain");
                 printf("\n");
             } else if (hk->dump) {
                 hk->dump(id, w, h, 0x88, base);
@@ -96,6 +107,27 @@ def png(path, w, h, px):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(path).write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) +
                            chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+
+
+def dds(path, w, h, form, levels, dx10=False):
+    """A DDS of w x h, BC1 ('DXT1'), BC3 ('DXT5') or BC7 (DX10, DXGI 98), with levels levels of blocks (bytes k % 251
+    in level k... the contents do not matter here)."""
+    block = 8 if form == "BC1" else 16
+    data = b""
+    lw, lh = w, h
+    for k in range(levels):
+        data += bytes([k % 251]) * (max(1, (lw + 3) // 4) * max(1, (lh + 3) // 4) * block)
+        lw, lh = max(1, lw // 2), max(1, lh // 2)
+    flags = 0x1 | 0x2 | 0x4 | 0x1000 | (0x20000 if levels > 1 else 0)
+    cc = b"DX10" if dx10 or form == "BC7" else {"BC1": b"DXT1", "BC3": b"DXT5"}[form]
+    head = struct.pack("<4sIIIIIII", b"DDS ", 124, flags, h, w, 0, 0, levels) + b"\0" * 44
+    head += struct.pack("<II4sIIIII", 32, 0x4, cc, 0, 0, 0, 0, 0)
+    head += struct.pack("<IIIII", 0x1000 | (0x400008 if levels > 1 else 0), 0, 0, 0, 0)
+    if cc == b"DX10":
+        head += struct.pack("<IIIII", {"BC1": 71, "BC3": 77, "BC7": 98}[form], 3, 0, 1, 0)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_bytes(head + data)
+    return len(data)
 
 
 def toolchain():
@@ -217,6 +249,14 @@ class Textures(unittest.TestCase):
         out = self.run_t("-", "picture", small, str(sw), str(sh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
+        # A DDS for the whole copy, 32 x 32 with its chain: the copy a quarter of the size takes its chain from the
+        # level of its size, 8 x 8; the whole one all of it.
+        for f in os.listdir(os.path.join(self.mods, "A", "textures")):
+            os.remove(os.path.join(self.mods, "A", "textures", f))
+        n = dds(os.path.join(self.mods, "A", "textures", big + ".dds"), 32, 32, "BC1", 6)
+        out = self.run_t("-", "picture", small, str(sw), str(sh), "0,0,0,0", "picture", big, str(bw), str(bh), "0,0,0,0")
+        self.assertEqual(out[1], "picture 1 8x8 form 1 levels 4 bytes %d" % (32 + 8 + 8 + 8))
+        self.assertEqual(out[2], "picture 1 32x32 form 1 levels 6 bytes %d" % n)
 
     def test_aliases_give_a_picture_to_more_textures(self):
         # A: a picture by its id and one by any name; aliases.txt gives them to more textures.
@@ -252,6 +292,51 @@ class Textures(unittest.TestCase):
         self.assertEqual(out[7], "picture 1 2x2 " + " ".join(["40,50,60,255"] * 5))
         self.assertEqual(out[8], "picture 1 2x2 " + " ".join(["10,20,30,255"] * 5))
         self.assertEqual(out[9], "picture 1 2x2 " + " ".join(["2,2,2,255"] * 5))
+
+    def test_dds_pictures_their_own_blocks_and_chain(self):
+        # BC1 with its chain, BC7 by DX10's header, one not whole blocks wide, and a DDS beside a PNG of one id.
+        n1 = dds(os.path.join(self.mods, "A", "textures", "00000000000000a1.dds"), 8, 8, "BC1", 4)
+        n7 = dds(os.path.join(self.mods, "A", "textures", "00000000000000a7_upscaled.dds"), 16, 4, "BC7", 5)
+        dds(os.path.join(self.mods, "A", "textures", "00000000000000a6.dds"), 6, 6, "BC1", 1)
+        png(os.path.join(self.mods, "A", "textures", "00000000000000a3.png"), 2, 2, lambda x, y: (1, 1, 1, 255))
+        n3 = dds(os.path.join(self.mods, "A", "textures", "00000000000000a3.dds"), 4, 4, "BC3", 3)
+        r = subprocess.run([self.exe, self.ini, "-", "picture", "a1", "4", "4", "0,0,0,0",
+                            "picture", "a7", "4", "4", "0,0,0,0", "picture", "a6", "4", "4", "0,0,0,0",
+                            "picture", "a3", "4", "4", "0,0,0,0"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        out = [ln for ln in r.stdout.splitlines() if not ln.startswith("[")]
+        log = [ln for ln in r.stdout.splitlines() + r.stderr.splitlines() if ln.startswith("[tex]")]
+        self.assertEqual(n1, 32 + 8 + 8 + 8)
+        self.assertEqual(out[1:], ["picture 1 8x8 form 1 levels 4 bytes %d" % n1,
+                                   "picture 1 16x4 form 7 levels 5 bytes %d" % n7,
+                                   "picture 0 0x0",
+                                   "picture 1 4x4 form 3 levels 3 bytes %d" % n3])
+        self.assertTrue(any("00000000000000a6.dds: not a multiple of 4 wide and high" in ln for ln in log), log)
+        self.assertTrue(any("of the pictures are DDS" in ln for ln in log), log)
+        self.assertTrue(any("MB on the GPU" in ln for ln in log), log)
+
+    def test_pictures_are_read_ahead(self):
+        # The first answer is "later" (-1): the game's own texture until the loader has read the picture; then the
+        # picture. GOWA_PICTURE_ASYNC=0 reads it when asked.
+        png(os.path.join(self.mods, "A", "textures", "00000000000000aa.png"), 8, 4, lambda x, y: (255, 0, 0, 255))
+        out = self.run_t("-", "first", "aa", "8", "4", "0,0,0,0", "picture", "aa", "8", "4", "0,0,0,0")
+        self.assertEqual(out[1], "picture -1 0x0")
+        self.assertEqual(out[2], "picture 1 8x4 " + " ".join(["255,0,0,255"] * 5))
+        env = dict(os.environ, GOWA_PICTURE_ASYNC="0")
+        r = subprocess.run([self.exe, self.ini, "-", "first", "aa", "8", "4", "0,0,0,0"], capture_output=True,
+                           text=True, env=env)
+        self.assertIn("picture 1 8x4 " + " ".join(["255,0,0,255"] * 5), r.stdout)
+
+    def test_an_ag_normal_maps_chain_is_plain(self):
+        # Red full, blue none, the normal's y in green and its x in alpha, both spread: the chain without alpha's
+        # weight. A colour picture with alpha keeps it.
+        png(os.path.join(self.mods, "A", "textures", "00000000000000ab.png"), 16, 16,
+            lambda x, y: (255, 60 + x * 8, 0, 40 + y * 10))
+        png(os.path.join(self.mods, "A", "textures", "00000000000000ac.png"), 16, 16,
+            lambda x, y: (90, 60 + x * 8, 200, 40 + y * 10))
+        out = self.run_t("-", "picture", "ab", "16", "16", "0,0,0,0", "picture", "ac", "16", "16", "0,0,0,0")
+        self.assertTrue(out[1].endswith(" plain"), out[1])
+        self.assertFalse(out[2].endswith(" plain"), out[2])
 
     def test_the_dump(self):
         dump = os.path.join(self.d, "dump")

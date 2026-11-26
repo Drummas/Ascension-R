@@ -161,13 +161,14 @@ The languages are the game's: `en`, `en-gb`, `fr`, `es`, `es-la`, `de`, `it`, `n
 
 ## Pictures in place of the game's textures: textures\
 
-A mod's `textures\` has PNG files, each named by the id of the texture it stands for: sixteen hex digits, the same
-in every release and from run to run.
+A mod's `textures\` has PNG or DDS files, each named by the id of the texture it stands for: sixteen hex digits,
+the same in every release and from run to run.
 
 ```
 MyMod\
   textures\
     2133aab0625680af.png                    in that texture's place, at any size
+    0b0c9bbf4142f441.dds                    the same, compressed, with its own mip levels
     1f52688dc50e2bfb_64x64_88.overlay.png   drawn over the game's own texture
 ```
 
@@ -176,17 +177,31 @@ MyMod\
   build tree), as `<id>_<width>x<height>_<format>.png`. Copy one into a mod's `textures\`, change it, and keep the id
   at the start of its name: anything after an `_` is free. The game is slower while the dump is on.
 - **A picture** (`<id>.png`) goes in the texture's place. It can be of any size; the mip levels are made from it.
-- **Size and memory.** A picture goes to the GPU uncompressed, 4 bytes a texel with its levels: 85 MB for 4096x4096,
-  21 MB for 2048x2048, where the game's own textures are compressed and smaller. The textures held at once share a
-  third of the card's memory, at most 2 GB; past that the game's are let go and loaded again, which stutters. One
-  picture for many textures (an atlas for a whole character, through `aliases.txt` or the same file under each
-  texture's name) is read once and held once for all of them, so pictures that repeat cost nothing more; keep each
-  picture about the size its texture needs on screen.
+- **A DDS** (`<id>.dds`) goes in as it is: BC1 (DXT1), BC2 (DXT3), BC3 (DXT5) or BC7, with the mip levels it holds
+  (make them all), its width and height multiples of 4; or 32-bit RGBA, taken as a PNG is. Nothing is decoded and no
+  level is made from it, and it takes a quarter to an eighth of a PNG's memory on the GPU: the form for a pack of
+  many upscaled textures. Where a mod has both a `.dds` and a `.png` of one id, the DDS. A cube map, a volume or an
+  array is not taken. Texconv (DirectXTex), Compressonator and most image editors write them, e.g.
+  `texconv -f BC7_UNORM -m 0 -y <id>.png` (BC1 for a texture with no alpha).
+- **Read ahead.** A picture is read and decoded on threads of its own as its texture is first drawn; the game's own
+  texture is drawn until it is ready, a moment later, instead of the frame waiting for it. `GOWA_PICTURE_ASYNC=0`
+  reads it when asked, as before.
+- **Size and memory.** A PNG goes to the GPU uncompressed, 4 bytes a texel with its levels: 85 MB for 4096x4096,
+  21 MB for 2048x2048, where the game's own textures are compressed and smaller; a DDS as its blocks (BC1 half a byte
+  a texel, the others one). The textures held at once share a third of the card's memory, at most 2 GB, and as much
+  more as the mods' pictures take (the log's `[tex] texture cache` line), within half the card's memory; past that
+  the game's are let go and loaded again, which stutters. One picture for many textures (an atlas for a whole
+  character, through `aliases.txt` or the same file under each texture's name) is read once and held once for all of
+  them, so pictures that repeat cost nothing more; keep each picture about the size its texture needs on screen.
+- **Normal maps.** The game keeps its normal maps as DXT5 with the normal's y in green and its x in alpha (red full,
+  blue none: they look orange in the dump, the relief in alpha). An upscaler for photos treats alpha as transparency;
+  upscale them as two grey channels, or rebuild the normal (z from x and y) and pack it back. A PNG of that kind gets
+  its mip levels as a plain mean of each channel; a DDS brings its own.
 - **One picture for many textures: `aliases.txt`.** A character's atlas stands for each texture of the character, and
   a file of it under each texture's name makes the mod as big again for every one (8 copies of a 10 MB atlas). The
   folder's `aliases.txt` gives more textures a picture the folder has, one a line: the texture's id, then the picture,
   either the id of one in the folder or its file by its path there. A picture only the list names can have any name
-  that ends in `.png`. A line that starts with `#` is a comment.
+  that ends in `.png` or `.dds`. A line that starts with `#` is a comment.
 
   ```
   # <texture id> <the picture it takes>
@@ -202,7 +217,7 @@ MyMod\
   level's WAD as their levels from level 2 down, which it draws with as a texture of their own size until the whole
   one has streamed in (in some cinematics, all along). Each copy has its own id; a picture for any of them goes in the
   place of all of them, and a smaller copy gets it smaller by as much: a 2048x4096 texture's 512x1024 copy takes a
-  4096x4096 picture at 1024x1024. A copy with a picture of its own keeps that. The copies are listed in
+  4096x4096 picture at 1024x1024 (a DDS from its level of that size). A copy with a picture of its own keeps that. The copies are listed in
   `port/texture_copies.inc`, which `scripts/texture_copies.py` makes from the game's archives.
 - **An overlay** (`<id>.overlay.png`, or `<id>_anything.overlay.png`) is drawn over the game's own texture, which is
   first scaled to the overlay's size: where the overlay's alpha is above 1 it is laid over, where it is 1 the texel is
@@ -211,8 +226,8 @@ MyMod\
   one-channel and two-channel ones (B8, X16, G8B8) take a picture's red (and green) channel. A cube map or a volume is
   not named. A texture that changes as the game runs (a copy of the frame, a video) stops being looked up after four
   changes; the game's font pages are made as it runs, so their ids are not the same from one run to the next.
-- The first mod in the list wins where two have a picture for the same id. A file that is not a PNG Windows can read
-  is named in the log once and left out.
+- The first mod in the list wins where two have a picture for the same id. A file that is not a PNG Windows can read,
+  or a DDS of a kind it does not take, is named in the log once with why, and the game's own texture is drawn.
 - The id is XXH64 of the texture's level 0 as the game has it, with the format, width and height in the seed
   (ps3recomp's `libs/video/rsx_tex_replace.h`).
 

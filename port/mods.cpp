@@ -783,13 +783,16 @@ void mods_scan(ModList* out, int unpack)
                 } else if (r.size() > 4 && !r.compare(r.size() - 4, 4, L".TSV")) m.text_files++;
             }
         }
-        if (!m.textures.empty()) {   /* the pictures: .png files named by sixteen hex digits (textures.h) */
+        if (!m.textures.empty()) {   /* the pictures: .png and .dds files named by sixteen hex digits (textures.h) */
             std::vector<std::wstring> rels;
             walk(m.textures, std::wstring(), &rels, 0);
             for (const std::wstring& r : rels) {
                 const size_t s = r.find_last_of(L'/');
                 const std::wstring n = s == std::wstring::npos ? r : r.substr(s + 1);
-                bool hex = n.size() >= 20 && !n.compare(n.size() - 4, 4, L".PNG") && (n[16] == L'.' || n[16] == L'_');
+                const bool png = n.size() >= 20 && !n.compare(n.size() - 4, 4, L".PNG");
+                const bool dds = n.size() >= 20 && !n.compare(n.size() - 4, 4, L".DDS") &&
+                                 !(n.size() >= 32 && !n.compare(n.size() - 12, 12, L".OVERLAY.DDS"));
+                bool hex = (png || dds) && (n[16] == L'.' || n[16] == L'_');
                 for (size_t i = 0; hex && i < 16; i++) hex = iswxdigit(n[i]) != 0;
                 if (hex) m.texture_files++;
             }

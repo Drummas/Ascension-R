@@ -8,6 +8,11 @@
  * scaled to the overlay's size first, where its alpha is above 1, and a texel of alpha 1 is made clear: a mod need
  * have nothing of the game's in it. The first mod in the list wins where two have the same id.
  *
+ * <id>.dds is taken too: BC1, BC2, BC3 or BC7 blocks with the chain the file holds, uploaded as they are (a pack of
+ * upscaled textures), or 32-bit texels as a PNG's. Pictures are read ahead on threads of their own: the game's own
+ * texture until one is ready (GOWA_PICTURE_ASYNC=0: when asked). An AG normal map (red full, blue none, x in alpha)
+ * gets a chain of plain means. What the pictures take on the GPU makes the texture cache bigger.
+ *
  * Ascension-R's own Xbox button icons are such a mod: optional-mods\Xbox button icons, which comes in the download
  * ("optional mods" beside the exe) and is off until a player copies it into the mods folder.
  */
