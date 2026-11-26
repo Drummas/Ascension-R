@@ -31,6 +31,10 @@ endif()
 option(PORT_GAME_MODULE "The game's code in ascension_game.dll, the program without it (the Kit release)" OFF)
 if(PORT_GAME_MODULE)
     add_compile_definitions(PS3_GAME_MODULE_HOST)
+    # The program is the one without the game's code, so its own sources need to know: precompile.cpp takes the vertex
+    # pass's text from the DLL (ascension_game_vertex_pass) rather than from native/spu_edge_gpulight.c, which only the
+    # DLL builds, and launcher.cpp and main.cpp have their Kit branches behind the same name.
+    add_compile_definitions(PORT_GAME_MODULE)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -675,9 +679,6 @@ if(TARGET ascension_game)
     target_compile_options(ascension_game PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_OPTIONS> /GS-)
     set_target_properties(ascension_game PROPERTIES LINKER_LANGUAGE CXX)
     target_link_options(ascension_game PRIVATE /NODEFAULTLIB /NOENTRY /MANIFEST:NO "/MAP:${CMAKE_BINARY_DIR}/ascension_game.map")
-    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/port/main.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/port/launcher.cpp"
-                 "${CMAKE_CURRENT_SOURCE_DIR}/port/report.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/port/precompile.cpp"
-                 APPEND PROPERTY COMPILE_DEFINITIONS PORT_GAME_MODULE)
 endif()
 
 # ---------------------------------------------------------------------------
