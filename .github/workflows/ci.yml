@@ -62,25 +62,10 @@ jobs:
           [ -z "$flaky" ] || echo "note: passed on a second run:$flaky"
           if [ -n "$failed" ]; then echo "::error::port tests failing:$failed"; exit 1; fi
 
-      - name: Which clang-cl argument names a second source
-        shell: bash
-        run: |
-          d="$RUNNER_TEMP/fo"; mkdir -p "$d"; cd "$d"
-          printf 'int main(void){return 0;}\n' > t.c
-          try() { printf -- '--- %s\n' "$*" >> out.txt; "$@" >/dev/null 2>> out.txt && echo '  ok' >> out.txt || echo '  FAILED' >> out.txt; }
-          : > out.txt
-          try clang-cl /nologo /Foa.obj -c t.c
-          try clang-cl /nologo /Foa.obj /showIncludes -c t.c
-          try clang-cl /nologo /Foa.obj -c -- t.c
-          try clang-cl /nologo /Foa.obj /showIncludes -c -- t.c
-          try clang-cl /nologo /Foa.obj /Fd. -c t.c
-          try clang-cl /nologo /Foa.obj -MDd /showIncludes -c -- t.c
-          grep -c FAILED out.txt >/dev/null
-          echo "::error::$(tr '\n' '|' < out.txt | cut -c 1-1400)"
-
-      # CMake 4.3 and newer hand clang-cl its gcc-style dependency flags (-clang:-MD/-MT), and the clang on this image
-      # counts one of those as a second source file: even CMake's own compiler test stops with "cannot specify
-      # '/Fo...'". CMake up to 4.2 asks for /showIncludes instead, as the build has always done.
+      # CMake 4.3 and newer hand clang-cl gcc-style dependency flags (-clang:-MD/-MT), which its driver counts as extra
+      # inputs, so the version a release is built with is pinned here too. The image's own clang-cl (20.1.8) fails
+      # CMake's first compiler test either way -- "cannot specify '/Fo...' when compiling multiple source files" -- so
+      # the launcher step below reports that from this image; a machine whose clang-cl CMake can drive builds it.
       - name: The CMake clang-cl asks for
         shell: bash
         run: |
