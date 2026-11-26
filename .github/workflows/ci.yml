@@ -62,18 +62,6 @@ jobs:
           [ -z "$flaky" ] || echo "note: passed on a second run:$flaky"
           if [ -n "$failed" ]; then echo "::error::port tests failing:$failed"; exit 1; fi
 
-      # CMake 4.3 and newer hand clang-cl gcc-style dependency flags (-clang:-MD/-MT), which its driver counts as extra
-      # inputs, so the version a release is built with is pinned here too. The image's own clang-cl (20.1.8) fails
-      # CMake's first compiler test either way -- "cannot specify '/Fo...' when compiling multiple source files" -- so
-      # the launcher step below reports that from this image; a machine whose clang-cl CMake can drive builds it.
-      - name: The CMake clang-cl asks for
-        shell: bash
-        run: |
-          set -e
-          python -m pip install "cmake==3.31.6"
-          echo "$(python -c 'import sysconfig; print(sysconfig.get_paths()["scripts"])')" >> "$GITHUB_PATH"
-          cmake --version | head -1
-
       # The release's launcher compiles with no game and no lift: PORT_GAME_MODULE puts the game's code in the DLL a
       # player's PC builds, and the scaffold is compiled against a ppu_recomp.h with no functions in it, which
       # gowa.py writes from the lifter's own header preamble. This is the exe `gowa.py package kit` publishes.
