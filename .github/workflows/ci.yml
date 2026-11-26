@@ -85,13 +85,15 @@ jobs:
         shell: bash
         run: |
           set +e
-          python scripts/gowa.py build -D PORT_GAME_MODULE=ON --no-spu > launcher-build.log 2>&1
+          clang-cl --version | head -1 | tee launcher-build.log
+          python scripts/gowa.py build -D PORT_GAME_MODULE=ON --no-spu >> launcher-build.log 2>&1
           rc=$?
           tail -40 launcher-build.log
           if [ $rc -ne 0 ]; then
             # The log is only readable to whoever is signed in; this puts the first errors on the run page itself.
-            first=$(grep -m 6 -iE 'error|fatal' launcher-build.log | tr '\n' '|' | cut -c 1-900)
-            echo "::error::gowa.py build exited $rc: ${first:-no error line; see the log}"
+            first=$(grep -m 4 -iE 'error|fatal' launcher-build.log | tr '\n' '|' | cut -c 1-300)
+            ctx=$(sed -n '/CMake Error/,$p' launcher-build.log | head -25 | tr '\n' '|' | cut -c 1-1000)
+            echo "::error::$first -- $ctx"
             exit $rc
           fi
           test -f build/Ascension-R.exe
