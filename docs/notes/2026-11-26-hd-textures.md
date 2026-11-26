@@ -64,3 +64,26 @@ settings are the same, so the three above are compared with each other only. Bef
   the log, a DDS over a PNG of one id, a copy a quarter the size taking the chain from its level, the first answer
   "later" and the picture once ready (and read when asked with `GOWA_PICTURE_ASYNC=0`), an AG normal map's chain plain
   and a colour picture's not; the earlier tests through the loader.
+
+## Step 5: the pack made from a dump (modtools.py upscale)
+
+`python scripts\modtools.py upscale <dump> <mod>`: each dumped texture sorted (`texture_kind`: colour, alpha, AG
+normal map; left out with the reason: linear, one or two channels, under `--min-side`, one colour), the ones with the
+same texels made once (the others into `aliases.txt`), padded with their other side when they repeat (`tiles`:
+opposite edges as alike as neighbouring texels) or mirrored, upscaled (Lanczos built in, or the player's command
+with `{in_dir}`/`{out_dir}` or `{in}`/`{out}`; a bigger result brought to the size), cropped, and written as DDS
+(Pillow's BC1, BC3 with alpha, each level a box mean, an AG normal map's channel by channel) or PNG. Normal maps are
+rebuilt to x, y, z, upscaled (Lanczos, or the upscaler with `--normals upscaler`), normalised and packed back as AG;
+alpha is upscaled apart. Pictures the mod has are not made again (`--force`). Pillow and NumPy are imported only by
+this command (the Kit's Python has neither); CI installs them for the tests.
+
+The dump of the first levels (869): 536 colour, 196 normal maps, 47 with alpha made; 49 masks and fonts, 25 small,
+12 linear, 4 one-colour left out. 779 DDS in 26 s (16 s of making with 6 processes), 720 MB, about 717 MB on the GPU.
+On the bench route (one run): 48.61, the texture cache 2829 MB; 1:1 crops beside the no-pack run at the same moment
+show the same shading on Kratos's skin (the normal maps right) and the ground, nothing broken. Lanczos adds no
+detail: the look an AI upscaler gives is the player's choice of model, not measured here.
+
+Tests (`tests/test_modtools.py`): a made-up dump (colour, a copy of it, an AG normal map, alpha, one colour, B8,
+linear, small): the files and their formats and chains, the alias, mod.ini, the normal map packed back (red full, blue
+none, lengths at most 1, its relief kept), a second run making nothing; a player's upscaler that gives 4x for 2x
+(brought to the size) with PNGs out and the alpha kept apart; an upscaler that fails; `tiles` on a wave and a ramp.

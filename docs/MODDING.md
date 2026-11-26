@@ -197,6 +197,34 @@ MyMod\
   blue none: they look orange in the dump, the relief in alpha). An upscaler for photos treats alpha as transparency;
   upscale them as two grey channels, or rebuild the normal (z from x and y) and pack it back. A PNG of that kind gets
   its mip levels as a plain mean of each channel; a DDS brings its own.
+- **An upscaled pack of your own: `modtools.py upscale`.** Play with **Write out the game's textures** on through the
+  parts you want sharper, then:
+
+  ```
+  python -m pip install pillow numpy
+  python scripts\modtools.py upscale <the textures-dump folder> mods\Upscaled
+  ```
+
+  It makes each colour texture, normal map and texture with transparency in the dump twice as big (`--scale 3` or `4`
+  for more), as a DDS with its chain (BC1, or BC3 with alpha), into `mods\Upscaled\textures`, with a `mod.ini`.
+  Masks, the font, copies of the frame, one-colour textures and ones under 64 texels a side (`--min-side`) are left
+  out, and it says how many of each. Textures with the same texels are made once and the others named in
+  `aliases.txt`. A texture that repeats is padded with its other side before upscaling, another with its own edge
+  mirrored, so the edges come out right; normal maps are rebuilt as normals, upscaled, normalised and packed back as
+  the game keeps them; alpha is upscaled on its own. Run it again after more of the game is dumped: only the new ones
+  are made (`--force` makes all again).
+
+  Its own upscaler is Lanczos: smooth, not new detail. For that, give it an AI upscaler as a command,
+  `{in_dir}`/`{out_dir}` for a folder of pictures at once (or `{in}`/`{out}` for one, `{scale}` the scale):
+
+  ```
+  python scripts\modtools.py upscale <dump> mods\Upscaled --upscaler "C:\tools\realesrgan\realesrgan-ncnn-vulkan.exe -i {in_dir} -o {out_dir} -s 4 -n realesrgan-x4plus"
+  ```
+
+  It is handed RGB pictures and may give them back bigger than asked (a 4x model for `--scale 2`): they are brought
+  to the size. Normal maps are upscaled with Lanczos unless `--normals upscaler`. `--limit 20` tries it on a few
+  first; `--format png` writes PNGs for a compressor of your own (BC7 with texconv, for one). The pack is made from
+  your game and stays yours: the port has no textures of the game's in it, and gives none.
 - **One picture for many textures: `aliases.txt`.** A character's atlas stands for each texture of the character, and
   a file of it under each texture's name makes the mod as big again for every one (8 copies of a 10 MB atlas). The
   folder's `aliases.txt` gives more textures a picture the folder has, one a line: the texture's id, then the picture,

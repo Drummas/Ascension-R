@@ -164,5 +164,113 @@ class Textures(unittest.TestCase):
             self.assertEqual(mt.fold_textures(d)[1:], (0, []))   # again: nothing more
 
 
+FAKE_UPSCALER = r'''
+import os, sys
+from PIL import Image
+src, dst, scale = sys.argv[1], sys.argv[2], int(sys.argv[3])
+for f in os.listdir(src):   # a "x4 model": four times whatever is asked
+    im = Image.open(os.path.join(src, f))
+    im.resize((im.width * 4, im.height * 4), Image.Resampling.NEAREST).save(os.path.join(dst, f))
+'''
+
+
+def dds_info(path):
+    """A DDS's size, FourCC and levels from its header."""
+    b = Path(path).read_bytes()
+    h, w, levels = struct.unpack("<III", b[12:24])[0], struct.unpack("<I", b[16:20])[0], struct.unpack("<I", b[28:32])[0]
+    return w, h, b[84:88].decode(), levels
+
+
+class Upscale(unittest.TestCase):
+    """modtools.py upscale on a made-up dump: what is made, what is left out, the files, normal maps, aliases."""
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            import numpy  # noqa: F401
+            from PIL import Image  # noqa: F401
+        except ImportError:
+            raise unittest.SkipTest("no Pillow or NumPy")
+
+    def dump(self, d):
+        import numpy as np
+        from PIL import Image
+        os.makedirs(d, exist_ok=True)
+        yy, xx = np.mgrid[0:64, 0:64]
+        def save(name, a):
+            Image.fromarray(a.astype(np.uint8), "RGBA").save(os.path.join(d, name))
+        colour = np.stack([xx * 4, yy * 4, (xx + yy) * 2, np.full_like(xx, 255)], -1)
+        save("00000000000000c1_64x64_86.png", colour)
+        save("00000000000000c2_64x64_86.png", colour)                      # the same texels: an alias
+        nx, ny = np.sin(xx / 6.0) * 0.6, np.cos(yy / 5.0) * 0.6             # an AG normal map
+        save("00000000000000n1_64x64_88.png".replace("n1", "e1"),
+             np.stack([np.full_like(xx, 255), (ny * 0.5 + 0.5) * 255, np.zeros_like(xx), (nx * 0.5 + 0.5) * 255], -1))
+        save("00000000000000a1_64x64_88.png", np.stack([xx * 4, yy * 4, xx * 0 + 90, (xx > 31) * 255], -1))
+        save("00000000000000f1_64x64_86.png", np.stack([xx * 0 + 50] * 3 + [xx * 0 + 255], -1))   # one colour
+        save("00000000000000b8_64x64_81.png", colour)                       # B8: a mask
+        save("00000000000000aa_64x64_A5.png", colour)                       # linear: a copy of the frame
+        save("00000000000000a2_32x32_86.png", colour[:32, :32])             # small
+        save("not-a-dump.png", colour)
+
+    def test_the_mod_it_makes(self):
+        from PIL import Image
+        import numpy as np
+        with tempfile.TemporaryDirectory() as d:
+            dump, mod = os.path.join(d, "dump"), os.path.join(d, "Up")
+            self.dump(dump)
+            self.assertEqual(mt.main(["upscale", dump, mod, "--jobs", "2"]), 0)
+            tex = os.path.join(mod, "textures")
+            self.assertEqual(sorted(os.listdir(tex)), ["00000000000000a1.dds", "00000000000000c1.dds",
+                                                       "00000000000000e1.dds", "aliases.txt"])
+            self.assertEqual(dds_info(os.path.join(tex, "00000000000000c1.dds")), (128, 128, "DXT1", 8))
+            self.assertEqual(dds_info(os.path.join(tex, "00000000000000a1.dds")), (128, 128, "DXT5", 8))
+            self.assertEqual(dds_info(os.path.join(tex, "00000000000000e1.dds")), (128, 128, "DXT5", 8))
+            self.assertIn("00000000000000c2 00000000000000c1", Path(tex, "aliases.txt").read_text().splitlines())
+            self.assertTrue(Path(mod, "mod.ini").read_text().startswith("[mod]\nname = Up\n"))
+            # The normal map: red full, blue none, its normals of unit length or less, its relief kept.
+            with Image.open(os.path.join(tex, "00000000000000e1.dds")) as im:
+                n = np.asarray(im.convert("RGBA")).astype(float)
+            x, y = n[..., 3] / 127.5 - 1, n[..., 1] / 127.5 - 1
+            self.assertGreater(n[..., 0].mean(), 250)
+            self.assertLess(n[..., 2].mean(), 5)
+            self.assertLess((x * x + y * y).max(), 1.05)
+            self.assertGreater(x.std(), 0.2)
+            # Made already: not again; --force makes them again.
+            before = os.path.getmtime(os.path.join(tex, "00000000000000c1.dds"))
+            self.assertEqual(mt.main(["upscale", dump, mod]), 0)
+            self.assertEqual(os.path.getmtime(os.path.join(tex, "00000000000000c1.dds")), before)
+            self.assertEqual(Path(tex, "aliases.txt").read_text().count("00000000000000c2"), 1)
+
+    def test_the_players_upscaler_and_png(self):
+        with tempfile.TemporaryDirectory() as d:
+            dump, mod = os.path.join(d, "dump"), os.path.join(d, "Up")
+            self.dump(dump)
+            fake = os.path.join(d, "fake_up.py")
+            Path(fake).write_text(FAKE_UPSCALER)
+            cmd = '"%s" "%s" {in_dir} {out_dir} {scale}' % (sys.executable, fake)
+            self.assertEqual(mt.main(["upscale", dump, mod, "--upscaler", cmd, "--format", "png", "--only",
+                                      "00000000000000c1,00000000000000a1"]), 0)
+            from PIL import Image
+            tex = os.path.join(mod, "textures")
+            self.assertEqual(sorted(f for f in os.listdir(tex) if f.endswith(".png")),
+                             ["00000000000000a1.png", "00000000000000c1.png"])
+            with Image.open(os.path.join(tex, "00000000000000c1.png")) as im:
+                self.assertEqual(im.size, (128, 128))   # the upscaler's 4x brought to 2x
+            # The alpha upscaled apart: its clear half still clear, its drawn half drawn.
+            with Image.open(os.path.join(tex, "00000000000000a1.png")) as im:
+                a = im.getchannel("A")
+            self.assertEqual((a.getpixel((10, 64)), a.getpixel((120, 64))), (0, 255))
+            # An upscaler that fails: said, with its command.
+            self.assertEqual(mt.main(["upscale", dump, os.path.join(d, "Up2"), "--upscaler", "exit 3"]), 1)
+
+    def test_what_repeats_is_padded_with_its_other_side(self):
+        import numpy as np
+        xx = np.mgrid[0:64, 0:64][1]
+        wave = np.stack([128 + 100 * np.sin(xx * 2 * np.pi / 64)] * 3 + [xx * 0 + 255], -1).astype(np.uint8)
+        ramp = np.stack([xx * 4] * 3 + [xx * 0 + 255], -1).astype(np.uint8)
+        self.assertTrue(mt.tiles(wave))
+        self.assertFalse(mt.tiles(ramp))
+
+
 if __name__ == "__main__":
     unittest.main()

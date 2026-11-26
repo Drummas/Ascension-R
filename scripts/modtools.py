@@ -2,6 +2,7 @@
 
     modtools.py textures <the mod's textures folder> [--dry-run]
     modtools.py patch <the mod's whole file> <the entry> <the mod's archive folder> [--game <the game's folder>]
+    modtools.py upscale <the textures dump> <the mod's folder> [--scale 2] [--upscaler lanczos|"<command>"] [...]
 
 textures: pictures that are one file byte for byte, kept once. The first by name stays; each other one's id goes
 into aliases.txt in the folder, with the id of the one that stays, and its file is removed. Pictures not named by an
@@ -15,6 +16,17 @@ modpack.py checks, leaving the patch out for a game whose file is another. The g
 that brings it whole, else the disc's: --game names the disc's PS3_GAME folder (default the tree's vfs\\PS3_GAME) and
 --updates the updates' USRDIR (default the tree's gamedata\\dev_hdd0\\game\\<title>\\USRDIR).
 
+upscale: a mod of the textures in a dump (textures-dump, the Mods tab's Write out the game's textures) made bigger,
+for this PC's own game: each colour texture, normal map and texture with transparency at --scale times its size,
+as a DDS (BC1, or BC3 with alpha, with its chain) named by the texture's id, into <mod>\\textures. Masks, the font,
+copies of the frame, one-colour and small ones are left out. A texture that repeats is padded with its other side
+before upscaling, another with its own edge mirrored, so the edges come out right. The game's normal maps (AG: red
+full, blue none, y in green, x in alpha) are rebuilt as normals, upscaled, normalised and packed back. Alpha is
+upscaled on its own. Textures with the same texels are made once and the others named in aliases.txt. Pictures the
+mod has already are not made again (--force). The upscaler: Lanczos built in, or the player's own as a command,
+e.g. "realesrgan-ncnn-vulkan -i {in_dir} -o {out_dir} -s 4 -n realesrgan-x4plus" (a picture it gives bigger than
+asked is brought to the size). Needs Pillow and NumPy (python -m pip install pillow numpy).
+
 The game's patch (version 4): u16 version, u16 n, n steps of (u32 from, u32 length), then the patch's own data. A
 step with the top bit of `from` set takes `length` bytes of the patch's own data, from the offset the other bits give;
 any other takes them from the game's file at `from`. The file is the steps' bytes one after the other.
@@ -22,7 +34,9 @@ any other takes them from the game's file at `from`. The file is the steps' byte
 import argparse
 import hashlib
 import os
+import re
 import struct
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -221,7 +235,7 @@ def cmd_patch(args):
 
 def picture_id(name):
     """The id a picture's file name gives (sixteen hex digits, then '_' or '.'), or None."""
-    if len(name) < 20 or not name.lower().endswith(".png") or name[16] not in "._":
+    if len(name) < 20 or not name.lower().endswith((".png", ".dds")) or name[16] not in "._":
         return None
     try:
         int(name[:16], 16)
@@ -281,6 +295,328 @@ def cmd_textures(args):
     return 0
 
 
+# ---------------------------------------------------------------------------
+# upscale
+# ---------------------------------------------------------------------------
+
+DUMP_NAME = re.compile(r"^([0-9a-fA-F]{16})_(\d+)x(\d+)_([0-9A-Fa-f]{2})\.png$")
+# The game's textures that take a picture as RGBA (rsx_tex_replace.h): the 16-bit colour ones, A8R8G8B8, DXT1/3/5.
+COLOUR_FORMATS = {0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x97, 0x9D, 0x9E}
+KINDS = ("colour", "alpha", "normal")
+
+
+def imaging():
+    """Pillow and NumPy, which upscale needs and the Kit's own Python does not have."""
+    try:
+        import numpy
+        from PIL import Image
+    except ImportError:
+        raise ModError("upscale needs Python with Pillow and NumPy: python -m pip install pillow numpy")
+    if not hasattr(Image, "Resampling"):
+        raise ModError("upscale needs Pillow 9.1 or newer: python -m pip install -U pillow")
+    return numpy, Image
+
+
+def texture_kind(a, fmt, w, h, min_side):
+    """What a dumped texture is, for the upscale: 'colour', 'alpha' (it has transparency), 'normal' (an AG normal map:
+    red full, blue none, the normal's y in green and its x in alpha), or why it is left out."""
+    np, _ = imaging()
+    if fmt & 0x20:
+        return "left out: linear (a copy of the frame, a target)"
+    if (fmt & 0x9F) not in COLOUR_FORMATS:
+        return "left out: one or two channels (a mask, the font)"
+    if min(w, h) < min_side:
+        return "left out: smaller than %d" % min_side
+    f = a.astype(np.float32)
+    if float(f[..., :3].std(axis=(0, 1)).max()) < 2.0 and float(f[..., 3].std()) < 2.0:
+        return "left out: one colour"
+    r, g, b, al = (float(f[..., c].mean()) for c in range(4))
+    if r > 230 and b < 30 and 40 < g < 215 and 40 < al < 215 and float(f[..., 3].std()) > 2.0:
+        return "normal"
+    if int(a[..., 3].min()) < 255:
+        return "alpha"
+    return "colour"
+
+
+def tiles(a):
+    """Whether a texture repeats: its opposite edges as alike as texels side by side within it. A repeating one is
+    padded with its other side before upscaling, so its edges still meet; another with its own edge mirrored."""
+    np, _ = imaging()
+    f = a[..., :3].astype(np.float32)
+    inner_h = float(np.abs(f[:, 1:] - f[:, :-1]).mean())
+    inner_v = float(np.abs(f[1:] - f[:-1]).mean())
+    seam_h = float(np.abs(f[:, 0] - f[:, -1]).mean())
+    seam_v = float(np.abs(f[0] - f[-1]).mean())
+    return seam_h <= 1.5 * inner_h + 2.0 and seam_v <= 1.5 * inner_v + 2.0
+
+
+def resize_channel(ch, w, h):
+    """A float32 channel to w x h, Lanczos."""
+    np, Image = imaging()
+    return np.asarray(Image.fromarray(ch.astype(np.float32), "F").resize((w, h), Image.Resampling.LANCZOS))
+
+
+def lanczos_rgb(rgb, w, h):
+    np, Image = imaging()
+    return np.asarray(Image.fromarray(rgb, "RGB").resize((w, h), Image.Resampling.LANCZOS))
+
+
+def run_upscaler(template, src, dst, scale):
+    """The player's upscaler on one picture, or on a folder of them ({in_dir}, {out_dir}); {scale} is the scale."""
+    cmd = template.replace("{in}", '"%s"' % src).replace("{out}", '"%s"' % dst).replace(
+        "{in_dir}", '"%s"' % src).replace("{out_dir}", '"%s"' % dst).replace("{scale}", str(scale))
+    r = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
+    if r.returncode:
+        raise ModError("the upscaler stopped (%d): %s\n%s" % (r.returncode, cmd, r.stdout[-2000:]))
+
+
+def write_dds(path, levels, alpha):
+    """A DDS of the levels (Pillow images, level 0 first), BC3 (DXT5) with alpha, else BC1 (DXT1), by Pillow's own
+    encoder, with the header that names the chain."""
+    import io
+    blocks = []
+    pf = "DXT5" if alpha else "DXT1"
+    for im in levels:
+        b = io.BytesIO()
+        im.save(b, "DDS", pixel_format=pf)
+        data = b.getvalue()
+        blocks.append(data[148:] if data[84:88] == b"DX10" else data[128:])
+    w, h = levels[0].size
+    flags = 0x1 | 0x2 | 0x4 | 0x1000 | 0x20000 | 0x80000
+    head = struct.pack("<4sIIIIIII", b"DDS ", 124, flags, h, w, len(blocks[0]), 0, len(blocks)) + b"\0" * 44
+    head += struct.pack("<II4sIIIII", 32, 0x4, pf.encode(), 0, 0, 0, 0, 0)
+    head += struct.pack("<IIIII", 0x1000 | 0x400008, 0, 0, 0, 0)
+    tmp = path + ".part"
+    with open(tmp, "wb") as f:
+        f.write(head + b"".join(blocks))
+    os.replace(tmp, path)
+    return sum(len(b) for b in blocks)
+
+
+def chain(img, plain):
+    """Level 0 and every level below it to 1 x 1, each the box mean of the one above: an AG normal map's channel by
+    channel (its alpha is the normal's x, not coverage), another's with Pillow's alpha-aware resize."""
+    _, Image = imaging()
+    out = [img]
+    while out[-1].size != (1, 1):
+        lv = out[-1]
+        w, h = max(1, lv.width // 2), max(1, lv.height // 2)
+        if plain:
+            out.append(Image.merge("RGBA", [c.resize((w, h), Image.Resampling.BOX) for c in lv.split()]))
+        else:
+            out.append(lv.resize((w, h), Image.Resampling.BOX))
+    return out
+
+
+class Job:
+    """One picture to make: the dumped texture's file, its kind, the size it is made at, and the files it writes."""
+
+    def __init__(self, src, tid, w, h, fmt, kind, scale):
+        self.src, self.id, self.w, self.h, self.fmt, self.kind = src, tid, w, h, fmt, kind
+        self.tw, self.th = w * scale, h * scale
+        self.pad = max(2, min(16, min(w, h) // 8))
+
+
+def prepare(job, normals_by_upscaler):
+    """The texels to upscale, padded: RGB for the upscaler (a normal map's normal as RGB when the upscaler is to take
+    it), and what is kept apart."""
+    np, Image = imaging()
+    a = np.asarray(Image.open(job.src).convert("RGBA"))
+    mode = "wrap" if tiles(a) else "reflect"
+    p = job.pad
+    padded = np.pad(a, ((p, p), (p, p), (0, 0)), mode=mode)
+    if job.kind == "normal":
+        x = padded[..., 3].astype(np.float32) / 127.5 - 1.0
+        y = padded[..., 1].astype(np.float32) / 127.5 - 1.0
+        z = np.sqrt(np.clip(1.0 - x * x - y * y, 0.0, 1.0))
+        xyz = np.stack([x, y, z], axis=-1)
+        rgb = np.clip((xyz * 0.5 + 0.5) * 255.0 + 0.5, 0, 255).astype(np.uint8) if normals_by_upscaler else None
+        return {"rgb": rgb, "xyz": xyz}
+    return {"rgb": padded[..., :3].copy(), "alpha": padded[..., 3].copy() if job.kind == "alpha" else None}
+
+
+def finish(job, prep, up_rgb, fmt, out_dir, scale):
+    """The upscaled texels cropped to the texture's own, a normal map normalised and packed back as AG, alpha upscaled
+    apart, and written: a DDS with its chain, or a PNG. Returns (file, bytes on the GPU)."""
+    np, Image = imaging()
+    s, p = scale, job.pad
+    W, H = (job.w + 2 * p) * s, (job.h + 2 * p) * s
+    crop = (slice(p * s, p * s + job.th), slice(p * s, p * s + job.tw))
+    if job.kind == "normal":
+        if up_rgb is not None:
+            if up_rgb.shape[1] != W or up_rgb.shape[0] != H:
+                up_rgb = lanczos_rgb(up_rgb, W, H)
+            n = up_rgb.astype(np.float32) / 127.5 - 1.0
+        else:
+            n = np.stack([resize_channel(prep["xyz"][..., c], W, H) for c in range(3)], axis=-1)
+        n = n[crop]
+        n[..., 2] = np.maximum(n[..., 2], 0.0)
+        n /= np.maximum(np.sqrt((n * n).sum(axis=-1, keepdims=True)), 1e-6)
+        out = np.empty(n.shape[:2] + (4,), np.uint8)
+        out[..., 0] = 255
+        out[..., 1] = np.clip((n[..., 1] * 0.5 + 0.5) * 255.0 + 0.5, 0, 255).astype(np.uint8)
+        out[..., 2] = 0
+        out[..., 3] = np.clip((n[..., 0] * 0.5 + 0.5) * 255.0 + 0.5, 0, 255).astype(np.uint8)
+    else:
+        if up_rgb.shape[1] != W or up_rgb.shape[0] != H:
+            up_rgb = lanczos_rgb(up_rgb, W, H)
+        out = np.empty((job.th, job.tw, 4), np.uint8)
+        out[..., :3] = up_rgb[crop]
+        if prep.get("alpha") is not None:
+            al = np.asarray(Image.fromarray(prep["alpha"], "L").resize((W, H), Image.Resampling.LANCZOS))
+            out[..., 3] = al[crop]
+        else:
+            out[..., 3] = 255
+    img = Image.fromarray(out, "RGBA")
+    has_alpha = job.kind != "colour"
+    if fmt == "dds" and job.tw % 4 == 0 and job.th % 4 == 0:
+        path = os.path.join(out_dir, job.id + ".dds")
+        return path, write_dds(path, chain(img, job.kind == "normal"), has_alpha)
+    path = os.path.join(out_dir, job.id + ".png")
+    img.save(path + ".part.png", compress_level=4)
+    os.replace(path + ".part.png", path)
+    return path, job.tw * job.th * 4 * 4 // 3
+
+
+def lanczos_job(args):
+    """One picture with the built-in upscaler (Lanczos), start to end: for a pool."""
+    job, fmt, out_dir, scale = args
+    prep = prepare(job, False)
+    np, _ = imaging()
+    up = None
+    if job.kind != "normal":
+        h, w = prep["rgb"].shape[:2]
+        up = lanczos_rgb(prep["rgb"], w * scale, h * scale)
+    return finish(job, prep, up, fmt, out_dir, scale)
+
+
+def read_aliases(path):
+    """aliases.txt's lines as (texture id, picture) pairs, and its text."""
+    if not os.path.isfile(path):
+        return {}, ""
+    text = open(path, encoding="utf-8-sig").read()
+    pairs = {}
+    for ln in text.splitlines():
+        parts = ln.split()
+        if len(parts) >= 2 and not parts[0].startswith("#"):
+            pairs[parts[0].lower()] = parts[1]
+    return pairs, text
+
+
+def cmd_upscale(args):
+    np, Image = imaging()
+    if not os.path.isdir(args.dump):
+        raise ModError("no folder %s" % args.dump)
+    if args.scale not in (2, 3, 4):
+        raise ModError("--scale is 2, 3 or 4")
+    out_dir = os.path.join(args.mod, "textures")
+    os.makedirs(out_dir, exist_ok=True)
+    only = {i.strip().lower() for i in args.only.split(",")} if args.only else None
+
+    # The dump, each texture's kind, and the ones that are one picture (the same texels): made once, the others
+    # given it by aliases.txt.
+    counts, groups, order = {}, {}, []
+    for name in sorted(os.listdir(args.dump)):
+        m = DUMP_NAME.match(name)
+        if not m:
+            continue
+        tid, w, h, fmt = m.group(1).lower(), int(m.group(2)), int(m.group(3)), int(m.group(4), 16)
+        if only is not None and tid not in only:
+            continue
+        a = np.asarray(Image.open(os.path.join(args.dump, name)).convert("RGBA"))
+        if a.shape[1] != w or a.shape[0] != h:
+            counts["left out: not the size its name says"] = counts.get("left out: not the size its name says", 0) + 1
+            continue
+        kind = texture_kind(a, fmt, w, h, args.min_side)
+        if kind not in KINDS:
+            counts[kind] = counts.get(kind, 0) + 1
+            continue
+        key = hashlib.sha1(a.tobytes() + struct.pack("<II", w, h)).hexdigest()
+        if key not in groups:
+            groups[key] = Job(os.path.join(args.dump, name), tid, w, h, fmt, kind, args.scale)
+            groups[key].others = []
+            order.append(key)
+            counts[kind] = counts.get(kind, 0) + 1
+        else:
+            groups[key].others.append(tid)
+            counts["the same as another"] = counts.get("the same as another", 0) + 1
+    if args.limit:
+        order = order[:args.limit]
+    for k in sorted(counts):
+        print("  %-48s %d" % (k, counts[k]))
+    jobs = [groups[k] for k in order]
+    todo = [j for j in jobs if args.force or not (os.path.isfile(os.path.join(out_dir, j.id + ".dds")) or
+                                                   os.path.isfile(os.path.join(out_dir, j.id + ".png")))]
+    print("%d pictures to make (%d already in %s), x%d, %s, by %s" % (
+        len(todo), len(jobs) - len(todo), out_dir, args.scale, args.format,
+        "Lanczos" if args.upscaler == "lanczos" else "the upscaler"))
+    if args.dry_run:
+        return 0
+
+    import time
+    t0 = time.time()
+    made, gpu = 0, 0
+    if args.upscaler == "lanczos":
+        from multiprocessing import Pool
+        with Pool(max(1, min(args.jobs, len(todo) or 1))) as pool:
+            for path, b in pool.imap_unordered(lanczos_job, [(j, args.format, out_dir, args.scale) for j in todo],
+                                               chunksize=4):
+                made += 1
+                gpu += b
+                if made % 50 == 0:
+                    print("  %d of %d" % (made, len(todo)))
+    else:
+        import tempfile
+        batch = "{in_dir}" in args.upscaler
+        with tempfile.TemporaryDirectory(prefix="upscale-") as tmp:
+            src_dir, dst_dir = os.path.join(tmp, "in"), os.path.join(tmp, "out")
+            os.makedirs(src_dir)
+            os.makedirs(dst_dir)
+            preps = {}
+            for j in todo:
+                by_up = j.kind != "normal" or args.normals == "upscaler"
+                preps[j.id] = prepare(j, by_up)
+                if by_up:
+                    Image.fromarray(preps[j.id]["rgb"], "RGB").save(os.path.join(src_dir, j.id + ".png"))
+            if batch:
+                run_upscaler(args.upscaler, src_dir, dst_dir, args.scale)
+            for j in todo:
+                up = None
+                if preps[j.id]["rgb"] is not None:
+                    src = os.path.join(src_dir, j.id + ".png")
+                    dst = os.path.join(dst_dir, j.id + ".png")
+                    if not batch:
+                        run_upscaler(args.upscaler, src, dst, args.scale)
+                    found = [f for f in os.listdir(dst_dir) if f.lower().startswith(j.id)]
+                    if not found:
+                        raise ModError("the upscaler wrote nothing for %s in %s" % (j.id, dst_dir))
+                    up = np.asarray(Image.open(os.path.join(dst_dir, found[0])).convert("RGB"))
+                path, b = finish(j, preps[j.id], up, args.format, out_dir, args.scale)
+                made += 1
+                gpu += b
+                if made % 50 == 0:
+                    print("  %d of %d" % (made, len(todo)))
+
+    # The textures with the same texels as one made: aliases.txt, as `textures` would fold them.
+    al_path = os.path.join(out_dir, "aliases.txt")
+    have, text = read_aliases(al_path)
+    add = ["%s %s" % (o, j.id) for j in jobs for o in j.others if o not in have]
+    if add:
+        with open(al_path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text if text else "# <texture id> <the picture it takes: the id of one in this folder, or a file here>\n")
+            if text and not text.endswith("\n"):
+                f.write("\n")
+            f.write("\n".join(add) + "\n")
+    ini = os.path.join(args.mod, "mod.ini")
+    if not os.path.isfile(ini):
+        with open(ini, "w", encoding="utf-8", newline="\n") as f:
+            f.write("[mod]\nname = %s\ndescription = The game's textures at %dx, made from a dump of this PC's "
+                    "game by modtools.py upscale.\n" % (os.path.basename(os.path.abspath(args.mod)), args.scale))
+    print("%d pictures made in %.0f s, about %.0f MB on the GPU; %d more textures by aliases.txt" % (
+        made, time.time() - t0, gpu / 1048576.0, len(add)))
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(prog="modtools.py", description=__doc__.split("\n\n")[0],
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -294,9 +630,26 @@ def main(argv=None):
     q.add_argument("archive", help="the mod's archive folder")
     q.add_argument("--game", help="the game's PS3_GAME folder (default: the tree's)")
     q.add_argument("--updates", help="the game's updates' USRDIR (default: the tree's gamedata)")
+    u = sub.add_parser("upscale", help="a mod of the dumped textures made bigger, as DDS")
+    u.add_argument("dump", help="the textures dump (textures-dump beside the settings)")
+    u.add_argument("mod", help="the mod's folder to write (its textures\\ and mod.ini)")
+    u.add_argument("--scale", type=int, default=2, help="2 (default), 3 or 4")
+    u.add_argument("--upscaler", default="lanczos",
+                   help='lanczos (built in, default), or a command: {in} {out} for one picture, {in_dir} {out_dir} '
+                        'for a folder of them, {scale}')
+    u.add_argument("--normals", choices=("lanczos", "upscaler"), default="lanczos",
+                   help="normal maps by Lanczos (default) or by the upscaler, as their normals in RGB")
+    u.add_argument("--format", choices=("dds", "png"), default="dds", help="dds (BC1/BC3 with the chain) or png")
+    u.add_argument("--min-side", type=int, default=64, help="smaller textures are left out (default 64)")
+    u.add_argument("--only", help="these texture ids alone, by commas")
+    u.add_argument("--limit", type=int, default=0, help="the first n pictures alone (to try an upscaler)")
+    u.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2),
+                   help="pictures made at once with Lanczos (default half the CPU's threads)")
+    u.add_argument("--force", action="store_true", help="make again pictures the mod has already")
+    u.add_argument("--dry-run", action="store_true", help="say what it would make, write nothing")
     a = p.parse_args(argv)
     try:
-        return cmd_patch(a) if a.cmd == "patch" else cmd_textures(a)
+        return {"patch": cmd_patch, "textures": cmd_textures, "upscale": cmd_upscale}[a.cmd](a)
     except (ModError, OSError, gt.TextError) as e:
         print("modtools: %s" % e, file=sys.stderr)
         return 1
