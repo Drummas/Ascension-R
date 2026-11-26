@@ -1,0 +1,162 @@
+# Makes a GitHub release when a commit message starts with "Release: v<version>" (CupOfTea696/gh-action-auto-release,
+# the Auto Release action), and puts the same files on it as every release before: the Kit zip, audit.txt, the two
+# maps and FFmpeg's source, as `gowa.py package kit` makes them in dist/<version>/kit.
+#
+# The version the commit message names must be the one port/version.h has: the package is named from that file, and a
+# release names the package it builds. Add the version's entry to CHANGELOG.md with the release commit: the action
+# takes the release's notes from it.
+#
+# A manual run (Actions > Release > Run workflow) has no commit message to read: `release` on makes the release for the
+# commit from port/version.h, and off only builds and packages, to check that it would. `release` is the one input,
+# and it decides whether a release is made.
+#
+# The package is built on Windows with the game's own copy and the SDKs gowa.py takes (the game at vfs\PS3_GAME, FSR,
+# Streamline, SDL3, a release FFmpeg): that is the machine a release has always been made on. Set the repository
+# variable RELEASE_RUNNER (Settings > Variables) to such a runner's labels, e.g. "self-hosted, windows, x64"; without
+# it the job runs on windows-latest and stops at the check below, saying what it needs.
+#
+# One token, GITHUB_TOKEN: it is the name the auto-release action reads (it stops with "The GITHUB_TOKEN environment
+# variable was not set" without it), and gh reads GITHUB_TOKEN too when GH_TOKEN is not set
+# (https://cli.github.com/manual/gh_help_environment), so the gh commands of the publish job authenticate with it.
+name: Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Create a release for this commit (off: only build the package)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: A commit message says release
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    outputs:
+      released: ${{ steps.auto-release.outputs.released }}
+      version: ${{ steps.auto-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      # The commit message is the trigger: "Release: v0.4.1" (or "...0.4.1", or with a note after it). Every other
+      # commit passes through with nothing made.
+      - name: The release, if the commit message says so
+        id: auto-release
+        uses: CupOfTea696/gh-action-auto-release@a8f57f49a805d334ac7abe31b689e7ea24e1ee40 # v1.0.2
+        with:
+          title: "Ascension-R v$semver: God of War: Ascension PC port"
+          tag: "v$semver"
+          draft: false
+          changelog: CHANGELOG.md
+          changelog-entry: "$semver"
+          regex: "/^Release: v?#{semver}\\b/i"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: The package, on the release
+    needs: release
+    # A skipped release job (a manual run) leaves no outputs: the input decides there, the action's output on a push.
+    if: >-
+      always() && !cancelled() &&
+      ((github.event_name == 'workflow_dispatch' && inputs.release) ||
+       (github.event_name == 'push' && needs.release.outputs.released == 'true'))
+    # The release machine: a Windows with the game's copy and the SDKs, as every release has been packaged on.
+    runs-on: ${{ vars.RELEASE_RUNNER || 'windows-latest' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      # The image's MSVC STL asks for a newer Clang than the image's LLVM, and stops clang-cl with STL1000; the STL's
+      # own switch lets it through, as CI has it.
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: x64
+
+      - name: Install the Python requirements
+        run: python -m pip install -r ps3recomp/requirements.txt pillow numpy
+
+      # Without the game there is no package: the Kit's exe and its build check are made from the player's own copy.
+      - name: What the package is made from
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "vfs/PS3_GAME/USRDIR/GOWA.elf" ] && [ -z "${GOWA_ELF:-}" ]; then
+            echo "::error::No vfs/PS3_GAME/USRDIR/GOWA.elf: run 'gowa.py setup --game-dir ...' and decrypt GOWA.SELF, or set GOWA_ELF. The Kit's package is built from the game's own copy, with the FSR SDK, Streamline, SDL3 and a release FFmpeg."
+            exit 1
+          fi
+
+      - name: The version, as a tag
+        id: tag
+        shell: bash
+        env:
+          RELEASED_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v$(sed -n 's/^#define[[:space:]]*AR_VERSION[[:space:]]*"\(.*\)"/\1/p' port/version.h)"
+          if [ -z "${tag#v}" ]; then echo "::error::port/version.h has no AR_VERSION"; exit 1; fi
+          released="${RELEASED_VERSION#v}"
+          if [ -n "$released" ] && [ "v$released" != "$tag" ]; then
+            echo "::error::The commit message released $released, but port/version.h says ${tag#v}: the package's name and the release's must be the same."
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "$tag"
+
+      # The project's own one-click build and package: exe, kit\, licenses, and in dist/<version>/kit the zip,
+      # audit.txt, the two maps, FFmpeg's source (which go up) and build-info.txt (which stays here).
+      - name: Build and package the Kit
+        run: python scripts/gowa.py package kit
+
+      - name: A manual run makes its release
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG is a release already: its files are replaced."
+            exit 0
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" \
+            --title "Ascension-R $TAG: God of War: Ascension PC port" --generate-notes
+
+      - name: Put the release's files up
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          dir="dist/${TAG#v}/kit"
+          if [ ! -d "$dir" ]; then echo "::error::$dir: the package made nothing"; exit 1; fi
+          files=()
+          for f in "$dir"/*.zip "$dir"/audit.txt "$dir"/*.map "$dir"/ffmpeg-*.tar.xz; do
+            if [ -f "$f" ]; then files+=("$f"); fi
+          done
+          if [ ${#files[@]} -eq 0 ]; then echo "::error::no files in $dir to upload"; exit 1; fi
+          printf '%s\n' "${files[@]}"
+          gh release upload "$TAG" "${files[@]}" --clobber
