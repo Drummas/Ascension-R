@@ -32,6 +32,7 @@ Website: [rigaz29.github.io/Ascension-R](https://rigaz29.github.io/Ascension-R/)
 - [Project layout](#project-layout)
 - [Contributing](#contributing)
 - [FAQ](#faq)
+- [Support](#support)
 - [Legal](#legal)
 - [Credits](#credits)
 - [License](#license)
@@ -277,6 +278,19 @@ and Intel Arc ([notes](docs/notes/2026-11-22-anr-fg-beta.md)).
 
 The code is open source and built in the open. Each release lists the SHA-256 of its download and what the package was checked
 for, and the game's code is built on your own PC. The program is not signed, so Windows SmartScreen may warn the first time.
+
+## Support
+
+Ascension-R is free and stays free. If you want to support the work on it, donations are welcome, as a thank-you and
+nothing more: they buy no features, builds or priority, and nothing changes for anyone who does not give. The game is
+not included and not sold.
+
+| Network | Address |
+|---|---|
+| Solana (SOL and SPL tokens) | `2vWRu4puxAW8bKPDoFftm6P2sBAXxhSnZQHdTAueVQCv` |
+| Ethereum and other EVM networks (BNB Smart Chain, Polygon, Arbitrum, Optimism, Base and the like) | `0xc7aeb4ce00e62087f3e9988e7740928440bc1823` |
+
+Send only on the network named next to the address.
 
 ## Legal
 

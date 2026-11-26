@@ -178,7 +178,7 @@ msgstr "144 fps"
 msgid "Unlocked"
 msgstr "解除鎖定"
 
-#: launcher.cpp:168 launcher.cpp:169 launcher.cpp:3021
+#: launcher.cpp:168 launcher.cpp:169 launcher.cpp:3038
 msgid "Bilinear"
 msgstr "雙線性"
 
@@ -270,7 +270,7 @@ msgstr "高品質"
 msgid "High"
 msgstr "高"
 
-#: launcher.cpp:201 launcher.cpp:4883
+#: launcher.cpp:201 launcher.cpp:4908
 msgid "ANR FG (beta)"
 msgstr "ANR FG（測試版）"
 
@@ -503,7 +503,7 @@ msgid "In windowed mode. The game draws 720p; the picture is scaled to the windo
 msgstr "用於視窗化模式。遊戲以 720p 繪製，畫面會縮放至視窗大小。"
 
 #. text
-#: launcher.cpp:258 launcher.cpp:3070
+#: launcher.cpp:258 launcher.cpp:3087
 msgid "VSync"
 msgstr "垂直同步"
 
@@ -687,7 +687,7 @@ msgstr "對比"
 msgid "Lit surfaces and highlights stand out more; deep shadows keep their detail, black and white kept."
 msgstr "受光表面與亮部更加突出；深色陰影保留細節，黑色與白色維持不變。"
 
-#: launcher.cpp:329 launcher.cpp:4717
+#: launcher.cpp:329 launcher.cpp:4742
 msgid "Frame generation"
 msgstr "幀生成"
 
@@ -752,7 +752,7 @@ msgid "At the start the game waits until the pipelines kept from earlier session
 msgstr "啟動時，遊戲會等待先前執行時保留的管線建置完成，讓遊玩時不必再建置：只需片刻，更新 GPU 驅動程式後則需數秒。"
 
 #. check_line
-#: launcher.cpp:355 launcher.cpp:2961
+#: launcher.cpp:355 launcher.cpp:2978
 msgid "Pixel shaders built ahead"
 msgstr "預先建置像素著色器"
 
@@ -865,7 +865,7 @@ msgid "For making texture mods: each texture the game loads goes once into textu
 msgstr "用於製作材質模組：遊戲載入的每個材質都會匯出一次到設定檔旁的 textures-dump，並以替換用圖片所需的 ID 命名。開啟時遊戲會變慢。"
 
 #. text
-#: launcher.cpp:386 launcher.cpp:2616 launcher.cpp:3088
+#: launcher.cpp:386 launcher.cpp:2623 launcher.cpp:3105
 msgid "Multiplayer"
 msgstr "多人遊戲"
 
@@ -1171,7 +1171,7 @@ msgid "Again with it: about 25 minutes"
 msgstr "啟用後重新建置：約 25 分鐘"
 
 #. toast_bad
-#: launcher.cpp:940 launcher.cpp:4992
+#: launcher.cpp:940 launcher.cpp:5017
 msgid "No Kit folder to build the game's code with"
 msgstr "沒有可用來建置遊戲程式碼的 Kit 資料夾"
 
@@ -1304,7 +1304,7 @@ msgid "its folder could not be put in place"
 msgstr "無法將其資料夾放到定位"
 
 #. snprintf
-#: launcher.cpp:1314 launcher.cpp:4819
+#: launcher.cpp:1314 launcher.cpp:4844
 msgid "graphics.anr_dll is not a path"
 msgstr "graphics.anr_dll 不是路徑"
 
@@ -1381,1162 +1381,1167 @@ msgstr "極致"
 msgid "Every effect at its most: window resolution, SMAA, 4x shadows, ambient occlusion and bloom. The slowest."
 msgstr "所有效果開到最高：視窗解析度、SMAA、4x 陰影、環境光遮蔽與泛光。速度最慢。"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Play"
 msgstr "開始遊戲"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Graphics"
 msgstr "圖形"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Display"
 msgstr "顯示"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Controls"
 msgstr "控制"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Game patches"
 msgstr "遊戲修補"
 
-#: launcher.cpp:2615
+#: launcher.cpp:2622
 msgid "Cheats"
 msgstr "作弊"
 
-#: launcher.cpp:2616
+#: launcher.cpp:2623
 msgid "Mods"
 msgstr "模組"
 
-#: launcher.cpp:2616
+#: launcher.cpp:2623
 msgid "Trophies"
 msgstr "獎盃"
 
-#: launcher.cpp:2616
+#: launcher.cpp:2623
 msgid "System"
 msgstr "系統"
 
-#: launcher.cpp:2620
+#: launcher.cpp:2627
 msgid "How the picture is scaled, smoothed and filtered."
 msgstr "畫面的縮放、平滑與過濾方式。"
 
-#: launcher.cpp:2620
+#: launcher.cpp:2627
 msgid "The window, its pace and the frame rate display."
 msgstr "視窗、畫面節奏與幀率顯示。"
 
-#: launcher.cpp:2621
+#: launcher.cpp:2628
 msgid "Controller and keyboard."
 msgstr "控制器與鍵盤。"
 
-#: launcher.cpp:2621
+#: launcher.cpp:2628
 msgid "Switches that change what the game draws, for speed."
 msgstr "改變遊戲繪製內容的開關，用來提升速度。"
 
-#: launcher.cpp:2622
+#: launcher.cpp:2629
 msgid "For an easier fight. The game reads these when it starts; multiplayer turns them off until the next start."
 msgstr "讓戰鬥更輕鬆。遊戲會在啟動時讀取這些設定；多人遊戲會將其關閉，直到下次啟動。"
 
-#: launcher.cpp:2623
+#: launcher.cpp:2630
 msgid "Files that change the game, from the mods folder. The game reads them when it starts."
 msgstr "來自模組資料夾、用來修改遊戲的檔案。遊戲會在啟動時讀取。"
 
-#: launcher.cpp:2624
+#: launcher.cpp:2631
 msgid "What you have won, from the game's own trophy list."
 msgstr "你已獲得的獎盃，取自遊戲本身的獎盃清單。"
 
-#: launcher.cpp:2625
+#: launcher.cpp:2632
 msgid "Play with other players: found by the game itself, or through a host."
 msgstr "與其他玩家一起遊玩：由遊戲自行尋找，或透過主機。"
 
-#: launcher.cpp:2626
+#: launcher.cpp:2633
 msgid "The game's folder, language, saves and this window."
 msgstr "遊戲資料夾、語言、存檔與此視窗。"
 
-#: launcher.cpp:2684
+#. text
+#: launcher.cpp:2695
+msgid "Support"
+msgstr "支持"
+
+#: launcher.cpp:2700
 msgid "%ls available ›"
 msgstr "%ls 可下載 ›"
 
-#: launcher.cpp:2696
+#: launcher.cpp:2713
 msgid "Built %ls"
 msgstr "建置於 %ls"
 
 #. side_link
-#: launcher.cpp:2719 launcher.cpp:4644 launcher.cpp:4654 launcher.cpp:4677
+#: launcher.cpp:2736 launcher.cpp:4669 launcher.cpp:4679 launcher.cpp:4702
 msgid "Report a problem"
 msgstr "回報問題"
 
 #. side_link
-#: launcher.cpp:2720 launcher.cpp:4236
+#: launcher.cpp:2737 launcher.cpp:4261
 msgid "Clear shaders"
 msgstr "清除著色器"
 
-#: launcher.cpp:2722
+#: launcher.cpp:2739
 msgid "Build all shaders now"
 msgstr "立即建置所有著色器"
 
-#: launcher.cpp:2723
+#: launcher.cpp:2740
 msgid "Building shaders %ld%%"
 msgstr "正在建置著色器 %ld%%"
 
-#: launcher.cpp:2724
+#: launcher.cpp:2741
 msgid "Reading the game's files"
 msgstr "正在讀取遊戲檔案"
 
 #. side_link
-#: launcher.cpp:2726
+#: launcher.cpp:2743
 msgid "Open save folder"
 msgstr "開啟存檔資料夾"
 
-#: launcher.cpp:2810
+#: launcher.cpp:2827
 msgid "PS3 code recompiled to x86-64, drawn with Direct3D 12."
 msgstr "PS3 程式碼重新編譯為 x86-64，以 Direct3D 12 繪製。"
 
 #. text
-#: launcher.cpp:2816
+#: launcher.cpp:2833
 msgid "NATIVE PC PORT · STATIC RECOMPILATION"
 msgstr "原生 PC 移植 · 靜態重新編譯"
 
 #. draw_chip
-#: launcher.cpp:2832
+#: launcher.cpp:2849
 msgid "DIRECT3D 12"
 msgstr "DIRECT3D 12"
 
-#: launcher.cpp:2834
+#: launcher.cpp:2851
 msgid "INTERNAL: WINDOW"
 msgstr "內部解析度：視窗"
 
-#: launcher.cpp:2835
+#: launcher.cpp:2852
 msgid "%ls INTERNAL"
 msgstr "內部解析度 %ls"
 
 #. text
-#: launcher.cpp:2846
+#: launcher.cpp:2863
 msgid "NEW PRE-RELEASE"
 msgstr "新預發行版"
 
 #. text
-#: launcher.cpp:2846
+#: launcher.cpp:2863
 msgid "NEW RELEASE"
 msgstr "新版本"
 
-#: launcher.cpp:2848
+#: launcher.cpp:2865
 msgid "%ls is out"
 msgstr "%ls 已推出"
 
-#: launcher.cpp:2849
+#: launcher.cpp:2866
 msgid "Download"
 msgstr "下載"
 
 #. w_card
-#: launcher.cpp:2864
+#: launcher.cpp:2881
 msgid "READY CHECK"
 msgstr "就緒檢查"
 
 #. check_line
-#: launcher.cpp:2867
+#: launcher.cpp:2884
 msgid "Looking for the game…"
 msgstr "正在尋找遊戲…"
 
 #. w_button
-#: launcher.cpp:2885 launcher.cpp:2957 launcher.cpp:2997 launcher.cpp:3012
+#: launcher.cpp:2902 launcher.cpp:2974 launcher.cpp:3014 launcher.cpp:3029
 msgid "Stop"
 msgstr "停止"
 
 #. w_button
-#: launcher.cpp:2890
+#: launcher.cpp:2907
 msgid "Log"
 msgstr "記錄檔"
 
 #. w_button
-#: launcher.cpp:2891 launcher.cpp:3141
+#: launcher.cpp:2908 launcher.cpp:3158
 msgid "Try again"
 msgstr "重試"
 
 #. w_button
-#: launcher.cpp:2891 launcher.cpp:2964
+#: launcher.cpp:2908 launcher.cpp:2981
 msgid "Build"
 msgstr "建置"
 
 #. check_line
-#: launcher.cpp:2896
+#: launcher.cpp:2913
 msgid "Not decrypted yet (System tab)"
 msgstr "尚未解密（「系統」分頁）"
 
-#: launcher.cpp:2897
+#: launcher.cpp:2914
 msgid "Game files missing (System tab)"
 msgstr "缺少遊戲檔案（「系統」分頁）"
 
-#: launcher.cpp:2898
+#: launcher.cpp:2915
 msgid "Wrong game files (System tab)"
 msgstr "遊戲檔案不符（「系統」分頁）"
 
 #. check_line
-#: launcher.cpp:2899
+#: launcher.cpp:2916
 msgid "Not version 1.12 (System tab)"
 msgstr "不是 1.12 版（「系統」分頁）"
 
 #. check_line, toast_bad
-#: launcher.cpp:2900 launcher.cpp:4192
+#: launcher.cpp:2917 launcher.cpp:4217
 msgid "Game not found"
 msgstr "找不到遊戲"
 
 #. w_button
-#: launcher.cpp:2901
+#: launcher.cpp:2918
 msgid "Find game"
 msgstr "尋找遊戲"
 
 #. check_line
-#: launcher.cpp:2903
+#: launcher.cpp:2920
 msgid "Game found, but not version 1.12"
 msgstr "已找到遊戲，但不是 1.12 版"
 
 #. check_line
-#: launcher.cpp:2904
+#: launcher.cpp:2921
 msgid "Game found, but another GOWA.elf"
 msgstr "已找到遊戲，但 GOWA.elf 不同"
 
-#: launcher.cpp:2907
+#: launcher.cpp:2924
 msgid "Game found: %ls %ls"
 msgstr "已找到遊戲：%ls %ls"
 
-#: launcher.cpp:2913
+#: launcher.cpp:2930
 msgid "Saves: %d profile"
 msgstr "存檔：%d 個玩家檔案"
 
-#: launcher.cpp:2913
+#: launcher.cpp:2930
 msgid "Saves: %d profiles"
 msgstr "存檔：%d 個玩家檔案"
 
-#: launcher.cpp:2914
+#: launcher.cpp:2931
 msgid "No saves yet: a new game makes one"
 msgstr "尚無存檔：開始新遊戲就會建立"
 
-#: launcher.cpp:2920
+#: launcher.cpp:2937
 msgid "Graphics: %ls"
 msgstr "顯示卡：%ls"
 
-#: launcher.cpp:2920
+#: launcher.cpp:2937
 msgid "no Direct3D adapter found"
 msgstr "找不到 Direct3D 介面卡"
 
-#: launcher.cpp:2928
+#: launcher.cpp:2945
 msgid "Game patches: %d of %d on"
 msgstr "遊戲修補：已開啟 %d / %d 項"
 
 #. check_line
-#: launcher.cpp:2935
+#: launcher.cpp:2952
 msgid "Keyboard and mouse (Controls tab)"
 msgstr "鍵盤與滑鼠（「控制」分頁）"
 
-#: launcher.cpp:2938
+#: launcher.cpp:2955
 msgid "Controller: %ls, and %d more"
 msgstr "控制器：%ls，另有 %d 個"
 
-#: launcher.cpp:2939
+#: launcher.cpp:2956
 msgid "Controller: %ls"
 msgstr "控制器：%ls"
 
 #. check_line
-#: launcher.cpp:2944
+#: launcher.cpp:2961
 msgid "No controller found (Controls: controller only)"
 msgstr "找不到控制器（「控制」：僅控制器）"
 
 #. check_line
-#: launcher.cpp:2945
+#: launcher.cpp:2962
 msgid "No controller: keyboard and mouse"
 msgstr "沒有控制器：使用鍵盤與滑鼠"
 
-#: launcher.cpp:2953
+#: launcher.cpp:2970
 msgid "Building pixel shaders: %ld%%"
 msgstr "正在建置像素著色器：%ld%%"
 
-#: launcher.cpp:2955
+#: launcher.cpp:2972
 msgid "Building pixel shaders: reading the game"
 msgstr "正在建置像素著色器：讀取遊戲中"
 
 #. check_line
-#: launcher.cpp:2959
+#: launcher.cpp:2976
 msgid "Pixel shaders compiled as you play"
 msgstr "像素著色器於遊玩時編譯"
 
 #. check_line
-#: launcher.cpp:2963
+#: launcher.cpp:2980
 msgid "Pixel shaders partly built"
 msgstr "像素著色器已部分建置"
 
 #. check_line
-#: launcher.cpp:2963
+#: launcher.cpp:2980
 msgid "Pixel shaders not built yet"
 msgstr "像素著色器尚未建置"
 
-#: launcher.cpp:2984
+#: launcher.cpp:3001
 msgid " + ANR FG%hs%hs"
 msgstr " + ANR FG%hs%hs"
 
-#: launcher.cpp:2987
+#: launcher.cpp:3004
 msgid " + FSR frames"
 msgstr " + FSR 幀生成"
 
-#: launcher.cpp:2987
+#: launcher.cpp:3004
 msgid " + DLSS frames"
 msgstr " + DLSS 幀生成"
 
-#: launcher.cpp:2987
+#: launcher.cpp:3004
 msgid " + Reflex"
 msgstr " + Reflex"
 
-#: launcher.cpp:2992
+#: launcher.cpp:3009
 msgid "Downloading ANR FG %hs: %lld%%"
 msgstr "正在下載 ANR FG %hs：%lld%%"
 
-#: launcher.cpp:2994
+#: launcher.cpp:3011
 msgid "Downloading ANR FG %hs"
 msgstr "正在下載 ANR FG %hs"
 
 #. check_line
-#: launcher.cpp:2999
+#: launcher.cpp:3016
 msgid "ANR FG's files are not here yet"
 msgstr "ANR FG 的檔案尚未就位"
 
 #. w_button
-#: launcher.cpp:3000
+#: launcher.cpp:3017
 msgid "Get ANR"
 msgstr "取得 ANR"
 
 #. check_line
-#: launcher.cpp:3002
+#: launcher.cpp:3019
 msgid "DLSS needs an RTX card: AMD FSR instead"
 msgstr "DLSS 需要 RTX 顯示卡：改用 AMD FSR"
 
 #. check_line
-#: launcher.cpp:3003
+#: launcher.cpp:3020
 msgid "DLSS frame generation needs an RTX 40 or newer: off"
 msgstr "DLSS 幀生成需要 RTX 40 或更新的顯示卡：已關閉"
 
-#: launcher.cpp:3007
+#: launcher.cpp:3024
 msgid "Downloading DLSS %hs: %lld%%"
 msgstr "正在下載 DLSS %hs：%lld%%"
 
-#: launcher.cpp:3009
+#: launcher.cpp:3026
 msgid "Downloading DLSS %hs"
 msgstr "正在下載 DLSS %hs"
 
 #. check_line
-#: launcher.cpp:3014
+#: launcher.cpp:3031
 msgid "DLSS frame generation's DLL is not here yet"
 msgstr "DLSS 幀生成的 DLL 尚未就位"
 
 #. check_line
-#: launcher.cpp:3015
+#: launcher.cpp:3032
 msgid "DLSS's DLL is not here yet"
 msgstr "DLSS 的 DLL 尚未就位"
 
 #. w_button
-#: launcher.cpp:3016
+#: launcher.cpp:3033
 msgid "Get DLSS"
 msgstr "取得 DLSS"
 
-#: launcher.cpp:3018
+#: launcher.cpp:3035
 msgid "Upscaling: NVIDIA DLSS (beta)%ls"
 msgstr "升頻：NVIDIA DLSS（測試版）%ls"
 
-#: launcher.cpp:3021
+#: launcher.cpp:3038
 msgid "Scaling: %ls%ls"
 msgstr "縮放：%ls%ls"
 
-#: launcher.cpp:3027 launcher.cpp:3028
+#: launcher.cpp:3044 launcher.cpp:3045
 msgid "Upscaling: AMD FSR %ls%ls"
 msgstr "升頻：AMD FSR %ls%ls"
 
-#: launcher.cpp:3029
+#: launcher.cpp:3046
 msgid "Upscaling: AMD FSR%ls"
 msgstr "升頻：AMD FSR%ls"
 
-#: launcher.cpp:3029
+#: launcher.cpp:3046
 msgid ", the newest the card has"
 msgstr "，顯示卡支援的最新版"
 
 #. text
-#: launcher.cpp:3034
+#: launcher.cpp:3051
 msgid "GAME FOLDER"
 msgstr "遊戲資料夾"
 
 #. text
-#: launcher.cpp:3036
+#: launcher.cpp:3053
 msgid "SETTINGS FILE"
 msgstr "設定檔"
 
 #. w_card
-#: launcher.cpp:3042
+#: launcher.cpp:3059
 msgid "YOUR SETUP"
 msgstr "你的設定"
 
 #. text
-#: launcher.cpp:3054
+#: launcher.cpp:3071
 msgid "Your own mix of game patches and graphics settings."
 msgstr "你自訂的遊戲修補與圖形設定組合。"
 
 #. text
-#: launcher.cpp:3075
+#: launcher.cpp:3092
 msgid "Frame rate on screen"
 msgstr "在畫面上顯示幀率"
 
-#: launcher.cpp:3082
+#: launcher.cpp:3099
 msgid "Auto · %d online"
 msgstr "自動 · %d 人在線"
 
-#: launcher.cpp:3082
+#: launcher.cpp:3099
 msgid "Auto · starting"
 msgstr "自動 · 啟動中"
 
-#: launcher.cpp:3083
+#: launcher.cpp:3100
 msgid "Auto · did not start"
 msgstr "自動 · 未能啟動"
 
 #. text
-#: launcher.cpp:3109
+#: launcher.cpp:3126
 msgid "Game folder"
 msgstr "遊戲資料夾"
 
 #. w_button
-#: launcher.cpp:3110
+#: launcher.cpp:3127
 msgid "Browse…"
 msgstr "瀏覽…"
 
 #. w_button
-#: launcher.cpp:3111
+#: launcher.cpp:3128
 msgid "Auto detect"
 msgstr "自動偵測"
 
-#: launcher.cpp:3116
+#: launcher.cpp:3133
 msgid "Searching: %ls"
 msgstr "搜尋中：%ls"
 
-#: launcher.cpp:3141
+#: launcher.cpp:3158
 msgid "Choose rpcs3.exe…"
 msgstr "選擇 rpcs3.exe…"
 
-#: launcher.cpp:3141
+#: launcher.cpp:3158
 msgid "Download RPCS3"
 msgstr "下載 RPCS3"
 
-#: launcher.cpp:3141
+#: launcher.cpp:3158
 msgid "Choose .rap…"
 msgstr "選擇 .rap…"
 
-#: launcher.cpp:3250
+#: launcher.cpp:3267
 msgid "Won %ls"
 msgstr "獲得於 %ls"
 
-#: launcher.cpp:3251
+#: launcher.cpp:3268
 msgid "Won"
 msgstr "已獲得"
 
 #. text
-#: launcher.cpp:3260
+#: launcher.cpp:3277
 msgid "The trophies come from the game's own files: once the game is found (System tab), they show here."
 msgstr "獎盃資料取自遊戲本身的檔案：找到遊戲後（「系統」分頁），就會顯示在這裡。"
 
-#: launcher.cpp:3264
+#: launcher.cpp:3281
 msgid "Platinum"
 msgstr "白金"
 
-#: launcher.cpp:3264
+#: launcher.cpp:3281
 msgid "Gold"
 msgstr "金"
 
-#: launcher.cpp:3264
+#: launcher.cpp:3281
 msgid "Silver"
 msgstr "銀"
 
-#: launcher.cpp:3264
+#: launcher.cpp:3281
 msgid "Bronze"
 msgstr "銅"
 
-#: launcher.cpp:3278
+#: launcher.cpp:3295
 msgid "%d of %d won  ·  %d%%"
 msgstr "已獲得 %d / %d  ·  %d%%"
 
 #. text
-#: launcher.cpp:3306
+#: launcher.cpp:3323
 msgid "Hidden trophy"
 msgstr "隱藏獎盃"
 
 #. text
-#: launcher.cpp:3307
+#: launcher.cpp:3324
 msgid "What it is for shows once it is won."
 msgstr "獲得後才會顯示獲得條件。"
 
 #. text
-#: launcher.cpp:3308
+#: launcher.cpp:3325
 msgid "Won in the multiplayer, which this port does not have. The platinum does without it."
 msgstr "需在多人模式中獲得，而本移植版沒有該模式。白金獎盃不需要它。"
 
-#: launcher.cpp:3314
+#: launcher.cpp:3331
 msgid "Not in this port"
 msgstr "本移植版無此項"
 
-#: launcher.cpp:3314
+#: launcher.cpp:3331
 msgid "Not won yet"
 msgstr "尚未獲得"
 
 #. toast_bad
-#: launcher.cpp:3387
+#: launcher.cpp:3404
 msgid "The mods folder could not be made"
 msgstr "無法建立模組資料夾"
 
 #. text
-#: launcher.cpp:3431
+#: launcher.cpp:3448
 msgid "Mods folder"
 msgstr "模組資料夾"
 
 #. w_button
-#: launcher.cpp:3433
+#: launcher.cpp:3450
 msgid "Open folder…"
 msgstr "開啟資料夾…"
 
 #. text
-#: launcher.cpp:3438
+#: launcher.cpp:3455
 msgid "No mods yet. Put a mod's folder or its .zip into the mods folder: it shows here, switched on."
 msgstr "尚無模組。將模組的資料夾或其 .zip 放入模組資料夾：它就會出現在這裡，並且已開啟。"
 
-#: launcher.cpp:3454
+#: launcher.cpp:3471
 msgid "by "
 msgstr "作者 "
 
-#: launcher.cpp:3454
+#: launcher.cpp:3471
 msgid "  ·  by "
 msgstr "  ·  作者 "
 
-#: launcher.cpp:3470
+#: launcher.cpp:3487
 msgid "Not read: %ls"
 msgstr "未讀取：%ls"
 
-#: launcher.cpp:3473
+#: launcher.cpp:3490
 msgid "%d file"
 msgstr "%d 個檔案"
 
-#: launcher.cpp:3473
+#: launcher.cpp:3490
 msgid "%d files"
 msgstr "%d 個檔案"
 
-#: launcher.cpp:3477
+#: launcher.cpp:3494
 msgid "%d of them from %ls, above"
 msgstr "其中 %d 個改用上方的 %ls"
 
-#: launcher.cpp:3488
+#: launcher.cpp:3505
 msgid "archive: %d file"
 msgstr "archive：%d 個檔案"
 
-#: launcher.cpp:3488
+#: launcher.cpp:3505
 msgid "archive: %d files"
 msgstr "archive：%d 個檔案"
 
-#: launcher.cpp:3491
+#: launcher.cpp:3508
 msgid "text: %d file"
 msgstr "text：%d 個檔案"
 
-#: launcher.cpp:3491
+#: launcher.cpp:3508
 msgid "text: %d files"
 msgstr "text：%d 個檔案"
 
-#: launcher.cpp:3492
+#: launcher.cpp:3509
 msgid ", packed when the game starts"
 msgstr "，遊戲啟動時打包"
 
-#: launcher.cpp:3496
+#: launcher.cpp:3513
 msgid "textures: %d picture"
 msgstr "textures：%d 張圖片"
 
-#: launcher.cpp:3496
+#: launcher.cpp:3513
 msgid "textures: %d pictures"
 msgstr "textures：%d 張圖片"
 
-#: launcher.cpp:3497
+#: launcher.cpp:3514
 msgid ", %d more by aliases.txt"
 msgstr "，另有 %d 張來自 aliases.txt"
 
-#: launcher.cpp:3499
+#: launcher.cpp:3516
 msgid "not read by this build yet:"
 msgstr "此版本尚不支援讀取："
 
-#: launcher.cpp:3520
+#: launcher.cpp:3537
 msgid "At the last start the mods' archive and text were not packed: %ls"
 msgstr "上次啟動時，模組的 archive 與 text 未能打包：%ls"
 
 #. text
-#: launcher.cpp:3526
+#: launcher.cpp:3543
 msgid "The first one in the list wins where two mods have the same file. Mods are files alone: the game's folder is never changed."
 msgstr "兩個模組有相同檔案時，以清單中較前面的為準。模組只是檔案：絕不會改動遊戲資料夾。"
 
 #. text
-#: launcher.cpp:3528
+#: launcher.cpp:3545
 msgid "Use mods is off: the game starts without any of them."
 msgstr "「使用模組」已關閉：遊戲啟動時不會載入任何模組。"
 
-#: launcher.cpp:3549
+#: launcher.cpp:3566
 msgid "other players can reach it"
 msgstr "其他玩家可以連到它"
 
-#: launcher.cpp:3550
+#: launcher.cpp:3567
 msgid "others reach it once introduced"
 msgstr "經介紹後其他玩家即可連到它"
 
-#: launcher.cpp:3551
+#: launcher.cpp:3568
 msgid "others reach it only through another node"
 msgstr "其他玩家只能透過其他節點連到它"
 
-#: launcher.cpp:3552
+#: launcher.cpp:3569
 msgid "how others reach it is not known yet"
 msgstr "尚不清楚其他玩家如何連到它"
 
-#: launcher.cpp:3553
+#: launcher.cpp:3570
 msgid "Your node is on: %ls."
 msgstr "你的節點已開啟：%ls。"
 
-#: launcher.cpp:3554
+#: launcher.cpp:3571
 msgid "Your node is starting…"
 msgstr "你的節點正在啟動…"
 
-#: launcher.cpp:3555
+#: launcher.cpp:3572
 msgid "Your node did not start: %ls"
 msgstr "你的節點未能啟動：%ls"
 
-#: launcher.cpp:3556
+#: launcher.cpp:3573
 msgid "Your node starts once your online ID is set."
 msgstr "設定線上 ID 後，你的節點就會啟動。"
 
-#: launcher.cpp:3559
+#: launcher.cpp:3576
 msgid "Auto finds the other players through the BitTorrent DHT and on this PC's network: anyone who looks for Ascension-R players there can see this PC's address while this window or the game is open on Auto. Windows may ask to let Python through: allow it."
 msgstr "「自動」會透過 BitTorrent DHT 與這台電腦所在的網路尋找其他玩家：當此視窗或遊戲以「自動」開啟時，任何在那裡搜尋 Ascension-R 玩家的人都能看到這台電腦的位址。Windows 可能會詢問是否允許 Python 通過：請允許。"
 
-#: launcher.cpp:3569
+#: launcher.cpp:3586
 msgid "Players on this PC's network join at %ls. From the internet: forward TCP 10070 and 10012 and TCP and UDP 36101 to this PC on its router and give them its internet address, or have everyone join one virtual network (Tailscale, ZeroTier, Radmin VPN) and give its address. Windows may ask to let Python through: allow it."
 msgstr "與這台電腦同一網路的玩家可透過 %ls 加入。從網際網路加入：在路由器上將 TCP 10070 與 10012，以及 TCP 與 UDP 36101 轉送到這台電腦，並把它的網際網路位址告訴他們；或讓所有人加入同一個虛擬網路（Tailscale、ZeroTier、Radmin VPN），並告知它在該網路中的位址。Windows 可能會詢問是否允許 Python 通過：請允許。"
 
-#: launcher.cpp:3572
+#: launcher.cpp:3589
 msgid "this PC's address"
 msgstr "這台電腦的位址"
 
-#: launcher.cpp:3576
+#: launcher.cpp:3593
 msgid "The players you play with see your PC's address. Nothing goes to Sony's servers."
 msgstr "一起遊玩的玩家會看到你電腦的位址。不會傳送任何資料到 Sony 的伺服器。"
 
-#: launcher.cpp:3612
+#: launcher.cpp:3629
 msgid "ONLINE NOW: %d"
 msgstr "目前在線：%d"
 
 #. text
-#: launcher.cpp:3616
+#: launcher.cpp:3633
 msgid "No other player yet. Players show up here while their launcher or game runs on Auto."
 msgstr "目前還沒有其他玩家。玩家的啟動器或遊戲以「自動」執行時，就會顯示在這裡。"
 
-#: launcher.cpp:3625
+#: launcher.cpp:3642
 msgid " · through another node"
 msgstr " · 經由其他節點"
 
-#: launcher.cpp:3626
+#: launcher.cpp:3643
 msgid " · heard of from another node"
 msgstr " · 從其他節點得知"
 
-#: launcher.cpp:3631
+#: launcher.cpp:3648
 msgid "and %d more"
 msgstr "另有 %d 位"
 
-#: launcher.cpp:3653
+#: launcher.cpp:3672
 msgid "Which key or mouse button plays each PS3 button."
 msgstr "每個 PS3 按鈕由哪個按鍵或滑鼠按鈕操作。"
 
 #. w_label
-#: launcher.cpp:3700
+#: launcher.cpp:3719
 msgid "Keyboard keys"
 msgstr "鍵盤按鍵"
 
 #. w_button
-#: launcher.cpp:3701
+#: launcher.cpp:3720
 msgid "Edit keys…"
 msgstr "編輯按鍵…"
 
 #. text
-#: launcher.cpp:3709
+#: launcher.cpp:3728
 msgid "Off: drawn as on the PS3. The game reads these when it starts."
 msgstr "關閉：繪製方式與 PS3 相同。遊戲會在啟動時讀取這些設定。"
 
-#: launcher.cpp:3752
+#: launcher.cpp:3771
 msgid "no AA"
 msgstr "無反鋸齒"
 
-#: launcher.cpp:3754
+#: launcher.cpp:3773
 msgid "frame generation"
 msgstr "幀生成"
 
-#: launcher.cpp:3754
+#: launcher.cpp:3773
 msgid "ANR FG"
 msgstr "ANR FG"
 
-#: launcher.cpp:3755
+#: launcher.cpp:3774
 msgid "no cap"
 msgstr "無上限"
 
 #. w_button
-#: launcher.cpp:3765
+#: launcher.cpp:3784
 msgid "PLAY"
 msgstr "開始遊戲"
 
-#: launcher.cpp:3766
+#: launcher.cpp:3785
 msgid "QUIT"
 msgstr "結束"
 
-#: launcher.cpp:3766
+#: launcher.cpp:3785
 msgid "SAVE"
 msgstr "儲存"
 
 #. text_w, w_button
-#: launcher.cpp:3766 launcher.cpp:3866 launcher.cpp:3867
+#: launcher.cpp:3785 launcher.cpp:3891 launcher.cpp:3892
 msgid "DEFAULTS"
 msgstr "預設值"
 
-#: launcher.cpp:3791
+#: launcher.cpp:3810
 msgid "%ls preset"
 msgstr "%ls預設集"
 
-#: launcher.cpp:3792
+#: launcher.cpp:3811
 msgid "Custom setup"
 msgstr "自訂設定"
 
 #. text, glow_text
-#: launcher.cpp:3845 launcher.cpp:3846
+#: launcher.cpp:3864 launcher.cpp:3865
 msgid "KEYBOARD KEYS"
 msgstr "鍵盤按鍵"
 
 #. text
-#: launcher.cpp:3847
+#: launcher.cpp:3866
 msgid "Click an action, then press a key or a mouse button. Backspace clears it, Esc gives up. Edit ascension-r.ini to give an action more than one key."
 msgstr "點選一個動作，再按下按鍵或滑鼠按鈕。Backspace 清除，Esc 取消。若要讓一個動作對應多個按鍵，請編輯 ascension-r.ini。"
 
 #. text
-#: launcher.cpp:3860
+#: launcher.cpp:3885
 msgid "Press a key or button"
 msgstr "請按下按鍵或按鈕"
 
 #. text
-#: launcher.cpp:3860
+#: launcher.cpp:3885
 msgid "(none)"
 msgstr "（無）"
 
 #. text_w, w_button
-#: launcher.cpp:3866 launcher.cpp:3869
+#: launcher.cpp:3891 launcher.cpp:3894
 msgid "CANCEL"
 msgstr "取消"
 
 #. w_button
-#: launcher.cpp:3868
+#: launcher.cpp:3893
 msgid "OK"
 msgstr "確定"
 
 #. toast_bad
-#: launcher.cpp:4137
+#: launcher.cpp:4162
 msgid "Stopped"
 msgstr "已停止"
 
 #. toast_bad
-#: launcher.cpp:4137
+#: launcher.cpp:4162
 msgid "The game could not be prepared"
 msgstr "無法準備遊戲"
 
 #. toast
-#: launcher.cpp:4148
+#: launcher.cpp:4173
 msgid "Game ready"
 msgstr "遊戲已就緒"
 
-#: launcher.cpp:4161
+#: launcher.cpp:4186
 msgid "another release"
 msgstr "其他發行版本"
 
-#: launcher.cpp:4161
+#: launcher.cpp:4186
 msgid "not decrypted"
 msgstr "未解密"
 
-#: launcher.cpp:4161
+#: launcher.cpp:4186
 msgid "another build"
 msgstr "其他組建版本"
 
 #. toast
-#: launcher.cpp:4166
+#: launcher.cpp:4191
 msgid "Game found"
 msgstr "已找到遊戲"
 
 #. toast
-#: launcher.cpp:4166
+#: launcher.cpp:4191
 msgid "Game folder set"
 msgstr "已設定遊戲資料夾"
 
 #. toast_bad
-#: launcher.cpp:4169 launcher.cpp:4184
+#: launcher.cpp:4194 launcher.cpp:4209
 msgid "The game's folder could not be set"
 msgstr "無法設定遊戲資料夾"
 
-#: launcher.cpp:4171
+#: launcher.cpp:4196
 msgid "Found %ls in %ls. This port runs %ls 1.12"
 msgstr "找到 %ls，位於 %ls。本移植版執行的是 %ls 1.12"
 
 #. toast_bad
-#: launcher.cpp:4172
+#: launcher.cpp:4197
 msgid "Another release of the game"
 msgstr "這是遊戲的其他發行版本"
 
 #. toast_bad
-#: launcher.cpp:4177
+#: launcher.cpp:4202
 msgid "The disc is an ISO"
 msgstr "光碟是 ISO 映像檔"
 
 #. toast_bad
-#: launcher.cpp:4177
+#: launcher.cpp:4202
 msgid "Found the update, not the disc"
 msgstr "找到更新，但沒有光碟"
 
 #. toast_bad
-#: launcher.cpp:4181
+#: launcher.cpp:4206
 msgid "Found the disc, not its update"
 msgstr "找到光碟，但沒有其更新"
 
 #. toast_bad
-#: launcher.cpp:4182
+#: launcher.cpp:4207
 msgid "The disc's files are encrypted"
 msgstr "光碟的檔案已加密"
 
 #. toast_bad
-#: launcher.cpp:4183
+#: launcher.cpp:4208
 msgid "Found the game, but not all of it"
 msgstr "找到遊戲，但不完整"
 
 #. toast_bad
-#: launcher.cpp:4183
+#: launcher.cpp:4208
 msgid "Found the game, but not 1.12's files"
 msgstr "找到遊戲，但不是 1.12 版的檔案"
 
-#: launcher.cpp:4186
+#: launcher.cpp:4211
 msgid "No game in %ls"
 msgstr "%ls 中沒有遊戲"
 
 #. toast_bad
-#: launcher.cpp:4187
+#: launcher.cpp:4212
 msgid "No game in that folder"
 msgstr "該資料夾中沒有遊戲"
 
 #. toast
-#: launcher.cpp:4189
+#: launcher.cpp:4214
 msgid "No better copy found"
 msgstr "沒有找到更好的遊戲副本"
 
-#: launcher.cpp:4191
+#: launcher.cpp:4216
 msgid "Not found on this PC. Browse to its folder (%ls)"
 msgstr "這台電腦上找不到。請用「瀏覽」前往其資料夾（%ls）"
 
 #. toast_bad
-#: launcher.cpp:4202 launcher.cpp:4312
+#: launcher.cpp:4227 launcher.cpp:4337
 msgid "No shader cache in the settings"
 msgstr "設定中沒有著色器快取"
 
 #. toast
-#: launcher.cpp:4229
+#: launcher.cpp:4254
 msgid "No compiled shaders to clear"
 msgstr "沒有可清除的已編譯著色器"
 
-#: launcher.cpp:4233
+#: launcher.cpp:4258
 msgid "Move %.0f MB of compiled shaders to the Recycle Bin?\n\nThe next start builds the vertex shaders first; the rest come as the game reaches them."
 msgstr "要將 %.0f MB 的已編譯著色器移至資源回收筒嗎？\n\n下次啟動時會先建置頂點著色器；其餘的會在遊戲進行到時再建置。"
 
 #. toast_bad
-#: launcher.cpp:4242
+#: launcher.cpp:4267
 msgid "Not cleared: is the game running?"
 msgstr "未能清除：遊戲是否正在執行？"
 
 #. toast
-#: launcher.cpp:4243
+#: launcher.cpp:4268
 msgid "Shaders cleared"
 msgstr "已清除著色器"
 
-#: launcher.cpp:4294
+#: launcher.cpp:4319
 msgid "Pixel shaders built: %u new, %u kept from before%s"
 msgstr "像素著色器已建置：新增 %u 個，沿用先前的 %u 個%s"
 
-#: launcher.cpp:4294
+#: launcher.cpp:4319
 msgid ", some failed"
 msgstr "，部分失敗"
 
-#: launcher.cpp:4298
+#: launcher.cpp:4323
 msgid "Shaders not built: %s"
 msgstr "著色器未建置：%s"
 
 #. toast
-#: launcher.cpp:4301
+#: launcher.cpp:4326
 msgid "Building shaders stopped"
 msgstr "已停止建置著色器"
 
 #. toast_bad
-#: launcher.cpp:4341 launcher.cpp:4364
+#: launcher.cpp:4366 launcher.cpp:4389
 msgid "Could not start building shaders"
 msgstr "無法開始建置著色器"
 
-#: launcher.cpp:4442
+#: launcher.cpp:4467
 msgid "it stopped (%lu)%ls"
 msgstr "已中止（%lu）%ls"
 
 #. toast_bad
-#: launcher.cpp:4461
+#: launcher.cpp:4486
 msgid "No Kit folder beside the program"
 msgstr "程式旁沒有 Kit 資料夾"
 
 #. toast_bad
-#: launcher.cpp:4504 launcher.cpp:4527 launcher.cpp:4547
+#: launcher.cpp:4529 launcher.cpp:4552 launcher.cpp:4572
 msgid "Could not start the build"
 msgstr "無法開始建置"
 
 #. toast
-#: launcher.cpp:4552
+#: launcher.cpp:4577
 msgid "Building the game's code: about 25 minutes"
 msgstr "正在建置遊戲程式碼：約 25 分鐘"
 
 #. toast
-#: launcher.cpp:4552
+#: launcher.cpp:4577
 msgid "Building the game's code: about 10 minutes"
 msgstr "正在建置遊戲程式碼：約 10 分鐘"
 
 #. toast
-#: launcher.cpp:4574
+#: launcher.cpp:4599
 msgid "The game's code is built"
 msgstr "遊戲程式碼已建置完成"
 
 #. toast
-#: launcher.cpp:4575
+#: launcher.cpp:4600
 msgid "Stopped: Build goes on from there"
 msgstr "已停止：「建置」會從此處繼續"
 
 #. toast_bad
-#: launcher.cpp:4576
+#: launcher.cpp:4601
 msgid "The game's code could not be built"
 msgstr "無法建置遊戲程式碼"
 
 #. toast_bad
-#: launcher.cpp:4597
+#: launcher.cpp:4622
 msgid "No build log yet"
 msgstr "尚無建置記錄檔"
 
-#: launcher.cpp:4623
+#: launcher.cpp:4648
 msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, the log of building the game's code, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
 msgstr "報告是一個 zip 檔，讓你附加到 GitHub 上的 issue。遊戲本身不會傳送任何東西。\n\n其中包含你最近幾次執行的記錄檔、你按下的按鍵與遊戲在這些過程中開啟的檔案、你的設定、建置遊戲程式碼的記錄檔、這台電腦的硬體與驅動程式版本，以及 Windows 對本遊戲當機的記錄。\n\n資料夾路徑與你的 Windows 名稱都會隱藏。報告中不含任何遊戲檔案。"
 
-#: launcher.cpp:4630
+#: launcher.cpp:4655
 msgid "The report is a zip file for you to attach to an issue on GitHub. The game sends nothing by itself.\n\nIt holds the logs of your last sessions, your button presses and the files the game opened in them, your settings, this PC's hardware and driver versions, and Windows' records of crashes of this game.\n\nFolder paths and your Windows name are hidden. No game files are in it."
 msgstr "報告是一個 zip 檔，讓你附加到 GitHub 上的 issue。遊戲本身不會傳送任何東西。\n\n其中包含你最近幾次執行的記錄檔、你按下的按鍵與遊戲在這些過程中開啟的檔案、你的設定、這台電腦的硬體與驅動程式版本，以及 Windows 對本遊戲當機的記錄。\n\n資料夾路徑與你的 Windows 名稱都會隱藏。報告中不含任何遊戲檔案。"
 
-#: launcher.cpp:4638
+#: launcher.cpp:4663
 msgid "Make the report"
 msgstr "建立報告"
 
-#: launcher.cpp:4646
+#: launcher.cpp:4671
 msgid "Make a problem report?"
 msgstr "要建立問題報告嗎？"
 
-#: launcher.cpp:4648
+#: launcher.cpp:4673
 msgid "Include my saves, so the problem can be loaded where it happened"
 msgstr "包含我的存檔，以便在問題發生的地方載入"
 
 #. toast_bad
-#: launcher.cpp:4662
+#: launcher.cpp:4687
 msgid "Could not make the report"
 msgstr "無法建立報告"
 
-#: launcher.cpp:4668
+#: launcher.cpp:4693
 msgid "%ls\n\nAttach it to a new issue and say what happened and where you were in the game."
 msgstr "%ls\n\n請將它附加到新的 issue，並說明發生了什麼事，以及當時你在遊戲中的位置。"
 
-#: launcher.cpp:4671
+#: launcher.cpp:4696
 msgid "Open GitHub"
 msgstr "開啟 GitHub"
 
-#: launcher.cpp:4671
+#: launcher.cpp:4696
 msgid "Show the file"
 msgstr "顯示檔案"
 
-#: launcher.cpp:4679
+#: launcher.cpp:4704
 msgid "The report is ready"
 msgstr "報告已就緒"
 
-#: launcher.cpp:4706
+#: launcher.cpp:4731
 msgid "The GPU stopped behind frame generation's swap chain (AMD FSR), which has happened at the start of the game on some PCs. Turning it off keeps everything else, FSR's scaling too. You can turn it on again in the Graphics tab."
 msgstr "GPU 在幀生成的交換鏈（AMD FSR）之後停止運作，這在部分電腦上曾於遊戲開始時發生。關閉幀生成會保留其他所有設定，包括 FSR 的縮放。你可以在「圖形」分頁中重新開啟。"
 
-#: launcher.cpp:4712
+#: launcher.cpp:4737
 msgid "Turn frame generation off"
 msgstr "關閉幀生成"
 
-#: launcher.cpp:4712
+#: launcher.cpp:4737
 msgid "Keep it on"
 msgstr "保持開啟"
 
-#: launcher.cpp:4719
+#: launcher.cpp:4744
 msgid "The game froze in the last session, with frame generation on"
 msgstr "上次執行時遊戲凍結，當時開啟了幀生成"
 
-#: launcher.cpp:4726
+#: launcher.cpp:4751
 msgid "The game froze with frame generation on"
 msgstr "開啟幀生成時遊戲凍結"
 
 #. toast
-#: launcher.cpp:4732
+#: launcher.cpp:4757
 msgid "Frame generation is off"
 msgstr "幀生成已關閉"
 
 #. toast_bad
-#: launcher.cpp:4733
+#: launcher.cpp:4758
 msgid "Could not save the settings"
 msgstr "無法儲存設定"
 
-#: launcher.cpp:4745
+#: launcher.cpp:4770
 msgid "The last session crashed. Make a report of it?"
 msgstr "上次執行時當機了。要建立報告嗎？"
 
-#: launcher.cpp:4746
+#: launcher.cpp:4771
 msgid "The last session lost the graphics device. Make a report of it?"
 msgstr "上次執行時失去了圖形裝置。要建立報告嗎？"
 
-#: launcher.cpp:4747
+#: launcher.cpp:4772
 msgid "The game froze in the last session. Make a report of it?"
 msgstr "上次執行時遊戲凍結。要建立報告嗎？"
 
-#: launcher.cpp:4748
+#: launcher.cpp:4773
 msgid "The last session stopped without saying why. Make a report of it?"
 msgstr "上次執行時遊戲無故停止。要建立報告嗎？"
 
-#: launcher.cpp:4767
+#: launcher.cpp:4792
 msgid "The game's folder: %ls, or a folder it is under"
 msgstr "遊戲資料夾：%ls，或包含它的上層資料夾"
 
 #. snprintf
-#: launcher.cpp:4843
+#: launcher.cpp:4868
 msgid "no zip named"
 msgstr "未指定 zip"
 
 #. pick_file
-#: launcher.cpp:4857
+#: launcher.cpp:4882
 msgid "ANR FG's zip (anr-fg-...-addon.zip, or -full.zip)"
 msgstr "ANR FG 的 zip（anr-fg-...-addon.zip 或 -full.zip）"
 
 #. pick_file
-#: launcher.cpp:4857
+#: launcher.cpp:4882
 msgid "Zip files"
 msgstr "Zip 檔案"
 
 #. toast
-#: launcher.cpp:4859
+#: launcher.cpp:4884
 msgid "ANR FG is in place: the game uses it from the next start"
 msgstr "ANR FG 已就位：遊戲從下次啟動起使用"
 
-#: launcher.cpp:4860
+#: launcher.cpp:4885
 msgid "ANR FG: "
 msgstr "ANR FG："
 
-#: launcher.cpp:4870
+#: launcher.cpp:4895
 msgid "ANR FG is Apex Neural Rendering's frame generation, by Apex Compute, in beta. It is not part of Ascension-R and has no licence of its own, so it is not in the download.\n\nAscension-R can download the newest release's addon zip (about 4 MB) from Apex Compute's own releases on GitHub (github.com/apex-compute/ANR), check it against the SHA-256 GitHub lists and Apex Compute's signature, and set it up in the anr folder beside the program. Nothing else is sent or installed."
 msgstr "ANR FG 是 Apex Compute 推出的 Apex Neural Rendering 幀生成，目前為測試版。它不屬於 Ascension-R，本身也沒有授權條款，因此不包含在下載內容中。\n\nAscension-R 可以從 Apex Compute 在 GitHub 上的官方發行頁面（github.com/apex-compute/ANR）下載最新版本的 addon zip（約 4 MB），以 GitHub 列出的 SHA-256 與 Apex Compute 的簽章進行驗證，並安裝到程式旁的 anr 資料夾。不會傳送或安裝任何其他東西。"
 
-#: launcher.cpp:4878 launcher.cpp:4930
+#: launcher.cpp:4903 launcher.cpp:4955
 msgid "Download and set up"
 msgstr "下載並安裝"
 
-#: launcher.cpp:4878
+#: launcher.cpp:4903
 msgid "Choose a zip I have"
 msgstr "選擇我已有的 zip"
 
-#: launcher.cpp:4878 launcher.cpp:4930
+#: launcher.cpp:4903 launcher.cpp:4955
 msgid "Not now"
 msgstr "暫時不要"
 
-#: launcher.cpp:4885 launcher.cpp:4892
+#: launcher.cpp:4910 launcher.cpp:4917
 msgid "Download ANR FG?"
 msgstr "要下載 ANR FG 嗎？"
 
-#: launcher.cpp:4914
+#: launcher.cpp:4939
 msgid "%ls%ls%ls %hs (%d MB)"
 msgstr "%ls%ls%ls %hs（%d MB）"
 
-#: launcher.cpp:4915
+#: launcher.cpp:4940
 msgid " and "
 msgstr " 與 "
 
-#: launcher.cpp:4918
+#: launcher.cpp:4943
 msgid "%ls Its DLL is NVIDIA's, under NVIDIA's RTX SDK license, so it is not in the download.\n\nAscension-R can download %ls from NVIDIA's own DLSS repository on GitHub (github.com/NVIDIA/DLSS), check it against the SHA-256 Ascension-R keeps and NVIDIA's signature, and put it in the dlss folder beside the program. Nothing else is sent or installed."
 msgstr "%ls其 DLL 屬於 NVIDIA，受 NVIDIA RTX SDK 授權條款約束，因此不包含在下載內容中。\n\nAscension-R 可以從 NVIDIA 在 GitHub 上的官方 DLSS 儲存庫（github.com/NVIDIA/DLSS）下載 %ls，以 Ascension-R 保存的 SHA-256 與 NVIDIA 的簽章進行驗證，並放到程式旁的 dlss 資料夾。不會傳送或安裝任何其他東西。"
 
-#: launcher.cpp:4922
+#: launcher.cpp:4947
 msgid "NVIDIA DLSS frame generation makes a frame between each two with NVIDIA's own model, on GeForce RTX 40 and newer cards."
 msgstr "NVIDIA DLSS 幀生成會在 GeForce RTX 40 及更新的顯示卡上，以 NVIDIA 自己的模型在每兩幀之間產生一幀。"
 
-#: launcher.cpp:4924
+#: launcher.cpp:4949
 msgid "NVIDIA DLSS builds the picture with NVIDIA's own model on GeForce RTX and other NVIDIA RTX cards."
 msgstr "NVIDIA DLSS 會在 GeForce RTX 及其他 NVIDIA RTX 顯示卡上，以 NVIDIA 自己的模型建構畫面。"
 
-#: launcher.cpp:4935
+#: launcher.cpp:4960
 msgid "NVIDIA DLSS (beta)"
 msgstr "NVIDIA DLSS（測試版）"
 
-#: launcher.cpp:4937 launcher.cpp:4944
+#: launcher.cpp:4962 launcher.cpp:4969
 msgid "Download NVIDIA DLSS?"
 msgstr "要下載 NVIDIA DLSS 嗎？"
 
 #. toast
-#: launcher.cpp:4991
+#: launcher.cpp:5016
 msgid "The game's code is still being built"
 msgstr "遊戲程式碼仍在建置中"
 
 #. toast_bad
-#: launcher.cpp:5010
+#: launcher.cpp:5035
 msgid "Multiplayer could not start"
 msgstr "多人遊戲無法啟動"
 
 #. toast
-#: launcher.cpp:5016 launcher.cpp:5414
+#: launcher.cpp:5041 launcher.cpp:5440
 msgid "Saved"
 msgstr "已儲存"
 
 #. pick_file
-#: launcher.cpp:5038
+#: launcher.cpp:5064
 msgid "Choose rpcs3.exe"
 msgstr "選擇 rpcs3.exe"
 
 #. toast
-#: launcher.cpp:5043
+#: launcher.cpp:5069
 msgid "Now choose the game's license file (.rap)"
 msgstr "現在請選擇遊戲的授權檔（.rap）"
 
 #. pick_file
-#: launcher.cpp:5046
+#: launcher.cpp:5072
 msgid "The game's license file"
 msgstr "遊戲的授權檔"
 
 #. pick_file
-#: launcher.cpp:5046
+#: launcher.cpp:5072
 msgid "License file (*.rap)"
 msgstr "授權檔 (*.rap)"
 
 #. toast
-#: launcher.cpp:5064
+#: launcher.cpp:5090
 msgid "Defaults back: Save or Play keeps them"
 msgstr "已還原預設值：按「儲存」或「開始遊戲」即可保留"
 
-#: launcher.cpp:5475
+#: launcher.cpp:5501
 msgid "Multiplayer: cannot find gowa-host: is the address right?"
 msgstr "多人遊戲：找不到 gowa-host：位址是否正確？"
 
-#: launcher.cpp:5494
+#: launcher.cpp:5520
 msgid "Compiling the game's code"
 msgstr "編譯遊戲程式碼"
 
 #. snprintf
-#: launcher.cpp:5715 launcher.cpp:5716
+#: launcher.cpp:5741 launcher.cpp:5742
 msgid "ANR FG is Windows only"
 msgstr "ANR FG 僅支援 Windows"
 

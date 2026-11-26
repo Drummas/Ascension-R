@@ -2270,7 +2270,7 @@ enum {
     H_NAV = 1000, H_SEG = 2000, H_SW = 5000, H_DD = 6000, H_PSW = 7000, H_PRESET = 7500, H_TXT = 7700,
     H_PLAY = 8000, H_SAVE, H_DEFAULTS, H_QUIT, H_KEYS, H_SAVES, H_SHADERS, H_GAME_BROWSE, H_GAME_AUTO, H_REPORT,
     H_PICK_RPCS3, H_GET_RPCS3, H_PICK_RAP, H_PREP_RETRY, H_PREP_STOP, H_KB_OK, H_KB_CANCEL, H_KB_DEFAULTS,
-    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP, H_DLSS_GET, H_DLSS_STOP,
+    H_UPDATE_OPEN, H_UPDATE_CLOSE, H_PREBUILD, H_MODS_OPEN, H_ANR_ZIP, H_ANR_STOP, H_DLSS_GET, H_DLSS_STOP, H_SUPPORT,
 #ifdef PORT_GAME_MODULE
     H_KIT_BUILD, H_KIT_STOP, H_KIT_LOG,
 #endif
@@ -2667,6 +2667,10 @@ static void update_open(void)
         ShellExecuteW(s_main, L"open", W(s_upd.rel.url), NULL, NULL, SW_SHOWNORMAL);
 }
 
+/* Support, beside the version: the website's Support section (the donation addresses are there and in the README,
+ * nowhere in the program). A link, nothing more: it asks for nothing and nothing depends on it. */
+#define SUPPORT_PAGE L"https://rigaz29.github.io/Ascension-R/#support"
+
 static void draw_sidebar(void)
 {
     fill(R(0, 0, SIDE_W, WIN_H), C_SIDE);
@@ -2686,6 +2690,11 @@ static void draw_sidebar(void)
         glow_bitmap(s_bm_word_glow, wr, 0.55f);
     }
     text(W("v" AR_VERSION), s_tf_small, R(58, 38, SIDE_W - 72, 16), hovered(H_UPDATE_OPEN) ? C_TEXT2 : C_MUTED);
+    {   /* Support, small, at the end of the version's line */
+        const D2D1_RECT_F sr = R(SIDE_W - 30 - 90, 38, 90, 16);
+        text(L"Support", s_tf_small, sr, hovered(H_SUPPORT) ? C_GOLD_HI : C_DIM, 1.0f, DWRITE_TEXT_ALIGNMENT_TRAILING);
+        hit(R(SIDE_W - 30 - 90, 35, 92, 22), H_SUPPORT);
+    }
     if (update_shown()) {   /* in place of the day it was built: the newer release, a link to its page */
         wchar_t b[80];
         swprintf(b, 80, TW(L"%ls available \x203A"), W(update_ver()));
@@ -2693,7 +2702,8 @@ static void draw_sidebar(void)
         const int hov = hovered(H_UPDATE_OPEN);
         text(b, s_tf_small, t, hov ? C_GOLD_HI : C_GOLD);
         glow_text(b, s_tf_small, t, C_GOLD, hov ? 0.7f : 0.4f);
-        hit(R(14, 36, SIDE_W - 30, 42), H_UPDATE_OPEN);
+        hit(R(14, 36, SIDE_W - 30 - 94, 20), H_UPDATE_OPEN);   /* the version's line, but for Support */
+        hit(R(14, 56, SIDE_W - 30, 22), H_UPDATE_OPEN);
     } else {
         static const char d[] = __DATE__;   /* "Mmm dd yyyy", the day padded with a space */
         static const char k_mon[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
@@ -5039,6 +5049,7 @@ static void act(int id)
             break;
         case H_SAVES: open_saves(); break;
         case H_UPDATE_OPEN: update_open(); break;
+        case H_SUPPORT: ShellExecuteW(s_main, L"open", SUPPORT_PAGE, NULL, NULL, SW_SHOWNORMAL); break;
         case H_UPDATE_CLOSE: update_check_dismiss(&s_upd); break;
         case H_REPORT: report_make(NULL); break;
         case H_SHADERS: clear_shaders(); break;

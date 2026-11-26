@@ -129,6 +129,17 @@ ul, ol { padding-left: 1.3em; }
 li { margin: 4px 0; }
 .muted { color: var(--muted); }
 code { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; font-size: 0.92em; }
+.wallet {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; margin: 8px 0;
+}
+.wallet .net { min-width: 8.5em; color: var(--teal); font-weight: 650; }
+.wallet code { flex: 1 1 18em; word-break: break-all; background: none; border: 0; padding: 0; }
+.copy {
+  font: inherit; font-size: 0.9rem; font-weight: 650; color: var(--gold); background: none; cursor: pointer;
+  border: 1px solid var(--gold); border-radius: 6px; padding: 4px 12px;
+}
+.copy:hover { background: var(--gold); color: var(--gold-dark); }
 footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 18px; color: var(--muted); font-size: 0.92rem; }
 @media (max-width: 520px) { body { font-size: 16px; } .button { width: 100%; text-align: center; } }
 </style>
@@ -236,6 +247,17 @@ footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 18px;
   <p><strong>Report a problem</strong>, in the launcher, makes a zip of the logs to attach to an
   <a href="https://github.com/rigaz29/Ascension-R/issues">issue on GitHub</a>.</p>
 
+  <h2 id="support">Support</h2>
+  <p>Ascension-R is free and stays free. If you want to support the work on it, donations are welcome, as a thank-you and
+  nothing more: they buy no features, builds or priority, and nothing changes for anyone who does not give. The game is not
+  included and not sold.</p>
+  <div class="wallet"><span class="net">Solana</span><code>2vWRu4puxAW8bKPDoFftm6P2sBAXxhSnZQHdTAueVQCv</code>
+    <button type="button" class="copy" data-copy="2vWRu4puxAW8bKPDoFftm6P2sBAXxhSnZQHdTAueVQCv">Copy</button></div>
+  <div class="wallet"><span class="net">EVM networks</span><code>0xc7aeb4ce00e62087f3e9988e7740928440bc1823</code>
+    <button type="button" class="copy" data-copy="0xc7aeb4ce00e62087f3e9988e7740928440bc1823">Copy</button></div>
+  <p class="muted">Solana takes SOL and SPL tokens. The EVM address is the same on Ethereum, BNB Smart Chain, Polygon,
+  Arbitrum, Optimism, Base and the like. Send only on the network named next to the address.</p>
+
   <footer>
     <p>Ascension-R's own code is under the <a href="https://github.com/rigaz29/Ascension-R/blob/main/LICENSE">MIT License</a>. It
     is built on <a href="https://github.com/sp00nznet/ps3recomp">ps3recomp</a> by sp00nznet.</p>
@@ -243,6 +265,31 @@ footer { border-top: 1px solid var(--line); margin-top: 48px; padding-top: 18px;
     files are hosted here.</p>
   </footer>
 </main>
+<script>
+/* Copy, beside each address: the address to the clipboard, or selected where the clipboard cannot be written. */
+(function () {
+  var buttons = document.querySelectorAll(".copy");
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener("click", function () {
+      var b = this, text = b.getAttribute("data-copy");
+      function done(word) { b.textContent = word; setTimeout(function () { b.textContent = "Copy"; }, 1600); }
+      function select() {
+        var code = b.parentNode.querySelector("code"), range = document.createRange();
+        range.selectNodeContents(code);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        done("Selected");
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { done("Copied"); }, select);
+      } else {
+        select();
+      }
+    });
+  }
+})();
+</script>
 <script>
 /* Online now: status.json, which .github/workflows/online-status.yml puts on the status branch every 20 minutes
    (scripts/mp_status.py): counts alone, no address and no name. */
