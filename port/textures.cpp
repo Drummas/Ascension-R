@@ -33,8 +33,8 @@ namespace {
 struct Pic {
     std::wstring path;
     int kind;     /* 1 in the texture's place, 2 over the game's own */
-    /* A copy's: the size of the copy the picture is for (another id of the same texture of the game's), which a
-     * smaller copy has the picture scaled down by. 0 for a picture of its own. */
+    /* A copy's: the size of the copy the picture is for (another id of the same texture of the game's). A smaller copy
+     * takes the picture as it is (GOWA_COPY_SCALED=1: scaled down by as much). 0 for a picture of its own. */
     uint32_t ref_w = 0, ref_h = 0;
 };
 
@@ -674,7 +674,12 @@ bool read_head(const Pic& pic, uint32_t w, uint32_t h, Head* hd, std::string* wh
     }
     hd->nw = hd->pw;
     hd->nh = hd->ph;
-    if (pic.ref_w && (w < pic.ref_w || h < pic.ref_h)) {
+    /* A smaller copy of the texture the picture is for (the levels a level's WAD keeps until the stream's arrive) takes
+     * it at its own size: the same texels and key as the whole copy, so one upload for both, and the copy as sharp as
+     * the whole one (2026-11-26; on the bench route 80 of 385 textures were drawn only as such copies).
+     * GOWA_COPY_SCALED=1: smaller by as much, as before. */
+    static const int scaled = [] { const char* e = getenv("GOWA_COPY_SCALED"); return e && atoi(e) != 0; }();
+    if (scaled && pic.ref_w && (w < pic.ref_w || h < pic.ref_h)) {
         if (w < pic.ref_w) hd->nw = (std::max)(1u, (uint32_t)((uint64_t)hd->pw * w / pic.ref_w));
         if (h < pic.ref_h) hd->nh = (std::max)(1u, (uint32_t)((uint64_t)hd->ph * h / pic.ref_h));
     }

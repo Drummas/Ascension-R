@@ -570,6 +570,7 @@ def imaging():
         raise ModError("upscale needs Python with Pillow and NumPy: python -m pip install pillow numpy")
     if not hasattr(Image, "Resampling"):
         raise ModError("upscale needs Pillow 9.1 or newer: python -m pip install -U pillow")
+    Image.MAX_IMAGE_PIXELS = None   # an upscaler's 4x of a 2048 texture is 70 M texels: the player's own files
     return numpy, Image
 
 
@@ -583,13 +584,14 @@ def texture_kind(a, fmt, w, h, min_side):
         return "left out: one or two channels (a mask, the font)"
     if min(w, h) < min_side:
         return "left out: smaller than %d" % min_side
-    f = a.astype(np.float32)
+    step = max(1, max(w, h) // 256)   # the statistics from about 256 x 256 texels: a 2048 x 2048 one is 4 M
+    f = a[::step, ::step].astype(np.float32)
     if float(f[..., :3].std(axis=(0, 1)).max()) < 2.0 and float(f[..., 3].std()) < 2.0:
         return "left out: one colour"
     r, g, b, al = (float(f[..., c].mean()) for c in range(4))
     if r > 230 and b < 30 and 40 < g < 215 and 40 < al < 215 and float(f[..., 3].std()) > 2.0:
         return "normal"
-    if int(a[..., 3].min()) < 255:
+    if int(a[..., 3].min()) < 255:   # all texels: a few clear ones are cut-outs too
         return "alpha"
     return "colour"
 
@@ -669,6 +671,7 @@ class Job:
 
     def __init__(self, src, tid, w, h, fmt, kind, scale):
         self.src, self.id, self.w, self.h, self.fmt, self.kind = src, tid, w, h, fmt, kind
+        self.scale = scale
         self.tw, self.th = w * scale, h * scale
         self.pad = max(2, min(16, min(w, h) // 8))
 
@@ -691,11 +694,11 @@ def prepare(job, normals_by_upscaler):
     return {"rgb": padded[..., :3].copy(), "alpha": padded[..., 3].copy() if job.kind == "alpha" else None}
 
 
-def finish(job, prep, up_rgb, fmt, out_dir, scale):
+def finish(job, prep, up_rgb, fmt, out_dir):
     """The upscaled texels cropped to the texture's own, a normal map normalised and packed back as AG, alpha upscaled
     apart, and written: a DDS with its chain, or a PNG. Returns (file, bytes on the GPU)."""
     np, Image = imaging()
-    s, p = scale, job.pad
+    s, p = job.scale, job.pad
     W, H = (job.w + 2 * p) * s, (job.h + 2 * p) * s
     crop = (slice(p * s, p * s + job.th), slice(p * s, p * s + job.tw))
     if job.kind == "normal":
@@ -736,14 +739,14 @@ def finish(job, prep, up_rgb, fmt, out_dir, scale):
 
 def lanczos_job(args):
     """One picture with the built-in upscaler (Lanczos), start to end: for a pool."""
-    job, fmt, out_dir, scale = args
+    job, fmt, out_dir = args
     prep = prepare(job, False)
     np, _ = imaging()
     up = None
     if job.kind != "normal":
         h, w = prep["rgb"].shape[:2]
-        up = lanczos_rgb(prep["rgb"], w * scale, h * scale)
-    return finish(job, prep, up, fmt, out_dir, scale)
+        up = lanczos_rgb(prep["rgb"], w * job.scale, h * job.scale)
+    return finish(job, prep, up, fmt, out_dir)
 
 
 def read_aliases(path):
@@ -786,12 +789,16 @@ def cmd_upscale(args):
             counts["left out: not the size its name says"] = counts.get("left out: not the size its name says", 0) + 1
             continue
         kind = texture_kind(a, fmt, w, h, args.min_side)
+        # No side past --max-side: a big texture at a smaller scale, one that is that big already left as it is.
+        scale = min(args.scale, args.max_side // max(w, h))
+        if kind in KINDS and scale < 2:
+            kind = "left out: %d or more a side already" % (args.max_side // 2 + 1)
         if kind not in KINDS:
             counts[kind] = counts.get(kind, 0) + 1
             continue
         key = hashlib.sha1(a.tobytes() + struct.pack("<II", w, h)).hexdigest()
         if key not in groups:
-            groups[key] = Job(os.path.join(args.dump, name), tid, w, h, fmt, kind, args.scale)
+            groups[key] = Job(os.path.join(args.dump, name), tid, w, h, fmt, kind, scale)
             groups[key].others = []
             order.append(key)
             counts[kind] = counts.get(kind, 0) + 1
@@ -817,7 +824,7 @@ def cmd_upscale(args):
     if args.upscaler == "lanczos":
         from multiprocessing import Pool
         with Pool(max(1, min(args.jobs, len(todo) or 1))) as pool:
-            for path, b in pool.imap_unordered(lanczos_job, [(j, args.format, out_dir, args.scale) for j in todo],
+            for path, b in pool.imap_unordered(lanczos_job, [(j, args.format, out_dir) for j in todo],
                                                chunksize=4):
                 made += 1
                 gpu += b
@@ -855,7 +862,7 @@ def cmd_upscale(args):
                             raise ModError("the upscaler wrote nothing for %s in %s" % (j.id, dst_dir))
                         with Image.open(os.path.join(dst_dir, found[0])) as im:
                             up = np.asarray(im.convert("RGB"))
-                    path, b = finish(j, preps.pop(j.id), up, args.format, out_dir, args.scale)
+                    path, b = finish(j, preps.pop(j.id), up, args.format, out_dir)
                     made += 1
                     gpu += b
                     if made % 50 == 0:
@@ -910,6 +917,9 @@ def main(argv=None):
                    help="normal maps by Lanczos (default) or by the upscaler, as their normals in RGB")
     u.add_argument("--format", choices=("dds", "png"), default="dds", help="dds (BC1/BC3 with the chain) or png")
     u.add_argument("--min-side", type=int, default=64, help="smaller textures are left out (default 64)")
+    u.add_argument("--max-side", type=int, default=4096,
+                   help="no picture bigger than this a side (default 4096): a texture that would be is made at a "
+                        "smaller scale, or left out")
     u.add_argument("--only", help="these texture ids alone, by commas")
     u.add_argument("--limit", type=int, default=0, help="the first n pictures alone (to try an upscaler)")
     u.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2),

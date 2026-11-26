@@ -138,3 +138,23 @@ uploaded as it is stored).
   extract has a picture for 614 of the 616 DXT textures drawn: 305 themselves, 309 through the table. The UltraSharp
   pack made from the dump (779 pictures) now stands for 929 textures, 150 of them other copies (38 with the old
   table); one run: 49.12 flips a second.
+
+## The whole game at 2x with UltraSharp, and smaller copies at full size
+
+- **The pack.** `upscale` on the extract with realesrgan-ncnn-vulkan's `ultrasharp-4x`: 5,919 pictures (3,857 colour,
+  1,316 normal maps by Lanczos, 746 with alpha; 192 under 64 and 31 one-colour left out, and the 22 textures of 4096
+  a side: `--max-side 4096`), 8.9 GB, about 9 GB on the GPU were all of it loaded at once, in about 4 hours on the
+  RX 6700 XT. A 4096 texture's 4x came to 16,512 x 16,512 and stopped Pillow at its "decompression bomb" limit, which
+  the tool now lifts (the files are the player's own). Sorting the extract took over 20 minutes, its statistics taken
+  over every texel as floats; from about 256 x 256 of them now, 45 s. In the game: 5,919 pictures for 9,355 textures
+  (3,436 of them other copies), the texture cache 6,121 MB (half the VRAM).
+- **Smaller copies at full size.** A copy smaller than the texture its picture is for took the picture smaller by as
+  much; now it takes it as it is, the same texels and key as the whole copy (`GOWA_COPY_SCALED=1`: as before). Where
+  both copies are drawn, one upload serves both; where only the smaller one is (80 of 385 textures on the route, and
+  some cinematics all along), the full picture is uploaded for it, which costs memory.
+- **Measured**, one run each, 1920x1080 window, native resolution: no pack (earlier run) 48.03, copies scaled 51.55,
+  full 51.36 flips a second; peak private memory 7.35 GB scaled, 7.95 GB full. The mean gradient of the frame below the
+  sky, at 75 s and 140 s: no pack 9.74 and 9.65, the dump's UltraSharp pack 10.25 and 10.15, the whole-game pack with
+  copies scaled 10.27 and 10.16, full 10.29 and 10.18. The packs are some 5.5% sharper by it; full copies add little
+  on the route, where the textures drawn as small copies are far away and sampled from small levels anyway: their gain
+  is a close view before the stream arrives, and the cinematics that keep a small copy.

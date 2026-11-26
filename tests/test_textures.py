@@ -236,9 +236,13 @@ class Textures(unittest.TestCase):
                          "picture", big, str(bw), str(bh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1:3], ["has %s 1" % big, "has %s 1" % small])
-        # The copy a quarter of the size: the picture a quarter too, 4 x 4, the halves kept.
-        self.assertEqual(out[3], "picture 1 4x4 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255")
+        # The copy a quarter of the size takes the picture as it is: one upload for both.
+        self.assertEqual(out[3], "picture 1 16x16 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255")
         self.assertEqual(out[4], "picture 1 16x16 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255")
+        # GOWA_COPY_SCALED=1: a quarter too, 4 x 4, the halves kept, as before.
+        r = subprocess.run([self.exe, self.ini, "-", "picture", small, str(sw), str(sh), "0,0,0,0"], capture_output=True,
+                           text=True, env=dict(os.environ, GOWA_COPY_SCALED="1"))
+        self.assertIn("picture 1 4x4 255,0,0,255 0,0,255,255 255,0,0,255 0,0,255,255 0,0,255,255", r.stdout)
         # A copy with a picture of its own keeps it; the picture of the small one goes to the big one as it is.
         os.remove(os.path.join(self.mods, "A", "textures", big + ".png"))
         png(os.path.join(self.mods, "A", "textures", small + "_mine.png"), 2, 2, lambda x, y: (7, 7, 7, 255))
@@ -249,14 +253,17 @@ class Textures(unittest.TestCase):
         out = self.run_t("-", "picture", small, str(sw), str(sh), "0,0,0,0")
         self.assertEqual(out[0], "textures 2")
         self.assertEqual(out[1], "picture 1 2x2 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255 7,7,7,255")
-        # A DDS for the whole copy, 32 x 32 with its chain: the copy a quarter of the size takes its chain from the
-        # level of its size, 8 x 8; the whole one all of it.
+        # A DDS for the whole copy, 32 x 32 with its chain: both copies take all of it; with GOWA_COPY_SCALED=1 the copy
+        # a quarter of the size its chain from the level of its size, 8 x 8.
         for f in os.listdir(os.path.join(self.mods, "A", "textures")):
             os.remove(os.path.join(self.mods, "A", "textures", f))
         n = dds(os.path.join(self.mods, "A", "textures", big + ".dds"), 32, 32, "BC1", 6)
         out = self.run_t("-", "picture", small, str(sw), str(sh), "0,0,0,0", "picture", big, str(bw), str(bh), "0,0,0,0")
-        self.assertEqual(out[1], "picture 1 8x8 form 1 levels 4 bytes %d" % (32 + 8 + 8 + 8))
+        self.assertEqual(out[1], "picture 1 32x32 form 1 levels 6 bytes %d" % n)
         self.assertEqual(out[2], "picture 1 32x32 form 1 levels 6 bytes %d" % n)
+        r = subprocess.run([self.exe, self.ini, "-", "picture", small, str(sw), str(sh), "0,0,0,0"], capture_output=True,
+                           text=True, env=dict(os.environ, GOWA_COPY_SCALED="1"))
+        self.assertIn("picture 1 8x8 form 1 levels 4 bytes %d" % (32 + 8 + 8 + 8), r.stdout)
 
     def test_aliases_give_a_picture_to_more_textures(self):
         # A: a picture by its id and one by any name; aliases.txt gives them to more textures.

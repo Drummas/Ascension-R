@@ -11,7 +11,7 @@ leave the others the game's. The reading is modtools.py's (texture_copies); unti
 read, and its textures' whole copies were in no group.
 
 This writes, for each texture with copies of more than one id, every copy's id and size, so the layer can give a
-picture for one copy to all of them (scaled down for the smaller ones). DXT1/3/5 only: the game's other formats are
+picture for one copy to all of them (at the picture's own size). DXT1/3/5 only: the game's other formats are
 not kept in copies of different sizes. The base archives only: an update's .PATCH entries are not read.
 Several releases' folders (--usrdir each) go into one table: the ids are of the textures' bytes, so a release
 whose copy differs only adds ids to the texture's group.

@@ -240,7 +240,9 @@ MyMod\
   tried; `remacri-4x` over-sharpens rock into black and white specks. A model's file goes in the upscaler's `models\`
   folder; each has its own licence. 779 textures took 17 minutes on a Radeon RX 6700 XT. It is handed RGB pictures and
   may give them back bigger than asked (a 4x model for `--scale 2`): they are brought to the size, and `--batch`
-  (default 48) hands it that many at a time. Normal maps are upscaled with Lanczos unless `--normals upscaler`. `--limit 20` tries it on a few
+  (default 48) hands it that many at a time. No picture is made bigger than `--max-side` (4096) a side: a texture
+  that would be gets a smaller scale, and the game's 4096 ones are left as they are (an 8K texture costs minutes to
+  make and 32-64 MB of video memory for little to see). Normal maps are upscaled with Lanczos unless `--normals upscaler`. `--limit 20` tries it on a few
   first; `--format png` writes PNGs for a compressor of your own (BC7 with texconv, for one). The pack is made from
   your game and stays yours: the port has no textures of the game's in it, and gives none.
 - **One picture for many textures: `aliases.txt`.** A character's atlas stands for each texture of the character, and
@@ -262,9 +264,11 @@ MyMod\
 - **Copies.** The game keeps many textures in more than one copy: whole, in an archive's stream or a WAD, and in a
   level's WAD as their levels from level 2 down, which it draws with as a texture of their own size until the whole
   one has streamed in (in some cinematics, all along). Each copy has its own id; a picture for any of them goes in the
-  place of all of them, and a smaller copy gets it smaller by as much: a 2048x4096 texture's 512x1024 copy takes a
-  4096x4096 picture at 1024x1024 (a DDS from its level of that size). A copy with a picture of its own keeps that. The copies are listed in
-  `port/texture_copies.inc`, which `scripts/texture_copies.py` makes from the game's archives.
+  place of all of them, at its own size: a 2048x4096 texture's 512x1024 copy takes a 4096x4096 picture as it is, one
+  upload for both, so a part of a level the game has not streamed in yet is as sharp as the rest
+  (`GOWA_COPY_SCALED=1` gives it smaller by as much, as before). A copy with a picture of its own keeps that. The
+  copies are listed in `port/texture_copies.inc`, which `scripts/texture_copies.py` makes from the game's archives
+  (each level's WAD and the stream beside it).
 - **An overlay** (`<id>.overlay.png`, or `<id>_anything.overlay.png`) is drawn over the game's own texture, which is
   first scaled to the overlay's size: where the overlay's alpha is above 1 it is laid over, where it is 1 the texel is
   made clear, and where it is 0 the game's shows. So a mod need hold none of the game's own pictures.
