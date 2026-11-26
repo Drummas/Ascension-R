@@ -50,6 +50,7 @@
 #include "game_find.h"
 #include "game_title.h"
 #include "mods.h"
+#include "portable_paths.h"   /* [paths] are the program's own: relative to its folder */
 #include "ps3emu/ps3_settings.h"
 
 #ifndef GOWA_PORT_COMMIT
@@ -211,12 +212,13 @@ static std::string system_text(void)
 
     /* The release, and for a disc its update's version and folder (hdd0\game\<id>, a link the launcher makes):
      * PARAM.SFOs alone, as this is said at each session's start too. */
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
+    char vfs_buf[PPATH_MAX * 4], hdd0_buf[PPATH_MAX * 4];
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
     GameInfo g, u;
     if (vfs && *vfs && game_read_info((wide(vfs) + L"\\PS3_GAME").c_str(), &g)) {
         const GameTitle* t = game_title_find(g.title_id);
         const std::string name = t ? " (" + narrow(t->name) + ")" : std::string();
-        const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+        const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
         if (t && t->kind == GAME_KIND_DISC && hdd0 && *hdd0) {
             const std::wstring upd = wide(hdd0) + L"\\game\\" + wide(g.title_id);
             wchar_t to[GAME_PATH_MAX];
@@ -241,8 +243,9 @@ static std::string system_text(void)
 static GameState settings_game(GameInfo* g)
 {
     memset(g, 0, sizeof *g);
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    char vfs_buf[PPATH_MAX * 4], hdd0_buf[PPATH_MAX * 4], elf_buf[PPATH_MAX * 4];
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
     if (!vfs || !*vfs) return GAME_NONE;
     const GameTitle* t = game_title_of_vfs(vfs);
     std::wstring dir = wide(vfs) + L"\\PS3_GAME", upd;
@@ -251,7 +254,7 @@ static GameState settings_game(GameInfo* g)
     if (game_link_target(dir.c_str(), to, GAME_PATH_MAX)) dir = to;
     if (!upd.empty() && game_link_target(upd.c_str(), to, GAME_PATH_MAX)) upd = to;
     GameState st = game_probe_pair(dir.c_str(), upd.empty() ? NULL : upd.c_str(), g);
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     if (st == GAME_NO_ELF && elf && *elf && game_elf_ok(wide(elf).c_str())) st = g->state = GAME_OK;
     return st;
 }
@@ -674,7 +677,11 @@ static void hide_init(void)
         { "graphics", "shader_cache", "<shader_cache>" },
     };
     for (const auto& k : settings) {
-        const char* v = ps3_settings_str(k.section, k.key, NULL, NULL);
+        /* Made whole first: a path kept relative (portable_paths.h) is hidden as the logs print it, and "vfs" on its
+         * own is a word of the logs. */
+        char buf[PPATH_MAX * 4];
+        const char* v = !strcmp(k.section, "graphics") ? ppath_shader_cache(buf, sizeof buf)
+                                                       : ppath_setting(k.section, k.key, NULL, NULL, buf, sizeof buf);
         if (v && *v) hide_path(v, k.token);
     }
     {   /* the mods folder as mods.h finds it: [mods] folder, GOWA_MODS_DIR, else beside the settings */
@@ -1051,7 +1058,8 @@ static int zip_end(Zip& z)
  * build left when it finished, with its version and counts, and whether the file is of this build's form. */
 static void note_shaders(std::string& note)
 {
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) { note += "Shaders: no shader cache\n"; return; }
     std::string line = "Shaders:";
     static const char* const ext[] = { ".dxil", ".dxil.journal", ".dxil.prebuilt", ".fprogs", ".vprogs" };
@@ -1086,7 +1094,8 @@ static void note_shaders(std::string& note)
 static void add_saves(Zip& z, std::string& note)
 {
     enum : unsigned long long { MOST = 96ull << 20 };
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    char hdd0_buf[PPATH_MAX * 4];
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
     if (!hdd0 || !*hdd0) { note += "Saves: no [paths] hdd0\n"; return; }
     std::string root = std::string(hdd0) + "\\home\\00000001\\savedata";
     std::replace(root.begin(), root.end(), '/', '\\');
@@ -1150,7 +1159,8 @@ static std::vector<std::string> subfolders(const std::string& dir)
 static void add_save_starts(Zip& z, std::string& note, const std::vector<std::string>& sessions)
 {
     enum : unsigned long long { MOST = 64ull << 20 };
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    char hdd0_buf[PPATH_MAX * 4];
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
     if (!hdd0 || !*hdd0 || sessions.empty()) return;
     std::string root = std::string(hdd0) + "\\home\\00000001\\savedata_backup";
     std::replace(root.begin(), root.end(), '/', '\\');
@@ -1230,7 +1240,8 @@ int gowa_report_create(int with_saves, char* out, size_t n)
     std::string note = strf("Ascension-R problem report, made %04u-%02u-%02u %02u:%02u:%02u\n\n", st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
     note += system_text();
     GameInfo g;
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
+    char vfs_buf[PPATH_MAX * 4];
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
     if (vfs && *vfs) {
         const GameState gs = settings_game(&g);
         if (gs == GAME_INCOMPLETE) {

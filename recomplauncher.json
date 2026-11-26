@@ -14,7 +14,6 @@
       "format": "ini",
       "file": [
         { "path": "{install}/ascension-r.ini", "if": "{install}/ascension-r.ini" },
-        { "path": "{install}/ascension-r.ini", "if": "{install}/portable.txt" },
         { "path": "{local}/Ascension-R/ascension-r.ini" }
       ]
     }
@@ -26,12 +25,10 @@
   "folders": {
     "saves": [
       { "path": "{install}/gamedata/dev_hdd0/home/00000001/savedata", "if": "{install}/ascension-r.ini" },
-      { "path": "{install}/gamedata/dev_hdd0/home/00000001/savedata", "if": "{install}/portable.txt" },
       { "path": "{local}/Ascension-R/gamedata/dev_hdd0/home/00000001/savedata" }
     ],
     "logs": [
       { "path": "{install}/logs", "if": "{install}/ascension-r.ini" },
-      { "path": "{install}/logs", "if": "{install}/portable.txt" },
       { "path": "{local}/Ascension-R/logs" }
     ]
   },

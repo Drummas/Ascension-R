@@ -48,9 +48,12 @@ from optional mods, in this folder, into the mods folder: the launcher's Mods ta
 @KIT@
 WHERE YOUR FILES GO
 
-Settings, saves, shaders and logs are in %LOCALAPPDATA%\Ascension-R. To keep them in this folder instead, put an empty
-file named portable.txt beside Ascension-R.exe. On that folder's first start the program offers to copy your files
-from %LOCALAPPDATA%\Ascension-R into it, so the game is not decrypted and built again and your saves come along.
+Settings, saves, shaders, logs and the game's built code are in this folder, beside Ascension-R.exe. The paths in
+ascension-r.ini are kept relative to it, so the folder can be moved or copied whole, to another drive or another PC,
+and works there: nothing of the program is kept anywhere else.
+
+A copy that kept its files in %LOCALAPPDATA%\Ascension-R (an older version) offers to copy them here on this folder's
+first start, so the game is not decrypted and built again and your saves come along.
 
 
 TO UPDATE
@@ -59,12 +62,12 @@ The launcher says when a new version is out, with a link to its page: it asks Gi
 Check for updates, in its System tab, turns that off.
 
 Unpack the new version over this folder: that is all it takes. Your settings, saves and shaders, and what the
-launcher made from your game, are in %LOCALAPPDATA%\Ascension-R (see WHERE YOUR FILES GO), and the new version takes
-them from there: do not delete that folder, your saves are in it.
+launcher made from your game, are in this folder (see WHERE YOUR FILES GO), and the new version takes them from
+there: do not delete it, your saves are in it.
 
-If this folder has ascension-r.ini or a gamedata folder beside Ascension-R.exe (portable.txt, or a settings file put
-here), your files are in this folder instead: unpack over it, and do not delete it. Otherwise a new folder works too,
-and the old one can go once the new one runs.
+A copy that kept them in %LOCALAPPDATA%\Ascension-R (an older version) has them there still: the new one offers to
+copy them into its own folder on its first start. A new folder works too, and the old one can go once the new one
+runs.
 @KIT_UPDATE@
 
 

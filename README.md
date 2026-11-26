@@ -132,17 +132,17 @@ To build it from source:
 ```
 git clone --recursive https://github.com/rigaz29/Ascension-R
 cd Ascension-R
-python -m venv ..\.venv
-..\.venv\Scripts\pip install -r ps3recomp\requirements.txt
+python -m venv .venv
+.venv\Scripts\pip install -r ps3recomp\requirements.txt
 
 # 1. Decrypt USRDIR\GOWA.SELF to GOWA.elf with RPCS3 (Utilities > Decrypt PS3 Binaries).
 # 2. Point the project at the installed game. It is only read.
-..\.venv\Scripts\python scripts\gowa.py setup --game-dir <RPCS3>\dev_hdd0\game\NPUA80918
-..\.venv\Scripts\python scripts\gowa.py doctor
-..\.venv\Scripts\python scripts\gowa.py analyze
-..\.venv\Scripts\python scripts\gowa.py lift
-..\.venv\Scripts\python scripts\gowa.py build
-..\.venv\Scripts\python scripts\gowa.py run
+.venv\Scripts\python scripts\gowa.py setup --game-dir <RPCS3>\dev_hdd0\game\NPUA80918
+.venv\Scripts\python scripts\gowa.py doctor
+.venv\Scripts\python scripts\gowa.py analyze
+.venv\Scripts\python scripts\gowa.py lift
+.venv\Scripts\python scripts\gowa.py build
+.venv\Scripts\python scripts\gowa.py run
 ```
 
 `doctor` lists anything that is missing. The lift and the first build take about 13 minutes on a Ryzen 5 4600H. `run` starts the
@@ -158,7 +158,9 @@ files, some 7 minutes on six cores the first time: **Enter** or a controller's *
 start, or for **Build all shaders now** in the launcher's sidebar (Build on the Play tab). The few it cannot build come
 the first time they are needed. **Clear shaders**, in the launcher's sidebar, makes the next start build them again.
 
-A build from source keeps its settings, logs and shader caches in `build\`, and its saves in `gamedata\`.
+A build from source keeps its settings, logs and shader caches in `build\`, and its saves in `gamedata\`. The paths
+`ascension-r.ini` keeps are relative to the program's folder, as they are in a release, so a copy of `build\` (or of
+the whole tree, once `gowa.py build` has run) works moved, on another drive, or from another folder.
 
 ## Reporting a problem
 

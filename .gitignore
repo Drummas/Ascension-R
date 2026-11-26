@@ -10,6 +10,7 @@ dist/
 logs/
 scratch/
 firmware/
+ffmpeg-release/
 local.json
 
 # Game file types, wherever they end up

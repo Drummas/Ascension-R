@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 #include "ps3emu/ps3_settings.h"
+#include "portable_paths.h"   /* [paths] are the program's own: relative to its folder */
 #pragma comment(lib, "iphlpapi.lib")
 
 namespace {
@@ -285,7 +286,8 @@ Args args_now(void)
     a.name = setting("name");
     a.server = setting("server");
     a.nodes = setting("nodes");
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    char elf_buf[PPATH_MAX * 4];
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     a.elf = elf ? elf : "";
     a.relay = ps3_settings_bool("online", "relay", NULL, 0) != 0;
     a.upnp = ps3_settings_bool("online", "upnp", NULL, 1) != 0;

@@ -65,7 +65,7 @@ jobs:
           gh issue comment "$NUMBER" --body-file - <<'EOF'
           Thanks for the report. It has no problem report zip yet, and that zip is what finding the cause needs most.
 
-          In the launcher, press **Report a problem** (down the sidebar) and drag the zip it makes into a comment here. It goes in the `logs` folder beside the settings: `%LOCALAPPDATA%\Ascension-R\logs`, or next to the exe in a portable copy. If the launcher does not open, run `Ascension-R --report` from the folder of the exe. The zip holds the logs of your last sessions, your settings and your hardware, with your folder paths hidden, and no game files.
+          In the launcher, press **Report a problem** (down the sidebar) and drag the zip it makes into a comment here. It goes in the `logs` folder beside `Ascension-R.exe`, with the settings. If the launcher does not open, run `Ascension-R --report` from the folder of the exe. The zip holds the logs of your last sessions, your settings and your hardware, with your folder paths hidden, and no game files.
 
           If it happens at one place in the game, tick **Include my saves, so the problem can be loaded where it happened** before you press it.
 

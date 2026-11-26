@@ -40,6 +40,7 @@
  */
 #include "win32_compat.h"
 #include "ps3emu/ps3_settings.h"
+#include "portable_paths.h"   /* [paths] are the program's own: relative to its folder */
 #include "game_find.h"
 #include "i18n.h"
 #include <stdarg.h>
@@ -510,16 +511,9 @@ extern "C" void gowa_port_defaults(void)
      * right stick) on the arrows, the D-pad on 1-4. */
     for (int i = 0; i < N_KB; i++)
         ps3_settings_default("keyboard", k_kb[i][0], k_kb[i][2]);
-    /* Beside the settings, for a copy that no `gowa.py build` gave paths to. */
-    char dir[1100], file[1200];
-    snprintf(dir, sizeof dir, "%s", ps3_settings_path());
-    char* slash = strrchr(dir, '\\');
-    if (!slash) slash = strrchr(dir, '/');
-    if (slash) {
-        slash[1] = 0;
-        snprintf(file, sizeof file, "%sd3d12_shader_cache.bin", dir);
-        ps3_settings_default("graphics", "shader_cache", file);
-    }
+    /* Beside the settings, for a copy that no `gowa.py build` gave paths to: a path of the program's own, kept
+     * relative to its folder (portable_paths.h). */
+    ps3_settings_default("graphics", "shader_cache", "d3d12_shader_cache.bin");
 }
 
 /* ---------------------------------------------------------------------------
@@ -723,7 +717,8 @@ static void kb_mouse(UINT m, WPARAM w)
  * under [paths] hdd0. */
 static int saves_dir(char* path, size_t n)
 {
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    char hdd0_buf[PPATH_MAX * 4];
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
     if (!hdd0 || !*hdd0) return 0;
     snprintf(path, n, "%s\\home\\00000001\\savedata", hdd0);
     for (char* p = path; *p; p++) if (*p == '/') *p = '\\';
@@ -819,7 +814,8 @@ static int s_pbs;
 static void pb_state_read(void)
 {
     s_pbs = 0;
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off") || !rsx_d3d12_prebuilt_current(sc)) return;
     s_pbs = 1;
     char done[1200], line[128] = "", want[128];
@@ -1002,8 +998,9 @@ static int prep_line(wchar_t* b, size_t n, float* frac)
 
 static void game_links(void)
 {
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
+    char vfs_buf[PPATH_MAX * 4], hdd0_buf[PPATH_MAX * 4];
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
     wchar_t here[GAME_PATH_MAX];                 /* the settings' folder: the links go beside them */
     swprintf(here, GAME_PATH_MAX, L"%ls", W(ps3_settings_path()));
     path_slashes(here);
@@ -1042,14 +1039,18 @@ static void game_refresh(void)
         data_file(p, sizeof p / sizeof p[0], L"GOWA.elf");
         if (game_elf_ok(p)) {
             s_game.g.state = GAME_OK;
+            char kept[PPATH_MAX * 4];
+            ppath_keep_u8(p, kept, sizeof kept);
+            /* As the settings keep it (portable_paths.h): an absolute one written before is made relative once. */
             const char* was = ps3_settings_str("paths", "elf", NULL, NULL);
-            if (!was || strcmp(was, U8(p))) {
-                ps3_settings_set("paths", "elf", U8(p));
+            if (!was || _stricmp(was, kept)) {
+                ps3_settings_set("paths", "elf", kept);
                 ps3_settings_save(NULL);
             }
         }
     }
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    char elf_buf[PPATH_MAX * 4];
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     s_rc.elf_ok = elf && *elf && GetFileAttributesA(elf) != INVALID_FILE_ATTRIBUTES;
     /* Not the whole game: nothing is built or played from it, whatever was decrypted before (game_status says what
      * the folder lacks). */
@@ -4029,15 +4030,19 @@ static const char* U8(const wchar_t* s)
 static void game_paths_fill(void)
 {
     int changed = 0;
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
-    if (!vfs || !*vfs) { ps3_settings_set("paths", "vfs", U8(s_game.vfs)); changed = 1; }
-    if (!hdd0 || !*hdd0) { ps3_settings_set("paths", "hdd0", U8(s_game.hdd0)); changed = 1; }
+    char vfs_buf[PPATH_MAX * 4], hdd0_buf[PPATH_MAX * 4], elf_buf[PPATH_MAX * 4];
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
+    /* Kept as paths of the program's own, relative to its folder (portable_paths.h). */
+    char kept[PPATH_MAX * 4];
+    if (!vfs || !*vfs) { ppath_keep_u8(s_game.vfs, kept, sizeof kept); ps3_settings_set("paths", "vfs", kept); changed = 1; }
+    if (!hdd0 || !*hdd0) { ppath_keep_u8(s_game.hdd0, kept, sizeof kept); ps3_settings_set("paths", "hdd0", kept); changed = 1; }
     if (!elf || !*elf || GetFileAttributesA(elf) == INVALID_FILE_ATTRIBUTES) {
         wchar_t p[GAME_PATH_MAX + 32];
         swprintf(p, sizeof p / sizeof p[0], L"%ls\\USRDIR\\GOWA.elf", s_game.link_vfs);
-        ps3_settings_set("paths", "elf", U8(p));
+        ppath_keep_u8(p, kept, sizeof kept);
+        ps3_settings_set("paths", "elf", kept);
         changed = 1;
     }
     if (changed) ps3_settings_save(NULL);
@@ -4222,7 +4227,8 @@ static void find_done(void)
  * game builds them again as it reaches them. */
 static void clear_shaders(void)
 {
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) {
         toast_bad("No shader cache in the settings");
         return;
@@ -4333,7 +4339,8 @@ static void pb_start(void)
         if (s_pb.job) { CloseHandle(s_pb.job); s_pb.job = NULL; }
         return;
     }
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) { toast_bad("No shader cache in the settings"); return; }
     wchar_t exe[MAX_PATH];
     if (!GetModuleFileNameW(NULL, exe, MAX_PATH)) return;
@@ -4486,7 +4493,8 @@ static void kit_start(void)
         toast_bad("No Kit folder beside the program");
         return;
     }
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    char elf_buf[PPATH_MAX * 4];
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     if (!s_rc.elf_ok || !elf) {
         s_tab = T_SYSTEM;
         toast_bad(game_needed_toast());

@@ -50,6 +50,7 @@
 #include <vector>
 #include <algorithm>
 #include "ps3emu/ps3_settings.h"
+#include "portable_paths.h"   /* [paths] are the program's own: relative to its folder */
 #include "version.h"
 #include "loading_screen.h"
 #include "precompile_music.h"
@@ -997,7 +998,8 @@ static DWORD WINAPI ui_main(LPVOID)
  * -----------------------------------------------------------------------*/
 static std::string cache_path(void)
 {
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) return std::string();
     return sc;
 }

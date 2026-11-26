@@ -50,6 +50,7 @@
 #include <algorithm>
 #include "third_party/zlib/zlib.h"
 #include "ps3emu/ps3_settings.h"
+#include "portable_paths.h"   /* [paths] are the program's own: relative to its folder */
 #include "rsx_d3d12_backend.h"
 #include "version.h"
 #include "game_title.h"
@@ -206,7 +207,8 @@ static void scan_fps(const std::vector<uint8_t>& d, std::unordered_map<std::stri
 /* The cache file the build fills (graphics.shader_cache), or "" for none. */
 static std::string cache_file(void)
 {
-    const char* sc = ps3_settings_str("graphics", "shader_cache", "D3D12_SHADER_CACHE", NULL);
+    char sc_buf[PPATH_MAX * 4];
+    const char* sc = ppath_shader_cache(sc_buf, sizeof sc_buf);
     if (!sc || !*sc || ps3_settings_ieq(sc, "off")) return std::string();
     return sc;
 }
@@ -379,9 +381,10 @@ static bool game_archives(const char* tag, std::vector<std::string>& arcs, std::
     /* The archives where the game opens them, /dev_hdd0/game/<id>/USRDIR (game_title.h), then through the vfs link, then beside
      * the ELF. Not the ELF's folder first: a game folder with only GOWA.SELF has it decrypted into the port's own
      * folder (launcher.cpp, game_refresh), and paths.elf names that copy, beside no archive (issue #9's Kit). */
-    const char* hdd0 = ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL);
-    const char* vfs = ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL);
-    const char* elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    char hdd0_buf[PPATH_MAX * 4], vfs_buf[PPATH_MAX * 4], elf_buf[PPATH_MAX * 4];
+    const char* hdd0 = ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_buf, sizeof hdd0_buf);
+    const char* vfs = ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_buf, sizeof vfs_buf);
+    const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     std::vector<std::string> dirs;
     if (hdd0 && *hdd0) dirs.push_back(std::string(hdd0) + "\\game\\" + game_title_of_vfs(vfs)->id + "\\USRDIR");
     if (vfs && *vfs) dirs.push_back(std::string(vfs) + "\\PS3_GAME\\USRDIR");

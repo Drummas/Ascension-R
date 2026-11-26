@@ -48,6 +48,7 @@
 #include "mods.h"                 /* the mods folder: the mods that are on, for the file system */
 #include "textures.h"             /* their pictures in place of the game's textures, and the dump */
 #include "ps3emu/ps3_settings.h"  /* ascension-r.ini: the player's settings and this machine's paths */
+#include "portable_paths.h"       /* its paths are the program's own: relative to its folder */
 
 #include <stdint.h>
 #include <stdio.h>
@@ -1226,9 +1227,10 @@ static DWORD WINAPI thread_table(LPVOID arg)
 /* ---------------------------------------------------------------------------
  * Settings and the title's environment
  * -----------------------------------------------------------------------*/
-/* ascension-r.ini beside the executable for a build (a settings file is already there) or a copy
- * the player marked with portable.txt, else in %LOCALAPPDATA%\Ascension-R. The logs, the saves and
- * the caches go where it is. */
+/* ascension-r.ini beside the executable, whatever copy it is: the logs, the saves, the shader caches, the game's
+ * decrypted ELF and its built code all go in that folder too, so the folder as a whole can be moved, copied to another
+ * drive or to another PC and still work. The paths it keeps are relative to it (portable_paths.h). A copy that kept its
+ * files in %LOCALAPPDATA%\Ascension-R takes them along on its first start (portable_copy.cpp). */
 static void default_settings_path(char* out, size_t n, const char* argv0)
 {
 #ifdef _WIN32
@@ -1245,24 +1247,44 @@ static void default_settings_path(char* out, size_t n, const char* argv0)
     if (slash) slash[1] = 0; else exe[0] = 0;
     snprintf(out, n, "%sascension-r.ini", exe);
 #ifdef _WIN32
-    char old_name[1100], marker[1100];
+    /* The name before the rename: copied once, and the old file is left as it is. */
+    char old_name[1100];
     snprintf(old_name, sizeof old_name, "%sgowa.ini", exe);
-    snprintf(marker, sizeof marker, "%sportable.txt", exe);
-    if (GetFileAttributesA(out) != INVALID_FILE_ATTRIBUTES || GetFileAttributesA(old_name) != INVALID_FILE_ATTRIBUTES ||
-        GetFileAttributesA(marker) != INVALID_FILE_ATTRIBUTES) {
-        /* The name before the rename: copied once, and the old file is left as it is. */
-        CopyFileA(old_name, out, TRUE);
-        return;
-    }
-    const char* local = getenv("LOCALAPPDATA");
-    if (local && *local) {
-        char dir[1100];
-        snprintf(dir, sizeof dir, "%s\\Ascension-R", local);
-        CreateDirectoryA(dir, NULL);
-        snprintf(out, n, "%s\\ascension-r.ini", dir);
-    }
+    CopyFileA(old_name, out, TRUE);
 #endif
 }
+
+#ifdef _WIN32
+/* The paths in [paths] and graphics.shader_cache that are absolute and name a place inside the program's folder -- one
+ * an older version wrote, or one copied from %LOCALAPPDATA%\Ascension-R -- are kept relative to it from now on
+ * (portable_paths.h), so the folder can be moved or copied whole. A folder of the player's, the game's or RPCS3's,
+ * stays absolute: it is outside, and only read. */
+static void settings_paths_relative(void)
+{
+    static const struct { const char* section, *key; } keys[] = {
+        { "paths", "elf" }, { "paths", "vfs" }, { "paths", "hdd0" }, { "paths", "mods" }, { "paths", "ffmpeg" },
+        { "graphics", "shader_cache" },
+    };
+    wchar_t root[PPATH_MAX];
+    if (!ppath_root(root, PPATH_MAX)) return;
+    int changed = 0;
+    for (const auto& k : keys) {
+        const char* v = ps3_settings_str(k.section, k.key, NULL, NULL);
+        if (!v || !*v || ps3_settings_ieq(v, "off")) continue;
+        wchar_t given[PPATH_MAX], full[PPATH_MAX], kept[PPATH_MAX];
+        if (!ppath_wide(v, given, PPATH_MAX) || !ppath_absolute(given)) continue;
+        ppath_full(given, full, PPATH_MAX);
+        ppath_keep_in(root, full, kept, PPATH_MAX);
+        if (!full[0] || !_wcsicmp(full, kept)) continue;   /* not inside the folder */
+        char utf8[PPATH_MAX * 4];
+        ppath_utf8(kept, utf8, sizeof utf8);
+        if (ps3_settings_set(k.section, k.key, utf8) == 0) changed = 1;
+    }
+    if (changed) ps3_settings_save(NULL);
+}
+#else
+static void settings_paths_relative(void) {}
+#endif
 
 #ifdef _WIN32
 #include <io.h>
@@ -1588,9 +1610,11 @@ static void title_environment(int pack_mods)
      * modules poll for work that way, and building pipelines on a first start can hold the game
      * up for longer, so the halt stopped idle workers and the next load hung. */
     env_default("SPU_DMA_REPEAT_SECS", "604800");
-    /* This machine's paths, written into [paths] by `gowa.py build`. */
-    env_default("PS3_VFS_ROOT", ps3_settings_str("paths", "vfs", "PS3_VFS_ROOT", NULL));
-    env_default("PS3_HDD0_ROOT", ps3_settings_str("paths", "hdd0", "PS3_HDD0_ROOT", NULL));
+    /* The program's paths, written into [paths] relative to its folder by `gowa.py build` or the launcher; made whole
+     * here, as the runtime takes them (portable_paths.h). */
+    char vfs_path[PPATH_MAX * 4], hdd0_path[PPATH_MAX * 4];
+    env_default("PS3_VFS_ROOT", ppath_setting("paths", "vfs", "PS3_VFS_ROOT", NULL, vfs_path, sizeof vfs_path));
+    env_default("PS3_HDD0_ROOT", ppath_setting("paths", "hdd0", "PS3_HDD0_ROOT", NULL, hdd0_path, sizeof hdd0_path));
     /* The title is the one PARAM.SFO under the vfs root's PS3_GAME names: NPUA80918, an HDD (PSN) game, or a
      * disc such as BCES01741, whose update in /dev_hdd0/game/<id> holds the game at 1.12. Either way the
      * executable is GOWA.SELF, which the title's own EBOOT.BIN launcher starts from /dev_hdd0/game/<id>/USRDIR;
@@ -1640,10 +1664,14 @@ static void title_environment(int pack_mods)
     }
     /* And the older mod folder, laid out like the PS3's paths (dev_hdd0\game\<id>\USRDIR\...), after them.
      * Empty (the default): none. */
-    env_default("PS3_MODS_ROOT", ps3_settings_str("paths", "mods", "PS3_MODS_ROOT", NULL));
+    {
+        char mods_path[PPATH_MAX * 4];
+        env_default("PS3_MODS_ROOT", ppath_setting("paths", "mods", "PS3_MODS_ROOT", NULL, mods_path, sizeof mods_path));
+    }
     gowa_skel_prop_start();
     /* FFmpeg's DLLs are loaded when the first movie plays, from PATH. */
-    const char* ff = ps3_settings_str("paths", "ffmpeg", NULL, NULL);
+    char ff_buf[PPATH_MAX * 4];
+    const char* ff = ppath_setting("paths", "ffmpeg", NULL, NULL, ff_buf, sizeof ff_buf);
     if (ff && *ff) {
         const char* path = getenv("PATH");
         size_t n = strlen(ff) + (path ? strlen(path) : 0) + 2;
@@ -1823,8 +1851,9 @@ int main(int argc, char** argv)
     if (find_game) return gowa_find_game_cli(find_under);
     char portable_note[1600] = "";
 #ifdef _WIN32
-    /* A folder portable.txt marks, on its first start: the files of %LOCALAPPDATA%\Ascension-R copied here at the
-     * player's word, before its settings are read and its log opened (portable_copy.cpp). */
+    /* A copy's first start: the files of %LOCALAPPDATA%\Ascension-R copied here at the player's word, before its
+     * settings are read and its log opened, so a player who kept them there keeps them in the program's folder
+     * (portable_copy.cpp). */
     if (settings == settings_buf && !no_launcher && !precompile && !report && !anr_zip && !anr_get && !dlss_get)
         portable_offer(settings, portable_note, sizeof portable_note);
     if (!precompile && !report && !anr_zip && !anr_get && !dlss_get) {
@@ -1841,6 +1870,7 @@ int main(int argc, char** argv)
     gowa_port_defaults();
     printf("[settings] %s: %s\n", settings,
            src == 0 ? "loaded" : src == 1 ? "no file, defaults" : "could not be read, defaults");
+    settings_paths_relative();   /* a folder's own paths, kept relative to it (portable_paths.h) */
     if (portable_note[0]) printf("%s\n", portable_note);
     for (int i = 0; i < nsets; i++) {
         char sk[256];
@@ -1906,7 +1936,8 @@ int main(int argc, char** argv)
     if (!no_launcher && (GetAsyncKeyState(VK_SHIFT) & 0x8000)) launcher = 1;
     /* No game where the settings say: the launcher looks for it, whatever the setting. */
     if (!no_launcher && !elf) {
-        const char* e = ps3_settings_str("paths", "elf", NULL, NULL);
+        char e_buf[PPATH_MAX * 4];
+        const char* e = ppath_setting("paths", "elf", NULL, NULL, e_buf, sizeof e_buf);
         if (!e || !*e || GetFileAttributesA(e) == INVALID_FILE_ATTRIBUTES) launcher = 1;
     }
 #ifdef PORT_GAME_MODULE
@@ -1921,7 +1952,8 @@ int main(int argc, char** argv)
 #ifdef PORT_GAME_MODULE
     if (!game_module_load()) return 1;
 #endif
-    if (!elf) elf = ps3_settings_str("paths", "elf", NULL, NULL);
+    char elf_buf[PPATH_MAX * 4];
+    if (!elf) elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     if (!elf || !*elf) {
         printf("usage: %s [--settings <file>] [--set <section.key=value>] [<PPU ELF>]\n"
                "No ELF given, and %s has no [paths] elf: run `scripts/gowa.py build` first.\n",

@@ -1,12 +1,14 @@
 /*
- * Ascension-R -- a portable folder's first start takes the files of %LOCALAPPDATA%\Ascension-R along
+ * Ascension-R -- a copy's first start takes the files of %LOCALAPPDATA%\Ascension-R along
  *
- * portable.txt beside Ascension-R.exe keeps the settings, the saves, the shader caches and what the launcher made in
- * that folder (default_settings_path in main.cpp). Put beside a copy that had run without it, the folder starts with
- * none of them: the game is found, decrypted and built again, the shaders too, and the saves are not there (issue
- * #15: a player who did so saw the Kit's build and the shader precompile come back, every shader built anew in play,
- * and a new game). So on that folder's first start, if %LOCALAPPDATA%\Ascension-R has a settings file, the player is
- * asked whether to copy its files here, before the settings are read.
+ * The settings, the saves, the shader caches and what the launcher made all live beside Ascension-R.exe
+ * (default_settings_path in main.cpp), so the folder can be moved or copied as a whole (portable_paths.h). A copy
+ * that had run as an older version kept them in %LOCALAPPDATA%\Ascension-R instead: put beside such a version, or
+ * unpacked as a new folder, this one starts with none of them, and the game is found, decrypted and built again, the
+ * shaders too, and the saves are not there (issue #15: a player who did so saw the Kit's build and the shader
+ * precompile come back, every shader built anew in play, and a new game). So on that folder's first start, if
+ * %LOCALAPPDATA%\Ascension-R has a settings file, the player is asked whether to copy its files here, before the
+ * settings are read. The paths the settings keep are relative to the folder (portable_paths.h), so they land right.
  *
  * Copied: the settings (the paths in them that named the old folder moved to this one), the saves and their backups,
  * the decrypted GOWA.elf, the game's built code, the shader caches, the screenshots, what the game wrote under its
@@ -184,9 +186,9 @@ void portable_offer(const char* settings, char* note, size_t n)
     const size_t cut = dir.find_last_of(L"\\/");
     if (cut == std::wstring::npos) return;
     dir.resize(cut);
-    /* A folder portable.txt marks, with none of the program's files in it yet. */
-    if (!has(dir + L"\\portable.txt") || has(dir + L"\\ascension-r.ini") || has(dir + L"\\gamedata") ||
-        has(dir + L"\\game-code") || has(dir + L"\\GOWA.elf"))
+    /* The program's folder, with none of its files in it yet. */
+    if (has(dir + L"\\ascension-r.ini") || has(dir + L"\\gamedata") || has(dir + L"\\game-code") ||
+        has(dir + L"\\GOWA.elf"))
         return;
     wchar_t local[1024];
     const DWORD k = GetEnvironmentVariableW(L"LOCALAPPDATA", local, 1024);
@@ -197,9 +199,9 @@ void portable_offer(const char* settings, char* note, size_t n)
     walk(from, dir, L"", plan, 0);
     wchar_t ask[2400];
     swprintf(ask, sizeof ask / sizeof ask[0],
-             L"This copy of Ascension-R keeps its files in its own folder (portable.txt), and that folder has none "
-             L"yet.\n\nYour settings, saves, decrypted game, built game code and shaders are in\n%ls\n\nCopy them here "
-             L"(%.0f MB)? That folder stays as it is.\n\nNo: this folder starts empty. The game is found, decrypted "
+             L"This copy of Ascension-R keeps its settings, saves, shaders and logs in its own folder, and that folder "
+             L"has none of them yet.\n\nAn earlier copy kept them in\n%ls\n\nCopy them here (%.0f MB)? That folder "
+             L"stays as it is.\n\nNo: this folder starts empty. The game is found, decrypted "
              L"and built again, and your saves stay in the other folder.",
              from.c_str(), plan.bytes / 1048576.0 + 0.5);
     if (MessageBoxW(NULL, ask, L"Ascension-R", MB_YESNO | MB_ICONQUESTION | MB_SETFOREGROUND | MB_TOPMOST) != IDYES) {

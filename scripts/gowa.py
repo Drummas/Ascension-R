@@ -51,6 +51,31 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PS3RECOMP = os.path.join(ROOT, "ps3recomp")
 TOOLS = os.path.join(PS3RECOMP, "tools")
 LOCAL = os.path.join(ROOT, "local.json")
+
+
+def path_keep(path, base, inside=None):
+    """A path as a file in `base` keeps it: relative to it when the path is inside `inside` (the folder that holds what
+    stays together, by default `base`), absolute when it is not (another drive, or a folder of the player's), as
+    port/portable_paths.h reads it. So the tree, and a copy of it, read their own files again wherever they are."""
+    if not path:
+        return ""
+    p, b = os.path.abspath(path), os.path.abspath(base)
+    if inside is not None:
+        i = os.path.abspath(inside)
+        if p != i and not p.startswith(i + os.sep):
+            return p
+    try:
+        rel = os.path.relpath(p, b)
+    except ValueError:   # another drive: it cannot be relative to this folder
+        return p
+    return p if rel == os.curdir else rel
+
+
+def path_use(path, base):
+    """A path a file in `base` keeps, made whole: the folder, then the way down (port/portable_paths.h)."""
+    if not path:
+        return ""
+    return path if os.path.isabs(path) else os.path.normpath(os.path.join(base, path))
 # GOWA_WORK: where what is made from the game goes (analysis/, recompiled/, spu/), and GOWA_ELF: the decrypted
 # GOWA.elf. The Kit's setup sets both to the player's data folder; by default they are this tree's.
 WORK = os.path.abspath(os.environ.get("GOWA_WORK") or ROOT)
@@ -294,10 +319,20 @@ def code_end(elf):
     return end or None
 
 
+# The keys of local.json that are paths, kept relative to the tree where they are inside it (path_keep).
+LOCAL_PATH_KEYS = ("game_dir", "llvm_bin", "ffmpeg_dir", "dxc_dir", "sdl3_dir", "fsr_dir", "streamline_dir",
+                   "kit_python", "llvm_license")
+
+
 def load_local():
-    if os.path.exists(LOCAL):
-        return json.load(open(LOCAL))
-    return {}
+    """local.json, with its paths made whole from the tree's root (path_use)."""
+    if not os.path.exists(LOCAL):
+        return {}
+    local = json.load(open(LOCAL))
+    for k in LOCAL_PATH_KEYS:
+        if local.get(k):
+            local[k] = path_use(local[k], ROOT)
+    return local
 
 
 def game_elf():
@@ -366,7 +401,7 @@ FFMPEG_CONFIGURE = ("--arch=x86_64", "--target-os=mingw32", "--prefix=/ffmpeg", 
                     "--disable-network", "--disable-static", "--enable-shared", "--disable-avdevice", "--disable-avformat",
                     "--disable-avfilter", "--disable-swresample", "--disable-swscale",
                     "--enable-decoder=h264", "--enable-decoder=mpeg2video", "--extra-ldflags=-static")
-FFMPEG_HOME = os.path.join(os.path.dirname(ROOT), "ffmpeg-release")
+FFMPEG_HOME = os.path.join(ROOT, "ffmpeg-release")   # inside the tree: nothing of it is made beside it
 
 DIST = os.path.join(ROOT, "dist")
 # The two ways to make a release, both from this tree (`package prebuilt`, `package kit`):
@@ -670,7 +705,12 @@ def cmd_setup(args):
         die("%s is a disc (%s): setup links a digital release's folder; a disc and its update are phase 3 of "
             "docs/notes/2026-11-17-eu-support-plan.md" % (title, TITLES[title]["name"]))
     local = load_local()
-    local["game_dir"] = game
+    # This machine's paths stay in local.json, which is never committed; one inside the tree is kept relative to it
+    # (path_keep), so the tree can be moved or copied and still find it.
+    for k in LOCAL_PATH_KEYS:
+        if local.get(k):
+            local[k] = path_keep(local[k], ROOT)
+    local["game_dir"] = path_keep(game, ROOT)
     json.dump(local, open(LOCAL, "w"), indent=1)
     link_dir(VFS_GAME, game)
     link_dir(os.path.join(HDD0, "game", title), game)
@@ -2754,15 +2794,21 @@ def kit_train(out, dll, train):
     if not os.path.isfile(exe):
         return None, "no Ascension-R.exe beside the Kit"
     ini = ini_read(src)
+    # The settings keep their paths relative to their folder (port/portable_paths.h): made whole here, as the training
+    # run and the game it starts need them.
+    base = os.path.dirname(os.path.abspath(src))
+    for k, v in ini.get("paths", {}).items():
+        ini["paths"][k] = path_use(v, base)
     paths = ini.get("paths", {})
-    hdd0 = paths.get("hdd0") or os.path.join(os.path.dirname(src), "gamedata", "dev_hdd0")
+    hdd0 = paths.get("hdd0") or os.path.join(base, "gamedata", "dev_hdd0")
     # The title the settings' vfs folder holds: its folder in hdd0 is the game (a digital release) or its update (a
     # disc, whose base game the run reads through the same vfs folder).
-    title = title_of(os.path.join(paths.get("vfs") or os.path.join(os.path.dirname(src), "vfs"), "PS3_GAME"))
+    title = title_of(os.path.join(paths.get("vfs") or os.path.join(base, "vfs"), "PS3_GAME"))
     game = os.path.join(hdd0, "game", title)
     if not os.path.isdir(os.path.join(game, "USRDIR")):
         return None, "the game's folder is not at %s" % game
-    cache = ini.get("graphics", {}).get("shader_cache") or os.path.join(os.path.dirname(src), "d3d12_shader_cache.bin")
+    cache = ini.get("graphics", {}).get("shader_cache") or ""
+    cache = "" if cache.lower() == "off" else path_use(cache, base) or os.path.join(base, "d3d12_shader_cache.bin")
     PROGRESS.phase("train", "Optimising for this PC: the game plays by itself (leave it open)")
     link = os.path.join(train, "hdd0", "game", title)
     raw = os.path.join(train, "game.profraw")
@@ -2799,13 +2845,16 @@ def kit_train_settings(train, ini, cache):
     if os.path.isfile(cache):
         shutil.copyfile(cache, mine)
     elf = os.environ.get("GOWA_ELF") or paths.get("elf", "")   # the launcher's, as it starts the build
-    lines = ["[paths]", "elf = " + elf, "vfs = " + paths.get("vfs", ""), "hdd0 = " + os.path.join(train, "hdd0")]
+    # Kept relative to the training's folder, as the program keeps its own (port/portable_paths.h).
+    base = os.path.abspath(train)
+    lines = ["[paths]", "elf = " + path_keep(elf, base), "vfs = " + path_keep(paths.get("vfs", ""), base),
+             "hdd0 = " + path_keep(os.path.join(train, "hdd0"), base)]
     if paths.get("ffmpeg"):
-        lines.append("ffmpeg = " + paths["ffmpeg"])
+        lines.append("ffmpeg = " + path_keep(paths["ffmpeg"], base))
     lines += ["[display]", "mode = windowed", "window_size = 1280x720", "vsync = off", "frame_cap = off", "show_fps = off",
               "[graphics]", "gpu = " + keep("graphics", "gpu", "discrete"), "render_scale = 1", "scaling = bilinear",
               "sharpening = off", "frame_generation = off", "antialiasing = off",
-              "async_shaders = " + keep("graphics", "async_shaders", "2"), "shader_cache = " + mine,
+              "async_shaders = " + keep("graphics", "async_shaders", "2"), "shader_cache = " + path_keep(mine, base),
               "[system]", "language = " + keep("system", "language", "auto"), "[cheats]", "damage_taken = 0",
               "[launcher]", "show = off", "[patches]"]
     lines += ["%s = %s" % kv for kv in sorted(ini.get("patches", {}).items())]
@@ -3114,9 +3163,28 @@ def ini_set(lines, section, key, value, keep=False):
         lines += ["[%s]" % section, text]
 
 
+def ini_get(lines, section, key):
+    """The value section.key has in an INI kept as its lines, or None: as ps3_settings reads it, unquoted."""
+    sec = None
+    for line in lines:
+        s = line.strip()
+        if s.startswith("[") and "]" in s:
+            sec = s[1:s.index("]")].strip().lower()
+            continue
+        if sec != section or not s or s[0] in ";#" or "=" not in s:
+            continue
+        k, v = s.split("=", 1)
+        if k.strip().lower() != key:
+            continue
+        v = v.strip()
+        return v[1:-1] if len(v) >= 2 and v[0] == v[-1] == '"' else v
+    return None
+
+
 def write_settings(ffmpeg):
-    """build/ascension-r.ini: this machine's paths, so Ascension-R.exe starts
-    without this script. A player's settings in the file are kept."""
+    """build/ascension-r.ini: the paths, so Ascension-R.exe starts without this script, kept relative to the settings
+    file's folder (port/portable_paths.h): the build folder's exe finds them wherever it is, and the tree can be
+    moved or copied whole. A player's settings in the file are kept."""
     path = os.path.join(BUILD, "ascension-r.ini")
     old_name = os.path.join(BUILD, "gowa.ini")
     if not os.path.exists(path) and os.path.exists(old_name):
@@ -3128,12 +3196,19 @@ def write_settings(ffmpeg):
     else:
         lines = ["; Ascension-R settings. [paths] is written by `gowa.py build`;",
                  "; the other sections are the player's.", ""]
-    ini_set(lines, "paths", "elf", game_elf())
-    ini_set(lines, "paths", "vfs", os.path.join(ROOT, "vfs"))
-    ini_set(lines, "paths", "hdd0", HDD0)
+    base = BUILD
+    # Bounded by the tree: the build folder is inside it, so vfs and gamedata are a way up, not a path of this PC. A
+    # folder of the player's (the game in RPCS3) stays absolute.
+    ini_set(lines, "paths", "elf", path_keep(game_elf(), base, ROOT))
+    ini_set(lines, "paths", "vfs", path_keep(os.path.join(ROOT, "vfs"), base, ROOT))
+    ini_set(lines, "paths", "hdd0", path_keep(HDD0, base, ROOT))
     if ffmpeg:
-        ini_set(lines, "paths", "ffmpeg", os.path.join(ffmpeg, "bin"))
-    ini_set(lines, "graphics", "shader_cache", os.path.join(BUILD, "d3d12_shader_cache.bin"), keep=True)
+        ini_set(lines, "paths", "ffmpeg", path_keep(os.path.join(ffmpeg, "bin"), base, ROOT))
+    # The cache beside the exe, unless the player chose another file or turned it off.
+    mine = os.path.join(BUILD, "d3d12_shader_cache.bin")
+    old = ini_get(lines, "graphics", "shader_cache")
+    if not old or (old.lower() != "off" and os.path.normcase(path_use(old, base)) == os.path.normcase(mine)):
+        ini_set(lines, "graphics", "shader_cache", path_keep(mine, base, ROOT))
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     say("settings: " + os.path.relpath(path, ROOT))

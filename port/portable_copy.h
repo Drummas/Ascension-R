@@ -1,5 +1,5 @@
 /*
- * Ascension-R -- a portable folder's first start takes the files of %LOCALAPPDATA%\Ascension-R along (portable_copy.cpp)
+ * Ascension-R -- a copy's first start takes the files of %LOCALAPPDATA%\Ascension-R along (portable_copy.cpp)
  */
 #ifndef GOWA_PORTABLE_COPY_H
 #define GOWA_PORTABLE_COPY_H
@@ -13,9 +13,10 @@
  * note what was done, for the log. */
 int portable_copy_from(const wchar_t* from, const wchar_t* to, char* note, size_t n);
 
-/* On the first start of a folder portable.txt marks, with none of the program's files in it yet: if
- * %LOCALAPPDATA%\Ascension-R has a settings file, the player is asked whether to copy its files here, and they are.
- * settings is the settings file the program is about to read. note, for the log, says what happened ("" for nothing). */
+/* On the first start of a folder, with none of the program's files in it yet (an older version kept them in
+ * %LOCALAPPDATA%\Ascension-R): if that folder has a settings file, the player is asked whether to copy its files here,
+ * and they are. settings is the settings file the program is about to read. note, for the log, says what happened
+ * ("" for nothing). */
 void portable_offer(const char* settings, char* note, size_t n);
 
 #endif
