@@ -197,12 +197,25 @@ MyMod\
   blue none: they look orange in the dump, the relief in alpha). An upscaler for photos treats alpha as transparency;
   upscale them as two grey channels, or rebuild the normal (z from x and y) and pack it back. A PNG of that kind gets
   its mip levels as a plain mean of each channel; a DDS brings its own.
-- **An upscaled pack of your own: `modtools.py upscale`.** Play with **Write out the game's textures** on through the
-  parts you want sharper, then:
+- **Every texture without playing: `modtools.py extract`.** It reads the game's own files (the disc's archives, and
+  its updates over them) and writes each DXT texture's first level as `<id>_<w>x<h>_<format>.dds`, the id the game
+  gives it on the GPU: a dump of the whole game, about 6,200 textures and 1.9 GB, in some 8 minutes. Of a texture's
+  copies (a level's WAD keeps its smaller levels and the stream beside it the whole one) only the biggest is written,
+  often bigger than the one the dump caught while playing; the port gives the others the same picture.
+
+  ```
+  python scripts\modtools.py extract textures-all
+  ```
+
+  (`--game` names the game's `PS3_GAME` folder and `--updates` its updates' `USRDIR`, where they are not the tree's
+  own.) What it cannot have are textures the game makes as it runs, and its other formats (A8R8G8B8, B8, X16); for
+  those, play with the dump on and run `upscale` on that dump too.
+- **An upscaled pack of your own: `modtools.py upscale`.** On the extract, or on a dump made with **Write out the
+  game's textures** on through the parts you want sharper:
 
   ```
   python -m pip install pillow numpy
-  python scripts\modtools.py upscale <the textures-dump folder> mods\Upscaled
+  python scripts\modtools.py upscale <the textures-dump or extract folder> mods\Upscaled
   ```
 
   It makes each colour texture, normal map and texture with transparency in the dump twice as big (`--scale 3` or `4`

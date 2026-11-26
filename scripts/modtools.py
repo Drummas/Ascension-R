@@ -2,6 +2,7 @@
 
     modtools.py textures <the mod's textures folder> [--dry-run]
     modtools.py patch <the mod's whole file> <the entry> <the mod's archive folder> [--game <the game's folder>]
+    modtools.py extract <a folder> [--game <the game's PS3_GAME folder>] [--updates <its updates' USRDIR>]
     modtools.py upscale <the textures dump> <the mod's folder> [--scale 2] [--upscaler lanczos|"<command>"] [...]
 
 textures: pictures that are one file byte for byte, kept once. The first by name stays; each other one's id goes
@@ -15,6 +16,13 @@ entry's path, with <entry>.PATCH.base beside it: the game's file it is made for 
 modpack.py checks, leaving the patch out for a game whose file is another. The game's file is the newest update's
 that brings it whole, else the disc's: --game names the disc's PS3_GAME folder (default the tree's vfs\\PS3_GAME) and
 --updates the updates' USRDIR (default the tree's gamedata\\dev_hdd0\\game\\<title>\\USRDIR).
+
+extract: every DXT texture of the game's files (the disc's archives, its updates over them: an update's whole file,
+or its .PATCH over the file it is made for), each as a DDS of its first level named as the dump names it,
+<id>_<w>x<h>_<format>.dds: a dump of the whole game without playing it, for upscale. A texture's id is the one the
+game gives it on the GPU (XXH64 of its first level); of its copies (the levels a level's WAD holds, the whole one its
+stream holds) only the biggest is written: the port gives the others the same picture. Files written already are not
+written again.
 
 upscale: a mod of the textures in a dump (textures-dump, the Mods tab's Write out the game's textures) made bigger,
 for this PC's own game: each colour texture, normal map and texture with transparency at --scale times its size,
@@ -38,6 +46,7 @@ import re
 import struct
 import subprocess
 import sys
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gametext as gt  # noqa: E402
@@ -296,10 +305,257 @@ def cmd_textures(args):
 
 
 # ---------------------------------------------------------------------------
+# the game's textures, from its files (extract, and texture_copies.py)
+# ---------------------------------------------------------------------------
+
+DXT_FORMATS = {b"DXT1": 0x86, b"DXT3": 0x87, b"DXT5": 0x88}
+_P1, _P2, _P3, _P4, _P5 = (0x9E3779B185EBCA87, 0xC2B2AE3D27D4EB4F, 0x165667B19E3779F9, 0x85EBCA77C2B2AE63,
+                           0x27D4EB2F165667C5)
+_M64 = (1 << 64) - 1
+
+
+def _rotl(x, r):
+    return ((x << r) | (x >> (64 - r))) & _M64
+
+
+def _xround(acc, lane):
+    acc = (acc + lane * _P2) & _M64
+    return (_rotl(acc, 31) * _P1) & _M64
+
+
+def xxh64(data, seed=0):
+    """XXH64, as its specification has it: what a texture's id is (ps3recomp's libs/video/rsx_tex_replace.h)."""
+    n, p = len(data), 0
+    if n >= 32:
+        v1, v2, v3, v4 = (seed + _P1 + _P2) & _M64, (seed + _P2) & _M64, seed & _M64, (seed - _P1) & _M64
+        lanes = struct.unpack_from("<%dQ" % (4 * (n // 32)), data, 0)
+        for i in range(0, len(lanes), 4):
+            v1 = _xround(v1, lanes[i])
+            v2 = _xround(v2, lanes[i + 1])
+            v3 = _xround(v3, lanes[i + 2])
+            v4 = _xround(v4, lanes[i + 3])
+        p = 32 * (n // 32)
+        h = (_rotl(v1, 1) + _rotl(v2, 7) + _rotl(v3, 12) + _rotl(v4, 18)) & _M64
+        for v in (v1, v2, v3, v4):
+            h ^= _xround(0, v)
+            h = (h * _P1 + _P4) & _M64
+    else:
+        h = (seed + _P5) & _M64
+    h = (h + n) & _M64
+    while p + 8 <= n:
+        h ^= _xround(0, struct.unpack_from("<Q", data, p)[0])
+        h = (_rotl(h, 27) * _P1 + _P4) & _M64
+        p += 8
+    if p + 4 <= n:
+        h ^= (struct.unpack_from("<I", data, p)[0] * _P1) & _M64
+        h = (_rotl(h, 23) * _P2 + _P3) & _M64
+        p += 4
+    while p < n:
+        h ^= (data[p] * _P5) & _M64
+        h = (_rotl(h, 11) * _P1) & _M64
+        p += 1
+    h ^= h >> 33
+    h = (h * _P2) & _M64
+    h ^= h >> 29
+    h = (h * _P3) & _M64
+    h ^= h >> 32
+    return h
+
+
+def tex_id(level, fmt, w, h):
+    """A texture's id: XXH64 of its first level as the game has it, the seed its format byte, width and height."""
+    return xxh64(level, (fmt & 0xFF) << 48 | (w & 0xFFFFFF) << 24 | (h & 0xFFFFFF))
+
+
+def wad_entries(d):
+    """[(name, type, offset of the data, size)] of a WAD-form file (a .WAD, an .AS)."""
+    o, out = 0, []
+    while o + 64 <= len(d):
+        tag, fl, size = struct.unpack(">HHI", d[o:o + 8])
+        if tag == 1:
+            out.append((d[o + 8:o + 64].split(b"\x00")[0].decode("latin-1"), fl, o + 64, size))
+        o = (o + 64 + size + 15) & ~15
+    return out
+
+
+def level_bytes(w, h, bpb):
+    return max(1, w // 4) * max(1, h // 4) * bpb
+
+
+def chain_bytes(w, h, bpb):
+    t = 0
+    while True:
+        t += level_bytes(w, h, bpb)
+        if w == 1 and h == 1:
+            return t
+        w, h = max(1, w // 2), max(1, h // 2)
+
+
+def first_level(w, h, bpb, n):
+    """The first level an entry's n bytes of levels start from: 0 when they hold level 0, else the level whose chain
+    down to 1x1 they are; None when no level fits."""
+    if n >= level_bytes(w, h, bpb):
+        return 0
+    for k in range(1, 16):
+        lw, lh = max(1, w >> k), max(1, h >> k)
+        if n >= level_bytes(lw, lh, bpb) and abs(chain_bytes(lw, lh, bpb) - n) <= 64:
+            return k
+        if lw == 1 and lh == 1:
+            break
+    return None
+
+
+def texture_copies(d, ts):
+    """(name, format byte, width, height, first level's bytes) of each copy of each DXT texture entry of a WAD-form
+    file: the levels the entry holds (all, or from level 2 down for a level's WAD whose stream has the rest), and the
+    whole first level its stream (ts, the .TS beside the .WAD or .AS) holds at the entry's offset. Each reaches the
+    GPU with an id of its own."""
+    for name, fl, at, size in wad_entries(d):
+        if fl != 0x16 or size < 208 or not name.upper().startswith("TX"):
+            continue
+        b = d[at:at + size]
+        off, nlev = struct.unpack_from(">II", b, 60)
+        h, w = struct.unpack_from("<II", b, 80 + 12)
+        fmt = DXT_FORMATS.get(bytes(b[80 + 84:80 + 88]))
+        if not fmt or not w or not h or w > 8192 or h > 8192:
+            continue
+        bpb = 8 if fmt == 0x86 else 16
+        k = first_level(w, h, bpb, size - 208)
+        if k is not None:
+            lw, lh = max(1, w >> k), max(1, h >> k)
+            yield name, fmt, lw, lh, bytes(b[208:208 + level_bytes(lw, lh, bpb)])
+        if k != 0 and ts is not None and off < 0xFFFFFFF0 and nlev <= 16 and off + level_bytes(w, h, bpb) <= len(ts):
+            yield name, fmt, w, h, bytes(ts[off:off + level_bytes(w, h, bpb)])
+
+
+def update_files(updates):
+    """Each .AS, .WAD and .TS the updates bring, by its name in capitals: (archive, entry, whether a .PATCH), the newest
+    update's (TPPS<n> over TPPS<n-1> ... over TPPS)."""
+    out = {}
+    if not updates or not os.path.isfile(os.path.join(updates, "PATCHES")):
+        return out
+    for k in range(0, gt.patch_count(updates) + 1):
+        arc = os.path.join(updates, "TPPS%s.PSARC" % (k or ""))
+        if not os.path.isfile(arc):
+            continue
+        for name in gt.psarc_names(arc):
+            u = name.upper()
+            if u.endswith((".AS", ".WAD", ".TS")):
+                out[u] = (arc, name, False)
+            elif u.endswith((".AS.PATCH", ".WAD.PATCH", ".TS.PATCH")):
+                out[u[:-6]] = (arc, name, True)
+    return out
+
+
+def game_file(name, disc_arc, upd, disc, updates):
+    """A file as the game reads it: an update's whole copy, or the newest update's .PATCH over the file it is made
+    for, else the disc's. None when it cannot be had."""
+    got = upd.get(name.upper())
+    if got:
+        arc, entry, patch = got
+        data = gt.psarc_read(arc, {entry})[entry]
+        if not patch:
+            return data
+        base = newest_whole(entry[:-6], disc, updates)
+        return apply_patch(base[1], data) if base else None
+    return gt.psarc_read(disc_arc, {name})[name] if disc_arc else None
+
+
+def game_textures(disc, updates=None, log=print):
+    """Every copy of every DXT texture in the game's files, as the game reads them (its updates over its disc): (file,
+    texture name, format byte, width, height, first level's bytes). disc: the disc's USRDIR."""
+    upd = update_files(updates)
+    seen = set()
+    arcs = sorted(f for f in os.listdir(disc) if f.upper().endswith(".PSARC") and not f.upper().startswith("TPPS"))
+    t0 = time.time()
+    for i, a in enumerate(arcs):
+        p = os.path.join(disc, a)
+        try:
+            names = gt.psarc_names(p)
+        except (OSError, gt.TextError) as e:
+            log("  %s: left out (%s)" % (a, e))
+            continue
+        have = {n.upper(): n for n in names}
+        for n in names:
+            if not n.upper().endswith((".AS", ".WAD")) or n.upper() in seen:
+                continue
+            seen.add(n.upper())
+            d = game_file(n, p, upd, disc, updates)
+            tsu = os.path.splitext(n)[0].upper() + ".TS"
+            ts = game_file(have.get(tsu, tsu), p if tsu in have else None, upd, disc, updates) \
+                if tsu in have or tsu in upd else None
+            if d is None:
+                continue
+            for c in texture_copies(d, ts):
+                yield (n,) + c
+        log("  %d/%d %s, %.0f s" % (i + 1, len(arcs), a, time.time() - t0))
+    for u, (arc, entry, patch) in sorted(upd.items()):   # files only an update has
+        if not u.endswith((".AS", ".WAD")) or u in seen:
+            continue
+        seen.add(u)
+        d = game_file(entry[:-6] if patch else entry, None, upd, disc, updates)
+        tsu = os.path.splitext(u)[0] + ".TS"
+        ts = game_file(tsu, None, upd, disc, updates) if tsu in upd else None
+        if d is not None:
+            for c in texture_copies(d, ts):
+                yield (entry,) + c
+
+
+def dds_of_level(fmt, w, h, level):
+    """A DDS of one DXT level, as the game has it."""
+    cc = {0x86: b"DXT1", 0x87: b"DXT3", 0x88: b"DXT5"}[fmt]
+    head = struct.pack("<4sIIIIIII", b"DDS ", 124, 0x1 | 0x2 | 0x4 | 0x1000 | 0x80000, h, w, len(level), 0, 1)
+    head += b"\0" * 44 + struct.pack("<II4sIIIII", 32, 0x4, cc, 0, 0, 0, 0, 0) + struct.pack("<IIIII", 0x1000, 0, 0, 0, 0)
+    return head + level
+
+
+def cmd_extract(args):
+    game = args.game or os.path.join(gt.ROOT, "vfs", "PS3_GAME")
+    disc = os.path.join(game, "USRDIR") if os.path.isdir(os.path.join(game, "USRDIR")) else game
+    if not os.path.isdir(disc) or not any(f.upper().endswith(".PSARC") for f in os.listdir(disc)):
+        raise ModError("no game's archives in %s (--game: the game's PS3_GAME folder)" % disc)
+    updates = args.updates or next((u for u in (os.path.join(gt.ROOT, "gamedata", "dev_hdd0", "game", t, "USRDIR")
+                                                for t in gt.TITLES)
+                                    if os.path.isfile(os.path.join(u, "PATCHES"))), None)
+    os.makedirs(args.out, exist_ok=True)
+    print("the disc's archives in %s; its updates %s" % (disc, updates or "not found: the disc's textures alone"))
+    # Each texture's biggest copies (its other copies take their pictures through the port's table of copies), each
+    # written once as it comes, the smaller ones of a texture removed at the end.
+    biggest, written, ids = {}, {}, set()
+    t0 = time.time()
+    for _, name, fmt, w, h, level in game_textures(disc, updates, log=print if args.verbose else lambda s: None):
+        key = name.upper()
+        area = w * h
+        if area < biggest.get(key, 0):
+            continue
+        biggest[key] = area
+        tid = "%016x" % tex_id(level, fmt, w, h)
+        if tid in ids:
+            continue
+        ids.add(tid)
+        path = os.path.join(args.out, "%s_%dx%d_%02X.dds" % (tid, w, h, fmt))
+        written.setdefault(key, []).append((area, path))
+        if not os.path.isfile(path):
+            with open(path + ".part", "wb") as f:
+                f.write(dds_of_level(fmt, w, h, level))
+            os.replace(path + ".part", path)
+    gone = 0
+    for key, files in written.items():
+        for area, path in files:
+            if area < biggest[key] and os.path.isfile(path):
+                os.remove(path)
+                gone += 1
+    kept = sum(1 for key, files in written.items() for area, path in files if area == biggest[key])
+    print("%d textures, %d files of their biggest copies in %s (%d smaller copies left out), %.0f s" % (
+        len(biggest), kept, args.out, gone, time.time() - t0))
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # upscale
 # ---------------------------------------------------------------------------
 
-DUMP_NAME = re.compile(r"^([0-9a-fA-F]{16})_(\d+)x(\d+)_([0-9A-Fa-f]{2})\.png$")
+DUMP_NAME = re.compile(r"^([0-9a-fA-F]{16})_(\d+)x(\d+)_([0-9A-Fa-f]{2})\.(?:png|dds)$", re.I)
 # The game's textures that take a picture as RGBA (rsx_tex_replace.h): the 16-bit colour ones, A8R8G8B8, DXT1/3/5.
 COLOUR_FORMATS = {0x82, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x97, 0x9D, 0x9E}
 KINDS = ("colour", "alpha", "normal")
@@ -638,6 +894,11 @@ def main(argv=None):
     q.add_argument("archive", help="the mod's archive folder")
     q.add_argument("--game", help="the game's PS3_GAME folder (default: the tree's)")
     q.add_argument("--updates", help="the game's updates' USRDIR (default: the tree's gamedata)")
+    x = sub.add_parser("extract", help="every texture of the game's files, as the dump names them, without playing")
+    x.add_argument("out", help="the folder to write them into (for upscale)")
+    x.add_argument("--game", help="the game's PS3_GAME folder (default: the tree's vfs\\PS3_GAME)")
+    x.add_argument("--updates", help="the game's updates' USRDIR (default: the tree's gamedata)")
+    x.add_argument("--verbose", action="store_true", help="say each archive as it is read")
     u = sub.add_parser("upscale", help="a mod of the dumped textures made bigger, as DDS")
     u.add_argument("dump", help="the textures dump (textures-dump beside the settings)")
     u.add_argument("mod", help="the mod's folder to write (its textures\\ and mod.ini)")
@@ -658,7 +919,7 @@ def main(argv=None):
     u.add_argument("--dry-run", action="store_true", help="say what it would make, write nothing")
     a = p.parse_args(argv)
     try:
-        return {"patch": cmd_patch, "textures": cmd_textures, "upscale": cmd_upscale}[a.cmd](a)
+        return {"patch": cmd_patch, "textures": cmd_textures, "upscale": cmd_upscale, "extract": cmd_extract}[a.cmd](a)
     except (ModError, OSError, gt.TextError) as e:
         print("modtools: %s" % e, file=sys.stderr)
         return 1

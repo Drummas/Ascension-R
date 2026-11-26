@@ -4,9 +4,11 @@
 
 A texture of the game (an entry named TX<hash>.<hash>.dds in a .WAD or an .AS) can be in several archives, and not
 always whole: an .AS holds a stub whose levels are in the .TS beside it, and a level's WAD often holds only the levels
-a stream does not, from level 2 down, which the game draws with, as a texture of their own size, until the stream's
-arrive (and in some of its cinematics, all along). Each copy reaches the GPU with an id of its own (XXH64 of its first
-level, ps3recomp's libs/video/rsx_tex_replace.h), so a mod's picture for one would leave the others the game's.
+its own stream (the .TS beside the .WAD) does not, from level 2 down, which the game draws with, as a texture of their
+own size, until the stream's arrive (and in some of its cinematics, all along). Each copy reaches the GPU with an id
+of its own (XXH64 of its first level, ps3recomp's libs/video/rsx_tex_replace.h), so a mod's picture for one would
+leave the others the game's. The reading is modtools.py's (texture_copies); until 2026-11-26 a WAD's stream was not
+read, and its textures' whole copies were in no group.
 
 This writes, for each texture with copies of more than one id, every copy's id and size, so the layer can give a
 picture for one copy to all of them (scaled down for the smaller ones). DXT1/3/5 only: the game's other formats are
@@ -24,123 +26,24 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import gametext as gt  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FMT = {b"DXT1": 0x86, b"DXT3": 0x87, b"DXT5": 0x88}
 
-# XXH64, as its specification has it (the ids are XXH64 of a texture's first level, the seed its format byte, width
-# and height: format << 48 | width << 24 | height).
-P1, P2, P3, P4, P5 = (0x9E3779B185EBCA87, 0xC2B2AE3D27D4EB4F, 0x165667B19E3779F9, 0x85EBCA77C2B2AE63,
-                      0x27D4EB2F165667C5)
-M64 = (1 << 64) - 1
+# The reading of the game's texture entries and their ids is modtools.py's (its extract writes them for upscale).
+import modtools as mt  # noqa: E402
 
-
-def _rotl(x, r):
-    return ((x << r) | (x >> (64 - r))) & M64
-
-
-def _round(acc, lane):
-    acc = (acc + lane * P2) & M64
-    return (_rotl(acc, 31) * P1) & M64
-
-
-def xxh64(data, seed=0):
-    n, p = len(data), 0
-    if n >= 32:
-        v1, v2, v3, v4 = (seed + P1 + P2) & M64, (seed + P2) & M64, seed & M64, (seed - P1) & M64
-        lanes = struct.unpack_from("<%dQ" % (4 * (n // 32)), data, 0)
-        for i in range(0, len(lanes), 4):
-            v1 = _round(v1, lanes[i])
-            v2 = _round(v2, lanes[i + 1])
-            v3 = _round(v3, lanes[i + 2])
-            v4 = _round(v4, lanes[i + 3])
-        p = 32 * (n // 32)
-        h = (_rotl(v1, 1) + _rotl(v2, 7) + _rotl(v3, 12) + _rotl(v4, 18)) & M64
-        for v in (v1, v2, v3, v4):
-            h ^= _round(0, v)
-            h = (h * P1 + P4) & M64
-    else:
-        h = (seed + P5) & M64
-    h = (h + n) & M64
-    while p + 8 <= n:
-        h ^= _round(0, struct.unpack_from("<Q", data, p)[0])
-        h = (_rotl(h, 27) * P1 + P4) & M64
-        p += 8
-    if p + 4 <= n:
-        h ^= (struct.unpack_from("<I", data, p)[0] * P1) & M64
-        h = (_rotl(h, 23) * P2 + P3) & M64
-        p += 4
-    while p < n:
-        h ^= (data[p] * P5) & M64
-        h = (_rotl(h, 11) * P1) & M64
-        p += 1
-    h ^= h >> 33
-    h = (h * P2) & M64
-    h ^= h >> 29
-    h = (h * P3) & M64
-    h ^= h >> 32
-    return h
-
-
-def tex_id(level, fmt, w, h):
-    return xxh64(level, (fmt & 0xFF) << 48 | (w & 0xFFFFFF) << 24 | (h & 0xFFFFFF))
-
-
-def entries(d):
-    """[(name, type, offset of the data, size)] of a WAD-form file (a .WAD, an .AS)."""
-    o, out = 0, []
-    while o + 64 <= len(d):
-        tag, fl, size = struct.unpack(">HHI", d[o:o + 8])
-        if tag == 1:
-            out.append((d[o + 8:o + 64].split(b"\x00")[0].decode("latin-1"), fl, o + 64, size))
-        o = (o + 64 + size + 15) & ~15
-    return out
-
-
-def level_bytes(w, h, bpb):
-    return max(1, w // 4) * max(1, h // 4) * bpb
-
-
-def chain_bytes(w, h, bpb):
-    t = 0
-    while True:
-        t += level_bytes(w, h, bpb)
-        if w == 1 and h == 1:
-            return t
-        w, h = max(1, w // 2), max(1, h // 2)
-
-
-def first_level(w, h, bpb, n):
-    """The first level an entry's n bytes of levels start from: 0 when they hold level 0, else the level whose chain
-    down to 1x1 they are; None when no level fits."""
-    if n >= level_bytes(w, h, bpb):
-        return 0
-    for k in range(1, 16):
-        lw, lh = max(1, w >> k), max(1, h >> k)
-        if n >= level_bytes(lw, lh, bpb) and abs(chain_bytes(lw, lh, bpb) - n) <= 64:
-            return k
-        if lw == 1 and lh == 1:
-            break
-    return None
+FMT = mt.DXT_FORMATS
+xxh64 = mt.xxh64
+tex_id = mt.tex_id
+entries = mt.wad_entries
+level_bytes = mt.level_bytes
+chain_bytes = mt.chain_bytes
+first_level = mt.first_level
 
 
 def copies(d, ts):
-    """(name, id, width, height) of each texture entry of a WAD-form file that has its first level here or in ts."""
-    for name, fl, at, size in entries(d):
-        if fl != 0x16 or size < 208 or not name.upper().startswith("TX"):
-            continue
-        b = d[at:at + size]
-        off, nlev = struct.unpack_from(">II", b, 60)
-        h, w = struct.unpack_from("<II", b, 80 + 12)
-        fmt = FMT.get(bytes(b[80 + 84:80 + 88]))
-        if not fmt or not w or not h or w > 8192 or h > 8192:
-            continue
-        bpb = 8 if fmt == 0x86 else 16
-        k = first_level(w, h, bpb, size - 208)
-        if k is not None:
-            lw, lh = max(1, w >> k), max(1, h >> k)
-            n = level_bytes(lw, lh, bpb)
-            yield name, tex_id(b[208:208 + n], fmt, lw, lh), lw, lh
-        elif ts is not None and off < 0xFFFFFFF0 and nlev <= 16 and off + level_bytes(w, h, bpb) <= len(ts):
-            yield name, tex_id(ts[off:off + level_bytes(w, h, bpb)], fmt, w, h), w, h
+    """(name, id, width, height) of each copy of each texture entry of a WAD-form file: the levels it holds, and the
+    whole first level its stream (ts) holds."""
+    for name, fmt, w, h, level in mt.texture_copies(d, ts):
+        yield name, tex_id(level, fmt, w, h), w, h
 
 
 def scan(usrdir, found, log=print):
@@ -158,9 +61,10 @@ def scan(usrdir, found, log=print):
         have = set(names)
         for n in files:
             d = gt.psarc_read(a, {n})[n]
-            ts = None
-            if n.upper().endswith(".AS") and n[:-3] + ".TS" in have:
-                ts = gt.psarc_read(a, {n[:-3] + ".TS"})[n[:-3] + ".TS"]
+            ts = None   # the stream beside an .AS, and beside a level's .WAD (its textures' first levels)
+            tsn = os.path.splitext(n)[0] + ".TS"
+            if tsn in have:
+                ts = gt.psarc_read(a, {tsn})[tsn]
             for name, tid, w, h in copies(d, ts):
                 found.setdefault(name.upper(), {})[tid] = (w, h)
         log("  %d/%d %s: %d files, %.0f s" % (i + 1, len(arcs), os.path.basename(a), len(files), time.time() - t0))

@@ -109,3 +109,32 @@ UltraSharp 49.17. 1:1 crops at the same moments: finer pores and scratches on Kr
 and grain on the wooden wall; nothing broken, the normal maps' shading the same. At 1280x720 the two are hard to tell
 apart: the game's own textures already hold about as many texels as such a frame shows at this distance. The gain is
 for 1440p, 4K and close views.
+
+## Every texture without playing (modtools.py extract)
+
+A dump holds what was drawn while it was on: a pack made from it covers the parts played. The game's files hold the
+textures, and their ids can be worked out from them: XXH64 of the first level's bytes as the files have them (DXT is
+uploaded as it is stored).
+
+- **What the first scan missed.** `texture_copies.py` read each `.AS` with the `.TS` beside it, and each `.WAD`
+  alone: 6,207 ids from the disc, 6,545 with the updates' files, and 84-86% of the DXT textures of two dumps. The
+  disc has 743 `.WAD` and 741 `.TS`: a level's WAD keeps each texture's levels from level 2 down, and the stream beside
+  it the whole first level at the entry's offset. Reading those streams: 9,361 ids, and 801 of the 806 DXT textures of
+  the newer dump (99.4%). Of the five left, three are partly streamed textures (stripes, noise) and two normal maps
+  whose file was not found; of the older dump's 24 (2026-11-19/20, before the #9 fix), most are partly streamed.
+- **`modtools.py extract <folder>`** (the reading moved from `texture_copies.py` into `modtools.py`, which the Kit
+  has; `texture_copies.py` imports it): every DXT texture of the disc's archives, the updates over them (an update's
+  whole file, or its newest `.PATCH` over the file it is made for), each written as a DDS of its first level,
+  `<id>_<w>x<h>_<format>.dds`, as the dump names a texture. Of a texture's copies only the biggest is written. The EU
+  disc with its updates: 6,164 textures, 1.9 GB, about 7.5 minutes. `upscale` takes these files as it takes a dump's.
+- **What the game draws.** A run of the bench route with the dump on (this build): 385 DXT textures drawn; 76 only
+  whole, 229 first as the WAD's smaller copy and then whole once streamed, 80 only as the smaller copy (a quarter of
+  each side), never streamed in the 150 s. Of the older dump's 806, 397 were smaller copies of a texture the files hold
+  bigger: the same pictures (median difference 1.6 of 255 against the biggest scaled down; the large ones differ only
+  where alpha is 0).
+- **The table of copies** (`port/texture_copies.inc`), made again with the WADs' streams: the smaller copies a level
+  draws before (or without) streaming now take the picture made for the whole texture.
+  The EU disc: 3,695 textures with copies, 7,392 copies (329 and 660 before). On the bench route, a pack made from the
+  extract has a picture for 614 of the 616 DXT textures drawn: 305 themselves, 309 through the table. The UltraSharp
+  pack made from the dump (779 pictures) now stands for 929 textures, 150 of them other copies (38 with the old
+  table); one run: 49.12 flips a second.

@@ -164,6 +164,72 @@ class Textures(unittest.TestCase):
             self.assertEqual(mt.fold_textures(d)[1:], (0, []))   # again: nothing more
 
 
+def tex_entry(name, fmt, w, h, levels, off=0xFFFFFFFF, nlev=0):
+    """A WAD-form file's texture entry as the game's are: the 64-byte header (type 1, flags 0x16), 208 bytes of the
+    texture's own header (the stream's offset and levels at 60, its DDS header at 80) and the levels it holds."""
+    b = bytearray(208)
+    struct.pack_into(">II", b, 60, off, nlev)
+    struct.pack_into("<II", b, 80 + 12, h, w)
+    b[80 + 84:80 + 88] = fmt
+    data = bytes(b) + levels
+    head = struct.pack(">HHI", 1, 0x16, len(data)) + name.encode().ljust(56, b"\0")
+    return (head + data).ljust((64 + len(data) + 15) & ~15, b"\0")
+
+
+def blocks(n, seed):
+    return noise(n, seed)
+
+
+class Extract(unittest.TestCase):
+    """modtools.py extract on a made-up game: a level's WAD whose stream holds its texture's first level, an .AS with a
+    whole texture that an update's .PATCH changes, a WAD only an update has."""
+
+    def test_every_texture_its_biggest_copy_as_the_game_reads_it(self):
+        with tempfile.TemporaryDirectory() as d:
+            disc = os.path.join(d, "PS3_GAME", "USRDIR")
+            upd = os.path.join(d, "upd")
+            os.makedirs(disc)
+            os.makedirs(upd)
+            # TXA, 64x64 DXT1: the WAD holds levels 2 down (16x16: 128+32+8+8+8 bytes), its stream level 0 (2,048).
+            a0, a_small = blocks(2048, 1), blocks(184, 2)
+            wad = tex_entry("TXA.1.DDS", b"DXT1", 64, 64, a_small, off=0, nlev=7)
+            # TXB, 8x8 DXT5, whole in the .AS (level 0 64 bytes, then 16, 16, 16).
+            b0 = blocks(64, 3)
+            asf = tex_entry("TXB.2.DDS", b"DXT5", 8, 8, b0 + blocks(48, 4))
+            Path(disc, "LEVEL.PSARC").write_bytes(gt.psarc_pack({"/WAD/PS3_BE/LEVEL.WAD": wad,
+                                                                 "/WAD/PS3_BE/LEVEL.TS": a0,
+                                                                 "/WAD/PS3_BE/R_X.AS": asf}))
+            # The updates: TXB's first level changed by a .PATCH of the .AS; a WAD of their own with TXC.
+            b0new = blocks(64, 5)
+            asf2 = asf.replace(b0, b0new)
+            c0 = blocks(64, 6)   # 8x8 DXT3: 2x2 blocks of 16 bytes
+            Path(upd, "PATCHES").write_bytes(b"1")
+            Path(upd, "TPPS.PSARC").write_bytes(gt.psarc_pack({"/WAD/PS3_BE/NEW.WAD": tex_entry(
+                "TXC.3.DDS", b"DXT3", 8, 8, c0 + blocks(48, 7))}))
+            Path(upd, "TPPS1.PSARC").write_bytes(gt.psarc_pack({"/WAD/PS3_BE/R_X.AS.PATCH": mt.make_patch(asf, asf2)}))
+            out = os.path.join(d, "out")
+            self.assertEqual(mt.main(["extract", out, "--game", os.path.join(d, "PS3_GAME"), "--updates", upd]), 0)
+            want = sorted(["%016x_64x64_86.dds" % mt.tex_id(a0, 0x86, 64, 64),
+                           "%016x_8x8_88.dds" % mt.tex_id(b0new, 0x88, 8, 8),
+                           "%016x_8x8_87.dds" % mt.tex_id(c0, 0x87, 8, 8)])
+            self.assertEqual(sorted(os.listdir(out)), want)   # TXA's 16x16 copy is not written; TXB as patched
+            got = [f for f in want if f.endswith("_64x64_86.dds")][0]
+            dds = Path(out, got).read_bytes()
+            self.assertEqual((dds[:4], dds[84:88], dds[128:]), (b"DDS ", b"DXT1", a0))
+            # The table of copies reads the same: the WAD's copy and its stream's, one texture.
+            ids = {mt.tex_id(lv, f, w, h): (n, w, h) for n, f, w, h, lv in mt.texture_copies(wad, a0)}
+            self.assertEqual(sorted((w, h) for n, w, h in ids.values()), [(16, 16), (64, 64)])
+            # Again: nothing written again.
+            t = os.path.getmtime(os.path.join(out, got))
+            self.assertEqual(mt.main(["extract", out, "--game", os.path.join(d, "PS3_GAME"), "--updates", upd]), 0)
+            self.assertEqual(os.path.getmtime(os.path.join(out, got)), t)
+
+    def test_the_moved_xxh64(self):
+        self.assertEqual(mt.xxh64(b""), 0xEF46DB3751D8E999)
+        self.assertEqual(mt.xxh64(b"abc"), 0x44BC2CF5AD770999)
+        self.assertEqual(mt.xxh64(b"Nobody inspects the spammish repetition"), 0xFBCEA83C8A378BF1)
+
+
 FAKE_UPSCALER = r'''
 import os, sys
 from PIL import Image
