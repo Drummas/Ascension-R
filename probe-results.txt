@@ -1,0 +1,73 @@
+clang-cl: clang version 20.1.8
+cmake: cmake version 4.5.0
+ninja: 1.13.2
+where clang-cl: C:\Program Files\LLVM\bin\clang-cl.exe
+_CL_ env: None
+VSCMD: '18.0' / '14.52.37025'
+== the line CMake runs ==
+ok | full (as CMake runs it) | rc=0 | 
+== one argument at a time, taken out of the full line ==
+ok | full without -- | rc=0 | 
+ok | full without /showIncludes | rc=0 | 
+ok | full without -MDd | rc=0 | 
+ok | full without /FdCMakeFiles\cmTC.dir\ | rc=0 | 
+ok | full without /Zi | rc=0 | 
+ok | full without /RTC1 | rc=0 | 
+ok | full without /D_WINDOWS | rc=0 | 
+ok | full without /nologo | rc=0 | 
+== built up from nothing ==
+ok | first 1 args | rc=0 | 
+ok | first 2 args | rc=0 | 
+ok | first 3 args | rc=0 | 
+ok | first 4 args | rc=0 | 
+ok | first 5 args | rc=0 | 
+ok | first 6 args | rc=0 | 
+ok | first 7 args | rc=0 | 
+ok | first 8 args | rc=0 | 
+ok | first 9 args | rc=0 | 
+ok | first 10 args | rc=0 | 
+ok | first 11 args | rc=0 | 
+ok | first 12 args | rc=0 | 
+ok | first 13 args | rc=0 | 
+ok | first 14 args | rc=0 | 
+== single arguments with the source ==
+ok | -c | rc=0 | 
+ok | ;-without-source-order -c | rc=0 | 
+ok | /showIncludes; -c | rc=0 | 
+ok | ;-without-source-order /showIncludes; -c | rc=0 | 
+ok | -MDd; -c | rc=0 | 
+ok | ;-without-source-order -MDd; -c | rc=0 | 
+ok | /FdCMakeFiles\cmTC.dir\; -c | rc=0 | 
+ok | ;-without-source-order /FdCMakeFiles\cmTC.dir\; -c | rc=0 | 
+ok | -c; -- | rc=0 | 
+ok | ;-without-source-order -c; -- | rc=0 | 
+ok | /FoCMakeFiles\cmTC.dir\testCCompiler.c.obj; -c | rc=0 | 
+ok | ;-without-source-order /FoCMakeFiles\cmTC.dir\testCCompiler.c.obj; -c | rc=0 | 
+ok | /nologo; /FoCMakeFiles\cmTC.dir\testCCompiler.c.obj; -c | rc=0 | 
+ok | ;-without-source-order /nologo; /FoCMakeFiles\cmTC.dir\testCCompiler.c.obj; -c | rc=0 | 
+== other shapes ==
+ok | -Fo (dash form) | rc=0 | 
+ok | /Fo relative, /Fd relative, /showIncludes, /c | rc=0 | 
+MULTI | with _CL_ set as the runner sets it | rc=1 | clang-cl: error: cannot specify '/FoCMakeFiles\cmTC.dir\testCCompiler.c.obj' when compiling multiple source files
+ok | _CL_ empty | rc=0 | 
+FAIL | working directory inside CMakeFiles | rc=1 | error: unable to open output file 'CMakeFiles\cmTC.dir\testCCompiler.c.obj': 'no such file or directory'
+ok | full line, _CL_ set, no -- | rc=0 | 
+== CMake itself ==
+ok | configure: plain | rc=0 | 
+ok | build: plain | rc=0 | 
+FAIL | configure: plain, _CL_ set as CI sets it | rc=1 | -- The C compiler identification is Clang 20.1.8 with MSVC-like command-line
+ok | configure: frontend variant MSVC | rc=0 | 
+ok | build: frontend variant MSVC | rc=0 | 
+ok | configure: works 1 | rc=0 | 
+ok | build: works 1 | rc=0 | 
+FAIL | configure: unix makefiles | rc=1 | -- The C compiler identification is Clang 20.1.8 with MSVC-like command-line
+== the STL switch: does it matter, and does a flag replace _CL_ ==
+ok | C++ configure: no switch | rc=0 | 
+FAIL | C++ build: no switch | rc=1 | [1/2] Building CXX object CMakeFiles\mini2.dir\t.cpp.obj
+FAIL | C++ configure: _CL_ switch | rc=1 | -- The CXX compiler identification is Clang 20.1.8 with MSVC-like command-line
+ok | C++ configure: CMAKE_CXX_FLAGS switch | rc=0 | 
+FAIL | C++ build: CMAKE_CXX_FLAGS switch | rc=1 | [1/2] Building CXX object CMakeFiles\mini2.dir\t.cpp.obj
+ok | C++ configure: CMAKE_CXX_FLAGS_INIT switch | rc=0 | 
+ok | C++ build: CMAKE_CXX_FLAGS_INIT switch | rc=0 | 
+ok | C++ configure: CFLAGS/CXXFLAGS switch | rc=0 | 
+ok | C++ build: CFLAGS/CXXFLAGS switch | rc=0 | 
