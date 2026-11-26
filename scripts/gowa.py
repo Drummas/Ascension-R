@@ -1499,7 +1499,10 @@ def cmd_build(args):
     # passes it -MD/-MT/-MF there. clang 22 counts one of those as a second source file and the test fails with "cannot
     # specify '/Fo...' when compiling multiple source files" (LLVM bug 216085, fixed after 22). Saying which frontend
     # it is up front makes the test use MSVC's own flags (/showIncludes), as the build after it does.
-    frontend = (["-DCMAKE_C_COMPILER_FRONTEND_VARIANT=MSVC", "-DCMAKE_CXX_COMPILER_FRONTEND_VARIANT=MSVC"]
+    frontend = (["-DCMAKE_C_COMPILER_FRONTEND_VARIANT=MSVC", "-DCMAKE_CXX_COMPILER_FRONTEND_VARIANT=MSVC",
+                 # Not the compiler's own -MD/-MT depfiles: clang 22 counts one of those arguments as a source file
+                 # too, and every compile then stops on "cannot specify '/Fo...'" (LLVM bug 216085).
+                 "-DCMAKE_DEPENDS_USE_COMPILER=OFF"]
                 if compiler == "clang-cl" else [])
     rc = run(["cmake", "-S", ROOT, "-B", BUILD, "-G", "Ninja",
               "-DCMAKE_BUILD_TYPE=" + args.config,

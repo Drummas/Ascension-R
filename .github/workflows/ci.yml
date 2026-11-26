@@ -93,7 +93,7 @@ jobs:
             # The log is only readable to whoever is signed in; this puts the first errors on the run page itself.
             first=$(grep -m 4 -iE 'error|fatal' launcher-build.log | tr '\n' '|' | cut -c 1-300)
             ctx=$(sed -n '/CMake Error/,$p' launcher-build.log | head -25 | tr '\n' '|' | cut -c 1-1000)
-            echo "::error::$first -- $ctx"
+            echo "::error::$(head -1 launcher-build.log) -- $first -- $ctx"
             exit $rc
           fi
           test -f build/Ascension-R.exe
