@@ -1,3 +1,14 @@
+## v0.5.0
+
+**Ascension-R 0.5.0** is the version that can be moved: an installed folder keeps everything it uses inside itself.
+
+- **Installation:** every path in `ascension-r.ini` is kept relative to the folder the settings live in (now beside
+  `Ascension-R.exe`), so an installed folder can be moved or copied whole, to another drive or another PC, and
+  nothing is written outside it. A copy whose settings are still in `%LOCALAPPDATA%\Ascension-R` is offered its files
+  on the first start, and their paths are made relative with them.
+- **Releases:** the Release workflow lifts the game's code, compiles `Ascension-R.exe` and packages the Kit on the
+  release machine, and the release page appears only once its files are on it.
+
 ## v0.4.1
 
 **Ascension-R 0.4.1** is the version the launcher's Clean look, the graphics options added since 0.2.0 and the
@@ -17,6 +28,3 @@ multiplayer work come together in.
 - **Runtime:** a SPURS policy module that runs on for seconds is logged with the SPU's events, interrupts, parked
   lists and reservation (#50).
 - **Fixed:** the black squares and triangles on the floor under Megaera were a shadow map ending at its corner.
-- **Installation:** every path in `ascension-r.ini` is kept relative to the folder the settings live in (now
-  beside `Ascension-R.exe`), so an installed folder can be moved or copied whole, and nothing is written
-  outside it.
