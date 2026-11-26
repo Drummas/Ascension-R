@@ -509,6 +509,8 @@ def cmd_upscale(args):
         raise ModError("no folder %s" % args.dump)
     if args.scale not in (2, 3, 4):
         raise ModError("--scale is 2, 3 or 4")
+    if args.batch < 1:
+        raise ModError("--batch is 1 or more")
     out_dir = os.path.join(args.mod, "textures")
     os.makedirs(out_dir, exist_ok=True)
     only = {i.strip().lower() for i in args.only.split(",")} if args.only else None
@@ -566,36 +568,42 @@ def cmd_upscale(args):
                 if made % 50 == 0:
                     print("  %d of %d" % (made, len(todo)))
     else:
+        import shutil
         import tempfile
         batch = "{in_dir}" in args.upscaler
         with tempfile.TemporaryDirectory(prefix="upscale-") as tmp:
-            src_dir, dst_dir = os.path.join(tmp, "in"), os.path.join(tmp, "out")
-            os.makedirs(src_dir)
-            os.makedirs(dst_dir)
-            preps = {}
-            for j in todo:
-                by_up = j.kind != "normal" or args.normals == "upscaler"
-                preps[j.id] = prepare(j, by_up)
-                if by_up:
-                    Image.fromarray(preps[j.id]["rgb"], "RGB").save(os.path.join(src_dir, j.id + ".png"))
-            if batch:
-                run_upscaler(args.upscaler, src_dir, dst_dir, args.scale)
-            for j in todo:
-                up = None
-                if preps[j.id]["rgb"] is not None:
-                    src = os.path.join(src_dir, j.id + ".png")
-                    dst = os.path.join(dst_dir, j.id + ".png")
-                    if not batch:
-                        run_upscaler(args.upscaler, src, dst, args.scale)
-                    found = [f for f in os.listdir(dst_dir) if f.lower().startswith(j.id)]
-                    if not found:
-                        raise ModError("the upscaler wrote nothing for %s in %s" % (j.id, dst_dir))
-                    up = np.asarray(Image.open(os.path.join(dst_dir, found[0])).convert("RGB"))
-                path, b = finish(j, preps[j.id], up, args.format, out_dir, args.scale)
-                made += 1
-                gpu += b
-                if made % 50 == 0:
-                    print("  %d of %d" % (made, len(todo)))
+            # A few dozen at a time: the texels waiting for the upscaler, and its outputs, stay that many.
+            for at in range(0, len(todo), args.batch):
+                part = todo[at:at + args.batch]
+                src_dir, dst_dir = os.path.join(tmp, "in"), os.path.join(tmp, "out")
+                for d in (src_dir, dst_dir):
+                    shutil.rmtree(d, ignore_errors=True)
+                    os.makedirs(d)
+                preps = {}
+                for j in part:
+                    by_up = j.kind != "normal" or args.normals == "upscaler"
+                    preps[j.id] = prepare(j, by_up)
+                    if by_up:
+                        Image.fromarray(preps[j.id]["rgb"], "RGB").save(os.path.join(src_dir, j.id + ".png"))
+                if batch and any(preps[j.id]["rgb"] is not None for j in part):
+                    run_upscaler(args.upscaler, src_dir, dst_dir, args.scale)
+                for j in part:
+                    up = None
+                    if preps[j.id]["rgb"] is not None:
+                        src = os.path.join(src_dir, j.id + ".png")
+                        dst = os.path.join(dst_dir, j.id + ".png")
+                        if not batch:
+                            run_upscaler(args.upscaler, src, dst, args.scale)
+                        found = [f for f in os.listdir(dst_dir) if f.lower().startswith(j.id)]
+                        if not found:
+                            raise ModError("the upscaler wrote nothing for %s in %s" % (j.id, dst_dir))
+                        with Image.open(os.path.join(dst_dir, found[0])) as im:
+                            up = np.asarray(im.convert("RGB"))
+                    path, b = finish(j, preps.pop(j.id), up, args.format, out_dir, args.scale)
+                    made += 1
+                    gpu += b
+                    if made % 50 == 0:
+                        print("  %d of %d" % (made, len(todo)))
 
     # The textures with the same texels as one made: aliases.txt, as `textures` would fold them.
     al_path = os.path.join(out_dir, "aliases.txt")
@@ -645,6 +653,7 @@ def main(argv=None):
     u.add_argument("--limit", type=int, default=0, help="the first n pictures alone (to try an upscaler)")
     u.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2),
                    help="pictures made at once with Lanczos (default half the CPU's threads)")
+    u.add_argument("--batch", type=int, default=48, help="pictures handed to the upscaler at once (default 48)")
     u.add_argument("--force", action="store_true", help="make again pictures the mod has already")
     u.add_argument("--dry-run", action="store_true", help="say what it would make, write nothing")
     a = p.parse_args(argv)

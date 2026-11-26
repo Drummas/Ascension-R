@@ -87,3 +87,25 @@ Tests (`tests/test_modtools.py`): a made-up dump (colour, a copy of it, an AG no
 linear, small): the files and their formats and chains, the alias, mod.ini, the normal map packed back (red full, blue
 none, lengths at most 1, its relief kept), a second run making nothing; a player's upscaler that gives 4x for 2x
 (brought to the size) with PNGs out and the alpha kept apart; an upscaler that fails; `tiles` on a wave and a ramp.
+
+## With an AI upscaler (realesrgan-ncnn-vulkan)
+
+realesrgan-ncnn-vulkan 20220424 (Real-ESRGAN v0.2.5.0's release, BSD-3) in `C:\tools\realesrgan`, run by
+`--upscaler "...realesrgan-ncnn-vulkan.exe -i {in_dir} -o {out_dir} -s 4 -n <model> -f png"`, `--scale 2` (its 4x
+brought to 2x). The same four textures with each model, side by side at 1:1 with the source and Lanczos:
+
+| model | grainy stone, patina | edges, ornaments | rock |
+|---|---|---|---|
+| `realesrgan-x4plus` (its own) | smoothed away, a painted look | sharp, clean | smooth, the grain gone |
+| `ultrasharp-4x` (4x-UltraSharp, Upscayl's models) | kept | sharp | sharp, natural |
+| `remacri-4x` (Upscayl's models) | kept, harsh | sharp, lines etched | black and white specks |
+
+UltraSharp on the whole dump: 779 pictures in 1,020 s on the RX 6700 XT (the normal maps by Lanczos), 720 MB, about
+717 MB on the GPU. Fed to the upscaler 48 at a time now (`--batch`): all at once held every texture's padded texels
+until the end.
+
+In the game, one run each, the bench route at a 1920x1080 window and native internal resolution: no pack 48.03,
+UltraSharp 49.17. 1:1 crops at the same moments: finer pores and scratches on Kratos's skin, crisper moss on the ground
+and grain on the wooden wall; nothing broken, the normal maps' shading the same. At 1280x720 the two are hard to tell
+apart: the game's own textures already hold about as many texels as such a frame shows at this distance. The gain is
+for 1440p, 4K and close views.

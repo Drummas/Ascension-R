@@ -218,11 +218,16 @@ MyMod\
   `{in_dir}`/`{out_dir}` for a folder of pictures at once (or `{in}`/`{out}` for one, `{scale}` the scale):
 
   ```
-  python scripts\modtools.py upscale <dump> mods\Upscaled --upscaler "C:\tools\realesrgan\realesrgan-ncnn-vulkan.exe -i {in_dir} -o {out_dir} -s 4 -n realesrgan-x4plus"
+  python scripts\modtools.py upscale <dump> mods\Upscaled --upscaler "C:\tools\realesrgan\realesrgan-ncnn-vulkan.exe -i {in_dir} -o {out_dir} -s 4 -n ultrasharp-4x"
   ```
 
-  It is handed RGB pictures and may give them back bigger than asked (a 4x model for `--scale 2`): they are brought
-  to the size. Normal maps are upscaled with Lanczos unless `--normals upscaler`. `--limit 20` tries it on a few
+  The model matters more than anything else here. Tried on the first levels' textures with realesrgan-ncnn-vulkan:
+  its own `realesrgan-x4plus` sharpens edges but smooths the grain of stone and patina away (a painted look);
+  `ultrasharp-4x` (4x-UltraSharp, from Upscayl's models) keeps the grain and sharpens the edges, the best of those
+  tried; `remacri-4x` over-sharpens rock into black and white specks. A model's file goes in the upscaler's `models\`
+  folder; each has its own licence. 779 textures took 17 minutes on a Radeon RX 6700 XT. It is handed RGB pictures and
+  may give them back bigger than asked (a 4x model for `--scale 2`): they are brought to the size, and `--batch`
+  (default 48) hands it that many at a time. Normal maps are upscaled with Lanczos unless `--normals upscaler`. `--limit 20` tries it on a few
   first; `--format png` writes PNGs for a compressor of your own (BC7 with texconv, for one). The pack is made from
   your game and stays yours: the port has no textures of the game's in it, and gives none.
 - **One picture for many textures: `aliases.txt`.** A character's atlas stands for each texture of the character, and

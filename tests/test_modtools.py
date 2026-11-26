@@ -248,8 +248,8 @@ class Upscale(unittest.TestCase):
             fake = os.path.join(d, "fake_up.py")
             Path(fake).write_text(FAKE_UPSCALER)
             cmd = '"%s" "%s" {in_dir} {out_dir} {scale}' % (sys.executable, fake)
-            self.assertEqual(mt.main(["upscale", dump, mod, "--upscaler", cmd, "--format", "png", "--only",
-                                      "00000000000000c1,00000000000000a1"]), 0)
+            self.assertEqual(mt.main(["upscale", dump, mod, "--upscaler", cmd, "--format", "png", "--batch", "1",
+                                      "--only", "00000000000000c1,00000000000000a1"]), 0)
             from PIL import Image
             tex = os.path.join(mod, "textures")
             self.assertEqual(sorted(f for f in os.listdir(tex) if f.endswith(".png")),
