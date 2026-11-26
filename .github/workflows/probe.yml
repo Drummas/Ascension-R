@@ -8,6 +8,9 @@ on:
   push:
     branches: ["**"]
 
+permissions:
+  contents: write
+
 jobs:
   probe:
     runs-on: windows-latest
@@ -115,8 +118,20 @@ jobs:
           cmake_try("works 1", ["-DCMAKE_C_COMPILER_WORKS=1", "-DCMAKE_CXX_COMPILER_WORKS=1"])
           cmake_try("unix makefiles", [], gen="Unix Makefiles")
 
-          note = " | ".join(lines)
+          note = "\n".join(lines)
+          pathlib.Path("probe-results.txt").write_text(note + "\n", encoding="utf-8")
           print(note)
-          print("::error::" + note[:60000])
-          raise SystemExit(1)
+          print("::error::" + note.replace("\n", " | ")[:60000])
           PY
+
+      - name: Leave the findings on a branch
+        if: always()
+        shell: bash
+        run: |
+          set -e
+          git config user.name "probe"
+          git config user.email "probe@users.noreply.github.com"
+          git checkout -B probe-results
+          git add probe-results.txt
+          git commit -m "What the runner's clang-cl says [skip ci]"
+          git push --force origin HEAD:refs/heads/probe-results
