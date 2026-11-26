@@ -10,10 +10,16 @@
 # commit from port/version.h, and off only builds and packages, to check that it would. `release` is the one input,
 # and it decides whether a release is made.
 #
-# The package is built on Windows with the game's own copy and the SDKs gowa.py takes (the game at vfs\PS3_GAME, FSR,
-# Streamline, SDL3, a release FFmpeg): that is the machine a release has always been made on. Set the repository
-# variable RELEASE_RUNNER (Settings > Variables) to such a runner's labels, e.g. "self-hosted, windows, x64"; without
-# it the job runs on windows-latest and stops at the check below, saying what it needs.
+# The package is built on Windows with the game's own copy and the SDKs gowa.py takes (the game at vfs\PS3_GAME,
+# GOWA_GAME_DIR or GOWA_ELF, FSR, Streamline, SDL3, a release FFmpeg): that is the machine a release has always been
+# made on, because the exe is compiled from the code the lifter writes out of the game's own GOWA.elf, which the
+# repository does not carry. Set the repository variable RELEASE_RUNNER (Settings > Variables) to such a runner's
+# labels, e.g. "self-hosted, windows, x64", and GOWA_GAME_DIR to the installed game's folder (GOWA_ELF to just the
+# decrypted ELF): a fresh checkout has neither vfs\ nor recompiled\. Without them the job runs on windows-latest and
+# stops at the check below, saying what it needs.
+#
+# The release is made as a draft and published only once its files are on it: a run that cannot lift the game or
+# build the exe leaves a draft, never a public release page with nothing to download.
 #
 # One token, GITHUB_TOKEN: it is the name the auto-release action reads (it stops with "The GITHUB_TOKEN environment
 # variable was not set" without it), and gh reads GITHUB_TOKEN too when GH_TOKEN is not set
@@ -63,7 +69,7 @@ jobs:
         with:
           title: "Ascension-R v$semver: God of War: Ascension PC port"
           tag: "v$semver"
-          draft: false
+          draft: true
           changelog: CHANGELOG.md
           changelog-entry: "$semver"
           regex: "/^Release: v?#{semver}\\b/i"
@@ -119,6 +125,9 @@ jobs:
     runs-on: ${{ vars.RELEASE_RUNNER || 'windows-latest' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # The release machine's game, outside the checkout: actions/checkout wipes vfs\ and recompiled\ from it.
+      GOWA_ELF: ${{ vars.GOWA_ELF }}
+      GOWA_GAME_DIR: ${{ vars.GOWA_GAME_DIR }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -138,6 +147,12 @@ jobs:
 
       - name: Install the Python requirements
         run: python -m pip install -r ps3recomp/requirements.txt pillow numpy
+
+      # The machine keeps the game outside the checkout; setup links it in as vfs\ for the steps that read the folder.
+      - name: The game's folder, on this machine
+        if: vars.GOWA_GAME_DIR != ''
+        shell: bash
+        run: python scripts/gowa.py setup --game-dir "$GOWA_GAME_DIR"
 
       # Without the game there is no package: the Kit's exe and its build check are made from the player's own copy.
       - name: What the package is made from
@@ -166,10 +181,31 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "$tag"
 
+      # The exe is compiled from the lifter's output, not from anything in the repository: analyze reads GOWA.elf and
+      # lift writes recompiled\, spu\ and the headers the build includes. Both folders are the game's own code and are
+      # never committed, so a release run makes them every time.
+      - name: Lift the game's code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/gowa.py analyze
+          python scripts/gowa.py lift
+
       # The project's own one-click build and package: exe, kit\, licenses, and in dist/<version>/kit the zip,
       # audit.txt, the two maps, FFmpeg's source (which go up) and build-info.txt (which stays here).
       - name: Build and package the Kit
         run: python scripts/gowa.py package kit
+
+      # What the lift was for. The Kit's zip carries this exe; a package that has none is not a release, and this says
+      # so here rather than after the upload.
+      - name: The executable the build made
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe=build-kit/Ascension-R.exe
+          if [ ! -f "$exe" ]; then echo "::error::$exe: the build made no executable"; exit 1; fi
+          ls -l "$exe"
+          sha256sum "$exe"
 
       - name: A manual run makes its release
         if: github.event_name == 'workflow_dispatch'
@@ -182,7 +218,7 @@ jobs:
             echo "$TAG is a release already: its files are replaced."
             exit 0
           fi
-          gh release create "$TAG" --target "$GITHUB_SHA" \
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft \
             --title "Ascension-R $TAG: God of War: Ascension PC port" --generate-notes
 
       - name: Put the release's files up
@@ -200,3 +236,13 @@ jobs:
           if [ ${#files[@]} -eq 0 ]; then echo "::error::no files in $dir to upload"; exit 1; fi
           printf '%s\n' "${files[@]}"
           gh release upload "$TAG" "${files[@]}" --clobber
+
+      # Only now is there something to download: the draft the action made becomes the release.
+      - name: The release, with its files
+        shell: bash
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          gh release edit "$TAG" --draft=false
+          gh release view "$TAG" --json tagName,isDraft,assets
