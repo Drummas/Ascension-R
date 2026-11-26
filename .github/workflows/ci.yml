@@ -78,6 +78,17 @@ jobs:
           python tests/test_mp_nat.py
           python tests/test_mp_upnp.py
 
+      # The release's launcher compiles with no game and no lift: PORT_GAME_MODULE puts the game's code in the DLL a
+      # player's PC builds, and the scaffold is compiled against a ppu_recomp.h with no functions in it, which
+      # gowa.py writes from the lifter's own header preamble. This is the exe `gowa.py package kit` publishes.
+      - name: The launcher builds without the game
+        shell: bash
+        run: |
+          set -e
+          python scripts/gowa.py build -D PORT_GAME_MODULE=ON --no-spu
+          test -f build/Ascension-R.exe
+          ls -l build/Ascension-R.exe
+
       # CI=1: a suite fails rather than skips if no compiler is reachable. The suites in
       # KNOWN_FAILING are red at this commit of the fork: each one is a bug to fix, and
       # any other failure fails the job.

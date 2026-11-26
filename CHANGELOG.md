@@ -6,8 +6,9 @@
   `Ascension-R.exe`), so an installed folder can be moved or copied whole, to another drive or another PC, and
   nothing is written outside it. A copy whose settings are still in `%LOCALAPPDATA%\Ascension-R` is offered its files
   on the first start, and their paths are made relative with them.
-- **Releases:** the Release workflow lifts the game's code, compiles `Ascension-R.exe` and packages the Kit on the
-  release machine, and the release page appears only once its files are on it.
+- **Releases:** the Release workflow compiles `Ascension-R.exe` and packages the Kit with no game files on the
+  machine that makes it, since the launcher holds none of the game's code, and the release page appears only once
+  its files are on it.
 
 ## v0.4.1
 

@@ -19,6 +19,21 @@ if(NOT CMAKE_GENERATOR MATCHES "Ninja" AND NOT DEFINED ENV{CMAKE_GENERATOR})
 endif()
 
 # ---------------------------------------------------------------------------
+# PORT_GAME_MODULE: the Kit release
+# ---------------------------------------------------------------------------
+# The game's code goes into ascension_game.dll and the program is built without
+# it (port/game_module.h). Declared here, before the lift is looked for, because
+# the Kit's launcher is the one build that needs no lift: its scaffold compiles
+# against a ppu_recomp.h with no functions in it (gowa.py build writes the
+# lifter's own header preamble beside the build), and at run time the game's
+# code arrives as the DLL the launcher loads. Off, one exe, as the Prebuilt
+# release has it -- and then the lift is required.
+option(PORT_GAME_MODULE "The game's code in ascension_game.dll, the program without it (the Kit release)" OFF)
+if(PORT_GAME_MODULE)
+    add_compile_definitions(PS3_GAME_MODULE_HOST)
+endif()
+
+# ---------------------------------------------------------------------------
 # The two directories this project is built from
 # ---------------------------------------------------------------------------
 # PS3RECOMP_DIR is the toolkit checkout: include/, runtime/, libs/, tools/.
@@ -45,11 +60,17 @@ message(STATUS "ps3recomp SDK:   ${PS3RECOMP_DIR}")
 message(STATUS "Lifted output:   ${RECOMP_DIR}")
 
 if(NOT EXISTS "${RECOMP_DIR}/ppu_recomp.h")
-    message(FATAL_ERROR
-        "No ppu_recomp.h in ${RECOMP_DIR}.\n"
-        "That header and the lifted sources beside it are what "
-        "tools/ppu_lifter.py writes. Run the lifter, drop its output there, "
-        "or point -DRECOMP_DIR= at wherever it already is.")
+    if(NOT PORT_GAME_MODULE)
+        message(FATAL_ERROR
+            "No ppu_recomp.h in ${RECOMP_DIR}.\n"
+            "That header and the lifted sources beside it are what "
+            "tools/ppu_lifter.py writes. Run the lifter, drop its output there, "
+            "or point -DRECOMP_DIR= at wherever it already is.")
+    endif()
+    # The Kit's launcher: no game, no lift. The player's PC builds the game's
+    # code into ascension_game.dll; the header the scaffold needs has no
+    # functions in it.
+    message(STATUS "No lift in ${RECOMP_DIR}: the launcher alone (PORT_GAME_MODULE)")
 endif()
 
 # The lifted translation units. A game's lift is hundreds of generated files,
@@ -58,7 +79,7 @@ file(GLOB RECOMP_SOURCES CONFIGURE_DEPENDS
     "${RECOMP_DIR}/*.c"
     "${RECOMP_DIR}/*.cpp"
 )
-if(NOT RECOMP_SOURCES)
+if(NOT RECOMP_SOURCES AND NOT PORT_GAME_MODULE)
     message(FATAL_ERROR
         "${RECOMP_DIR} has a ppu_recomp.h but no .c or .cpp beside it. The "
         "lifted functions and the function table live in those; without them "
@@ -87,10 +108,6 @@ if(PORT_SPU_JOBCAP)
 endif()
 # PORT_GAME_MODULE: the Kit release. The game's code goes into ascension_game.dll and the program is built without it
 # (port/game_module.h). Off, one exe, as the Prebuilt release has it.
-option(PORT_GAME_MODULE "The game's code in ascension_game.dll, the program without it (the Kit release)" OFF)
-if(PORT_GAME_MODULE)
-    add_compile_definitions(PS3_GAME_MODULE_HOST)
-endif()
 # PORT_ANR (beta): graphics.frame_generation = anr has the player's own ANR FG DLL (Apex Neural Rendering) make the
 # generated frames in FSR's swap chain (docs/notes/2026-11-22-anr-fg-beta.md); ps3recomp's PS3RECOMP_ANR. Nothing of
 # ANR is built in or shipped: it has no licence, and the player adds its zip in the launcher.
@@ -276,8 +293,12 @@ endif()
 if(PORT_GAME_MODULE)
     # Nothing calls it (the lifted code goes through spu_indirect_branch), so neither side builds it.
     list(REMOVE_ITEM SPU_SOURCES "${PS3RECOMP_DIR}/runtime/spu/spu_dispatch_mt.c")
-    add_library(ascension_game SHARED port/game_module.c ${RECOMP_SOURCES} ${SPU_SOURCES})
     set(PORT_GAME_SOURCES port/game_module_host.c)
+    # Without a lift there is no DLL to build here: the player's PC makes it
+    # (kit-build). The launcher is the whole of this build then.
+    if(RECOMP_SOURCES)
+        add_library(ascension_game SHARED port/game_module.c ${RECOMP_SOURCES} ${SPU_SOURCES})
+    endif()
 else()
     set(PORT_GAME_SOURCES ${RECOMP_SOURCES} ${SPU_SOURCES})
 endif()
@@ -622,8 +643,10 @@ option(PORT_PPU_RESTRICT "Lifted PPU functions take their context as __restrict"
 if(PORT_PPU_RESTRICT)
     list(APPEND recomp_opts /clang:-mllvm /clang:-capture-tracking-max-uses-to-explore=1000000)
 endif()
-set_source_files_properties(${RECOMP_SOURCES} PROPERTIES
-    COMPILE_OPTIONS "${recomp_opts}")
+if(RECOMP_SOURCES)
+    set_source_files_properties(${RECOMP_SOURCES} PROPERTIES
+        COMPILE_OPTIONS "${recomp_opts}")
+endif()
 
 # PPC float arithmetic without the NaN checks (PORT_PPU_FAST_FP): the lifted game
 # code takes the host's NaN, which differs from the PPC one only in its sign and
@@ -631,7 +654,7 @@ set_source_files_properties(${RECOMP_SOURCES} PROPERTIES
 # shorter in the God of War HD port, whose frames looked the same either way.
 # Off until this title boots and can be compared with it on.
 option(PORT_PPU_FAST_FP "Lifted game code: host NaN results instead of the PPC ones" OFF)
-if(PORT_PPU_FAST_FP)
+if(PORT_PPU_FAST_FP AND RECOMP_SOURCES)
     set_property(SOURCE ${RECOMP_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS PPU_FAST_FP)
 endif()
 
@@ -639,15 +662,15 @@ endif()
 # alignment branches, and its tail calls through the context (ppu_recomp.h). main.cpp calls
 # ppu_mm_fix before the guest runs.
 option(PORT_PPU_MM_LEAN "Lifted game code: the lean memory helpers" ON)
-if(PORT_PPU_MM_LEAN)
+if(PORT_PPU_MM_LEAN AND RECOMP_SOURCES)
     set_property(SOURCE ${RECOMP_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS PPU_MM_LEAN)
 endif()
-if(PORT_PPU_RESTRICT)
+if(PORT_PPU_RESTRICT AND RECOMP_SOURCES)
     set_property(SOURCE ${RECOMP_SOURCES} APPEND PROPERTY COMPILE_DEFINITIONS PPU_CTX_RESTRICT)
 endif()
 
 # The game's DLL takes the exe's flags and links against nothing: everything it calls comes through port/game_module.c.
-if(PORT_GAME_MODULE)
+if(TARGET ascension_game)
     target_include_directories(ascension_game PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_options(ascension_game PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_OPTIONS> /GS-)
     set_target_properties(ascension_game PROPERTIES LINKER_LANGUAGE CXX)

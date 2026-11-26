@@ -1433,9 +1433,43 @@ def cmd_lift(args):
     return 0
 
 
+def stub_recomp_dir(build):
+    """The ppu_recomp.h a Kit build with no game compiles against: the lifter's own header preamble, and no function
+    in it (ps3recomp/tools/check_ppu_scaffold.py's stub_header, imported rather than copied so the two cannot drift).
+    The game's code is ascension_game.dll, which the player's PC builds; the launcher registers its table at run time
+    (port/game_module_host.c). Returns the folder to point RECOMP_DIR at."""
+    import importlib.util
+    d = os.path.join(build, "launcher-header")
+    os.makedirs(d, exist_ok=True)
+    sys.path.insert(0, TOOLS)   # it imports the lifter, which imports its neighbours from there
+    spec = importlib.util.spec_from_file_location("check_ppu_scaffold", os.path.join(TOOLS, "check_ppu_scaffold.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    text = mod.stub_header()
+    header = os.path.join(d, "ppu_recomp.h")
+    old = None
+    if os.path.isfile(header):
+        with open(header, encoding="utf-8") as f:
+            old = f.read()
+    if old != text:
+        with open(header, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+    return d
+
+
 def cmd_build(args):
+    # The Kit's launcher is the one build that needs neither the game nor a lift: the game's code is the DLL the
+    # player's PC builds, and the scaffold is compiled against a ppu_recomp.h with no functions in it. Every other
+    # build is the game's code, and needs `lift` first.
+    kit = any(re.sub(r"\s+", "", d).upper() == "PORT_GAME_MODULE=ON" for d in args.define)
+    recomp = RECOMPILED
+    no_game = False
     if not os.path.exists(os.path.join(RECOMPILED, "ppu_recomp.h")):
-        die("no lifted code; run `lift` first")
+        if not kit:
+            die("no lifted code; run `lift` first")
+        recomp = stub_recomp_dir(BUILD)
+        no_game = True
+        say("no lift in recompiled/: the launcher compiles against the header in %s" % recomp)
     env = toolchain_env()
     compiler = "clang-cl" if os.name == "nt" else "clang"
     if not shutil.which(compiler, path=env.get("PATH")):
@@ -1447,7 +1481,9 @@ def cmd_build(args):
     # setting in step with the command line. PORT_SPU_INPUTS makes the
     # template scan the game ELF for embedded SPU ELFs, lift them into
     # build/generated_spu/ and register them.
-    spu_inputs = need_elf() if not args.no_spu else ""
+    # A Kit built on a PC with no game has no ELF to lift the embedded SPU programs from: they are the player's PC's
+    # to lift (kit-build), from their own copy.
+    spu_inputs = "" if no_game else (need_elf() if not args.no_spu else "")
     ffmpeg = find_ffmpeg()
     if ffmpeg:
         ff_opts = ["-DPS3RECOMP_FFMPEG_RUNTIME=ON",
@@ -1462,7 +1498,7 @@ def cmd_build(args):
     rc = run(["cmake", "-S", ROOT, "-B", BUILD, "-G", "Ninja",
               "-DCMAKE_BUILD_TYPE=" + args.config,
               "-DCMAKE_C_COMPILER=" + compiler, "-DCMAKE_CXX_COMPILER=" + cxx,
-              "-DPS3RECOMP_DIR=" + PS3RECOMP, "-DRECOMP_DIR=" + RECOMPILED,
+              "-DPS3RECOMP_DIR=" + PS3RECOMP, "-DRECOMP_DIR=" + recomp,
               "-DPORT_SPU_INPUTS=" + spu_inputs,
               "-DPORT_SPU_INSN_PATCHES=" + (title_patches_spu_image_file(title_patches(spu_inputs)) if spu_inputs else ""),
               "-DPORT_SPU_LINES=" + ("ON" if args.spu_lines else "OFF"),
@@ -1728,9 +1764,10 @@ def elf_runs(paths, elf):
     return runs
 
 
-def package_audit(stage):
+def package_audit(stage, elf=None):
     """Every file of the Kit's zip, looked at for the game: a file of it or made from it, its bytes, lifted code, a PS3
-    key. Returns (what was found, for audit.txt; problems)."""
+    key. Returns (what was found, for audit.txt; problems). A Kit packed on a PC with no game has no GOWA.elf to look
+    for, so the byte scan is left out (elf=None) and audit.txt says so; every other check is made."""
     import check_repo  # noqa: E402  (scripts/check_repo.py)
     files = sorted(os.path.join(d, f) for d, _, fs in os.walk(stage) for f in fs)
     folders = (os.path.join(stage, "kit", "python") + os.sep, os.path.join(stage, "kit", "llvm") + os.sep)
@@ -1762,9 +1799,10 @@ def package_audit(stage):
             keyed += 1
             if check_repo.has_key(data):
                 bad.append("%s: holds a PS3 key" % rel)
-    elf = need_elf()
-    say("looking for runs of GOWA.elf in every file")
-    runs = elf_runs(files, elf)
+    elf = elf or game_elf()
+    have_elf = os.path.isfile(elf)
+    say("looking for runs of GOWA.elf in every file" if have_elf else "no GOWA.elf here: the byte scan is left out")
+    runs = elf_runs(files, elf) if have_elf else []
     per = {}
     for p, s, ln in runs:
         per[p] = per.get(p, 0) + ln
@@ -1790,7 +1828,7 @@ def package_audit(stage):
             what = "zlib's CRC-32 table" if crc in f.read(ln) else ""
         return (sum(r[2] for r in group), len(group), (os.path.relpath(p, stage), ln, what))
     return {"files": len(files), "bytes": sum(os.path.getsize(p) for p in files), "marks": marks, "keyed": keyed,
-            "elf_sha": sha256(elf), "ours": summary([r for r in runs if not theirs(r[0])]),
+            "elf_sha": sha256(elf) if have_elf else None, "ours": summary([r for r in runs if not theirs(r[0])]),
             "theirs": summary([r for r in runs if theirs(r[0])])}, bad
 
 
@@ -1805,27 +1843,36 @@ def audit_text(version, test, found, kit_id, secs, dll_sha):
             return "none"
         return "%d bytes in %d run%s, the longest %d bytes in %s%s" % (n, k, "" if k == 1 else "s", lon[1], lon[0],
                                                                       " (%s)" % lon[2] if lon[2] else "")
+    scanned = found["elf_sha"] is not None
     points = [
         "No file is the game's or made from it, by its name, type or folder (an ELF, SELF, PKG, PSARC, EDAT, RAP, "
         "EBOOT.BIN, PARAM.SFO, ascension_game.dll, a map, an object; game-code, recompiled, spu, analysis, work), or by "
         "its first bytes.",
-        "GOWA.elf, SHA-256 %s: its windows of 64 bytes at every 32nd offset, those with more than 8 different bytes, "
-        "were looked for at every offset of every file. In the files this port made (the exe, the Kit's own files, "
-        "README, licenses): %s; a run of %d bytes, or %d bytes in one file, would have stopped the package. In the "
-        "makers' binaries (the Python, LLVM, the DLLs beside the exe): %s. Those are tables and strings of libraries the "
-        "game uses too; their limits are a run of %d bytes or %d bytes in one file."
-        % (found["elf_sha"], runs(found["ours"]), ELF_RUN_MAX, ELF_FILE_MAX, runs(found["theirs"]), THEIR_RUN_MAX,
-           THEIR_FILE_MAX),
+        ("GOWA.elf, SHA-256 %s: its windows of 64 bytes at every 32nd offset, those with more than 8 different bytes, "
+         "were looked for at every offset of every file. In the files this port made (the exe, the Kit's own files, "
+         "README, licenses): %s; a run of %d bytes, or %d bytes in one file, would have stopped the package. In the "
+         "makers' binaries (the Python, LLVM, the DLLs beside the exe): %s. Those are tables and strings of libraries "
+         "the game uses too; their limits are a run of %d bytes or %d bytes in one file."
+         % (found["elf_sha"], runs(found["ours"]), ELF_RUN_MAX, ELF_FILE_MAX, runs(found["theirs"]), THEIR_RUN_MAX,
+            THEIR_FILE_MAX)) if scanned else
+        "No GOWA.elf on the PC that packed this Kit: the scan of every file for runs of it was not made. Every other "
+        "check in this file was, and a Kit holds no code of the game by construction -- its launcher builds that on "
+        "the player's PC from their own copy.",
         "Lifted code: at most %d lines with \"ctx->gpr[\" in a file. Lifted code has thousands; the limit is %d."
         % (found["marks"], check_repo.LIFTED_MAX),
         "PS3 keys: none in the %d files this port made. The Python, LLVM and the DLLs beside the exe are their makers' "
         "files as they ship them." % found["keyed"],
         "This PC: no path of it, Windows user name, git name or e-mail in any file but the licenses.",
         "Imports: every program and library finds what it imports beside it or in System32.",
-        "kit\\ is the Kit its kit-id.txt names, %s, before and after the build below." % kit_id,
-        "The Kit builds: its own Python ran kit-build on this tree's GOWA.elf, into a folder named with accented "
-        "letters, in %.0f s. ascension_game.dll has SHA-256 "
-        "%s; no path or time goes into it, so a player's build of it should be this same file." % (secs, dll_sha)]
+        ("kit\\ is the Kit its kit-id.txt names, %s, before and after the build below." % kit_id) if secs is not None
+        else ("kit\\ is the Kit its kit-id.txt names, %s. It was not built here: that takes the game, and there is "
+              "none on this PC." % kit_id),
+        ("The Kit builds: its own Python ran kit-build on this tree's GOWA.elf, into a folder named with accented "
+         "letters, in %.0f s. ascension_game.dll has SHA-256 "
+         "%s; no path or time goes into it, so a player's build of it should be this same file." % (secs, dll_sha))
+        if secs is not None else
+        "The Kit was not run: `kit-build` needs the game's GOWA.elf, which is not on this PC. Its launcher, its "
+        "Python, its clang and the files it ships are the ones this tree has."]
     lines = ["Ascension-R %s Kit: what was looked at before it was zipped (gowa.py package kit)%s"
              % (version, ", a TEST PACKAGE" if test else ""), "",
              "%d files, %.1f MB unpacked." % (found["files"], found["bytes"] / 1048576.0), ""]
@@ -1912,6 +1959,11 @@ def cmd_package(args):
     kit = args.release == "kit"
     if kit:
         BUILD = os.path.join(ROOT, KIT_BUILD_DIR)
+    # The Kit needs no game to be built: its launcher compiles without one (cmd_build's stub header). The two checks
+    # that do need it -- the byte scan for GOWA.elf and the Kit's own build of the DLL -- are left out when it is not
+    # here, and audit.txt says which were made.
+    have_game = os.path.isfile(game_elf())
+    secs = dll = dll_map = None
     with open(os.path.join(ROOT, "port", "version.h"), encoding="utf-8") as f:
         version = re.search(r'#define\s+AR_VERSION\s+"([^"]+)"', f.read()).group(1)
     version_dir = os.path.join(DIST, version)
@@ -1995,7 +2047,7 @@ def cmd_package(args):
     say("looking at what the programs import and for this PC in the files")
     problems = release_problems(stage, env)
     if kit:
-        found, more = package_audit(stage)
+        found, more = package_audit(stage, game_elf() if have_game else None)
         problems += more
     else:
         say("looking for PS3 keys in the exe")
@@ -2006,13 +2058,16 @@ def cmd_package(args):
         die("not packaged:\n  " + "\n  ".join(problems))
     if kit:
         kit_id = open(os.path.join(kit_dir, KIT_ID), encoding="ascii").read().strip()
-        secs, dll, dll_map = kit_build_check(kit_dir)
-        for folder, dirs, _ in os.walk(kit_dir):   # what the check's tools wrote; a player's are written on the first build
-            if "__pycache__" in dirs:
-                shutil.rmtree(os.path.join(folder, "__pycache__"))
-                dirs.remove("__pycache__")
-        if kit_digest(kit_dir) != kit_id:
-            die("kit\\ changed while it built the game's DLL")
+        if have_game:
+            secs, dll, dll_map = kit_build_check(kit_dir)
+            for folder, dirs, _ in os.walk(kit_dir):   # what the check's tools wrote; a player's are written on the first build
+                if "__pycache__" in dirs:
+                    shutil.rmtree(os.path.join(folder, "__pycache__"))
+                    dirs.remove("__pycache__")
+            if kit_digest(kit_dir) != kit_id:
+                die("kit\\ changed while it built the game's DLL")
+        else:
+            say("no GOWA.elf here: the Kit is not run (kit-build needs the game); packaging it as it is")
         theirs = [os.path.join(kit_dir, "llvm", "bin", t) for t in ("clang-cl.exe", "lld-link.exe")]
 
     zip_path = os.path.join(out, name + "-win64.zip")
@@ -2022,7 +2077,7 @@ def cmd_package(args):
                 p = os.path.join(folder, f)
                 z.write(p, os.path.relpath(p, out).replace("\\", "/"))
     shutil.copy2(os.path.join(BUILD, "Ascension-R.map"), out)
-    if kit:
+    if kit and dll_map:
         shutil.copy2(dll_map, out)
     shutil.copy2(os.path.join(FFMPEG_HOME, FFMPEG_TARBALL), out)
     clang = subprocess.run([shutil.which("clang-cl", path=env.get("PATH")), "--version"], stdout=subprocess.PIPE, text=True).stdout
@@ -2042,13 +2097,15 @@ def cmd_package(args):
         info += ["kit       " + kit_id,
                  "Python    %s, python.org's embeddable package, zip SHA-256 %s" % (KIT_PYTHON, KIT_PYTHON_SHA256),
                  "LLVM      %s (llvm-project %s)" % llvm,
-                 "          clang-cl.exe SHA-256 %s, lld-link.exe SHA-256 %s" % tuple(sha256(t) for t in theirs),
-                 "kit-build %.0f s here; ascension_game.dll SHA-256 %s, ascension_game.map beside this file" % (secs, sha256(dll))]
+                 "          clang-cl.exe SHA-256 %s, lld-link.exe SHA-256 %s" % tuple(sha256(t) for t in theirs)]
+        if dll:
+            info.append("kit-build %.0f s here; ascension_game.dll SHA-256 %s, ascension_game.map beside this file"
+                        % (secs, sha256(dll)))
     with open(os.path.join(out, "build-info.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(info) + "\n")
     if kit:
         with open(os.path.join(out, "audit.txt"), "w", encoding="utf-8") as f:
-            f.write(audit_text(version, args.test, found, kit_id, secs, sha256(dll)))
+            f.write(audit_text(version, args.test, found, kit_id, secs, sha256(dll) if dll else None))
     unpacked = sum(os.path.getsize(os.path.join(d, f)) for d, _, ns in os.walk(stage) for f in ns)
     shutil.rmtree(stage)
     say("%s: %.1f MB, %.1f MB unpacked" % (zip_path, os.path.getsize(zip_path) / 1048576.0, unpacked / 1048576.0))
@@ -3020,6 +3077,24 @@ def kit_headers(mod):
     return keep
 
 
+def kit_headers_all():
+    """Every header of this tree a source of the DLL can include: what a Kit packed on a PC with no game ships in
+    place of kit_headers' exact list (that one takes the game). Nothing made from the game is in it."""
+    pats = [os.path.join(KIT_DIR, "**", "*"),
+            os.path.join(ROOT, "port", "*.h"),
+            os.path.join(ROOT, "native", "*.h"),
+            os.path.join(ROOT, "third_party", "**", "*.h"),
+            os.path.join(PS3RECOMP, "include", "**", "*.h"),
+            os.path.join(PS3RECOMP, "runtime", "**", "*.h"),
+            os.path.join(PS3RECOMP, "libs", "**", "*.h")]
+    keep = set()
+    for pat in pats:
+        for p in glob.glob(pat, recursive=True):
+            if os.path.isfile(p):
+                keep.add(os.path.relpath(p, ROOT))
+    return keep
+
+
 def cmd_kit_tree(args):
     """The Kit's folder, kit/ beside Ascension-R.exe in the Kit release: python.org's embeddable Python, clang-cl and
     lld-link, and the files of this tree that build the game's DLL from a player's GOWA.elf. Those are found from what
@@ -3032,10 +3107,14 @@ def cmd_kit_tree(args):
             die("%s exists (--replace)" % out)
         shutil.rmtree(out)
     mod = os.path.join(WORK, "build-module")
-    if not os.path.isfile(os.path.join(mod, "native", "spu_g6_routines.c")):
-        die("run `module` first: the Kit's headers are the ones its sources include")
-    say("which headers the DLL's sources include")
-    rel = set(kit_headers(mod))
+    if os.path.isfile(os.path.join(mod, "native", "spu_g6_routines.c")):
+        say("which headers the DLL's sources include")
+        rel = set(kit_headers(mod))
+    else:
+        # No game here: the exact list comes from compiling the DLL's sources, which needs it. Every header one of
+        # them can include goes in instead -- a header too many costs a few KB, one missing would stop a player's build.
+        say("no game here: the Kit takes every header the DLL's build can include")
+        rel = kit_headers_all()
     rel |= set(os.path.join("scripts", n) for n in KIT_SCRIPTS)
     rel |= set(os.path.relpath(p, ROOT) for p in py_closure([os.path.join(TOOLS, t) for t in KIT_TOOLS], TOOLS))
     rel.add(os.path.join("port", "game_module.c"))
