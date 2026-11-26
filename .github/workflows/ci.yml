@@ -65,12 +65,21 @@ jobs:
       # The release's launcher compiles with no game and no lift: PORT_GAME_MODULE puts the game's code in the DLL a
       # player's PC builds, and the scaffold is compiled against a ppu_recomp.h with no functions in it, which
       # gowa.py writes from the lifter's own header preamble. This is the exe `gowa.py package kit` publishes.
+      #
+      # _CL_ is how the rest of this job gets the STL switch in (see the job's env), but clang-cl appends _CL_'s
+      # arguments after CMake's "-- <source>", where the driver reads them as more source files and then refuses
+      # /Fo: that is the "cannot specify ... when compiling multiple source files" this step used to die on. Passed as
+      # a compile flag the switch comes before any header instead, and CMake's own compiler test carries it as well.
       - name: The launcher builds without the game
         shell: bash
+        env:
+          _CL_: ''
         run: |
           set +e
           clang-cl --version | head -1 | tee launcher-build.log
-          python scripts/gowa.py build -D PORT_GAME_MODULE=ON --no-spu >> launcher-build.log 2>&1
+          python scripts/gowa.py build -D PORT_GAME_MODULE=ON --no-spu \
+            -D "CMAKE_C_FLAGS=-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH" \
+            -D "CMAKE_CXX_FLAGS=-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH" >> launcher-build.log 2>&1
           rc=$?
           tail -40 launcher-build.log
           if [ $rc -ne 0 ]; then

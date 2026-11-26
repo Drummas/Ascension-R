@@ -92,6 +92,8 @@ jobs:
           run("_CL_ empty", full, env={"_CL_": ""})
           run("working directory inside CMakeFiles", ["clang-cl", "/nologo", "/Fo" + obj, "/Fd" + fdd, "/showIncludes", "/c", "--", src],
               cwd=work / "CMakeFiles")
+          run("full line, _CL_ set, no --", [a for a in full if a != "--"],
+              env={"_CL_": "-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"})
 
           lines.append("== CMake itself ==")
           mini = work / "mini"
@@ -100,10 +102,13 @@ jobs:
               "cmake_minimum_required(VERSION 3.20)\nproject(mini C)\nadd_executable(mini t.c)\n", encoding="utf-8")
           (mini / "t.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
 
-          def cmake_try(label, extra, gen="Ninja", build=True):
+          def cmake_try(label, extra, gen="Ninja", build=True, env=None):
               d = work / ("b_" + label.replace(" ", "_").replace("=", "").replace("/", ""))
+              e = os.environ.copy()
+              if env:
+                  e.update(env)
               p = subprocess.run(["cmake", "-S", "mini", "-B", str(d), "-G", gen, "-DCMAKE_C_COMPILER=clang-cl"] + extra,
-                                 cwd=str(work), capture_output=True, text=True)
+                                 cwd=str(work), capture_output=True, text=True, env=e)
               lines.append("{} | configure: {} | rc={} | {}".format(
                   "ok" if p.returncode == 0 else "FAIL", label, p.returncode,
                   "" if p.returncode == 0 else first_line(p.stdout + p.stderr)))
@@ -114,9 +119,38 @@ jobs:
                       "" if b.returncode == 0 else first_line(b.stdout + b.stderr)))
 
           cmake_try("plain", [])
+          cmake_try("plain, _CL_ set as CI sets it", [], env={"_CL_": "-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"})
           cmake_try("frontend variant MSVC", ["-DCMAKE_C_COMPILER_FRONTEND_VARIANT=MSVC"])
           cmake_try("works 1", ["-DCMAKE_C_COMPILER_WORKS=1", "-DCMAKE_CXX_COMPILER_WORKS=1"])
           cmake_try("unix makefiles", [], gen="Unix Makefiles")
+
+          lines.append("== the STL switch: does it matter, and does a flag replace _CL_ ==")
+          mini2 = work / "mini2"
+          mini2.mkdir(exist_ok=True)
+          (mini2 / "CMakeLists.txt").write_text(
+              "cmake_minimum_required(VERSION 3.20)\nproject(mini2 CXX)\nadd_executable(mini2 t.cpp)\n", encoding="utf-8")
+          (mini2 / "t.cpp").write_text(
+              '#include <string>\nint main(){ std::string s("x"); return (int)s.size() - 1; }\n', encoding="utf-8")
+
+          def cxx_try(label, extra, env):
+              d = work / ("c_" + label.replace(" ", "_").replace("=", "").replace("/", ""))
+              e = os.environ.copy()
+              e.update(env)
+              p = subprocess.run(["cmake", "-S", "mini2", "-B", str(d), "-G", "Ninja", "-DCMAKE_CXX_COMPILER=clang-cl"] + extra,
+                                 cwd=str(work), capture_output=True, text=True, env=e)
+              lines.append("{} | C++ configure: {} | rc={} | {}".format(
+                  "ok" if p.returncode == 0 else "FAIL", label, p.returncode,
+                  "" if p.returncode == 0 else first_line(p.stdout + p.stderr)))
+              if p.returncode == 0:
+                  b = subprocess.run(["cmake", "--build", str(d)], cwd=str(work), capture_output=True, text=True, env=e)
+                  lines.append("{} | C++ build: {} | rc={} | {}".format(
+                      "ok" if b.returncode == 0 else "FAIL", label, b.returncode,
+                      "" if b.returncode == 0 else first_line(b.stdout + b.stderr)))
+
+          switch = "-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
+          cxx_try("no switch", [], {"_CL_": ""})
+          cxx_try("_CL_ switch", [], {"_CL_": switch})
+          cxx_try("flag switch", ["-DCMAKE_C_FLAGS=" + switch, "-DCMAKE_CXX_FLAGS=" + switch], {"_CL_": ""})
 
           note = "\n".join(lines)
           pathlib.Path("probe-results.txt").write_text(note + "\n", encoding="utf-8")
