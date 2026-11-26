@@ -86,14 +86,11 @@ jobs:
           if [ $rc -ne 0 ]; then
             # The log is only readable to whoever is signed in; this puts the first error and its context on the run
             # page itself, which is what the annotation shows.
-            line=$(grep -n -m 1 -E ': (error|fatal error):' launcher-build.log | cut -d: -f1)
-            if [ -n "$line" ]; then
-              around=$(sed -n "$((line>5 ? line-5 : 1)),$((line+8))p" launcher-build.log | tr '\n' '|' | cut -c 1-2500)
-            else
-              around=$(sed -n '/CMake Error/,$p' launcher-build.log | head -20 | tr '\n' '|' | cut -c 1-2500)
-            fi
-            tailtxt=$(tail -25 launcher-build.log | tr '\n' '|' | cut -c 1-2200)
-            echo "::error::$(head -1 launcher-build.log) -- $around -- TAIL: $tailtxt"
+            # One trimmed line per diagnostic: a ninja command line is a screenful on its own, and the run page shows
+            # only so much of an annotation.
+            errs=$(grep -E ': (error|fatal error):|lld-link: |CMake Error|^CMake Error' launcher-build.log \
+                   | head -10 | cut -c 1-240 | tr '\n' '|')
+            echo "::error::$(head -1 launcher-build.log) -- $errs"
             exit $rc
           fi
           test -f build/Ascension-R.exe
