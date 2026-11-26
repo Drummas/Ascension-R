@@ -1433,11 +1433,39 @@ def cmd_lift(args):
     return 0
 
 
+def write_stub_title_patches(d):
+    """The gowa_title_patches.h a build with no lift compiles against: every guard the catalog names, defined and 0, and
+    no edits. patches.cpp includes this header, so without one the guards the program's own code reads (vram_guard.cpp)
+    are link errors; with it, nothing is switched on, which is what a tree with no lift has. `gowa.py lift` writes the
+    real one."""
+    guards = []
+    if os.path.exists(TITLE_PATCHES_FILE):
+        with open(TITLE_PATCHES_FILE, encoding="utf-8") as f:
+            guards = [p["guard"] for p in json.load(f).get("patches", []) if p.get("guard")]
+    L = ["/* Written by gowa.py build for a tree with no lift: no patch is switched on. `gowa.py lift` writes the",
+         " * header with the edits behind each guard. */"]
+    L += ["GOWA_TITLE_GUARD(%s)" % g for g in guards]
+    L += ["static const gowa_title_data k_title_data[] = { { -1, 0, 0, { 0 }, { 0 } } };",
+          "static const gowa_title_patch k_title_patches[] = { { NULL, NULL, NULL, 0, 0, 0 } };", ""]
+    write_if_changed(os.path.join(d, TITLE_PATCHES_HEADER), "\n".join(L))
+
+
+def write_if_changed(path, text):
+    old = None
+    if os.path.isfile(path):
+        with open(path, encoding="utf-8") as f:
+            old = f.read()
+    if old != text:
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+
+
 def stub_recomp_dir(build):
-    """The ppu_recomp.h a Kit build with no game compiles against: the lifter's own header preamble, and no function
-    in it (ps3recomp/tools/check_ppu_scaffold.py's stub_header, imported rather than copied so the two cannot drift).
-    The game's code is ascension_game.dll, which the player's PC builds; the launcher registers its table at run time
-    (port/game_module_host.c). Returns the folder to point RECOMP_DIR at."""
+    """The headers a Kit build with no game compiles against: ppu_recomp.h with the lifter's own preamble and no
+    function in it (ps3recomp/tools/check_ppu_scaffold.py's stub_header, imported rather than copied so the two cannot
+    drift), and the title patches' guards with nothing behind them. The game's code is ascension_game.dll, which the
+    player's PC builds; the launcher registers its table at run time (port/game_module_host.c). Returns the folder to
+    point RECOMP_DIR at."""
     import importlib.util
     d = os.path.join(build, "launcher-header")
     os.makedirs(d, exist_ok=True)
@@ -1445,15 +1473,8 @@ def stub_recomp_dir(build):
     spec = importlib.util.spec_from_file_location("check_ppu_scaffold", os.path.join(TOOLS, "check_ppu_scaffold.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    text = mod.stub_header()
-    header = os.path.join(d, "ppu_recomp.h")
-    old = None
-    if os.path.isfile(header):
-        with open(header, encoding="utf-8") as f:
-            old = f.read()
-    if old != text:
-        with open(header, "w", encoding="utf-8", newline="\n") as f:
-            f.write(text)
+    write_if_changed(os.path.join(d, "ppu_recomp.h"), mod.stub_header())
+    write_stub_title_patches(d)
     return d
 
 
