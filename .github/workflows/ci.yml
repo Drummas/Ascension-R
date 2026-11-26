@@ -78,6 +78,17 @@ jobs:
           python tests/test_mp_nat.py
           python tests/test_mp_upnp.py
 
+      # CMake 4.3 and newer hand clang-cl its gcc-style dependency flags (-clang:-MD/-MT), and the clang on this image
+      # counts one of those as a second source file: even CMake's own compiler test stops with "cannot specify
+      # '/Fo...'". CMake up to 4.2 asks for /showIncludes instead, as the build has always done.
+      - name: The CMake clang-cl asks for
+        shell: bash
+        run: |
+          set -e
+          python -m pip install "cmake==3.31.6"
+          echo "$(python -c 'import sysconfig; print(sysconfig.get_paths()["scripts"])')" >> "$GITHUB_PATH"
+          cmake --version | head -1
+
       # The release's launcher compiles with no game and no lift: PORT_GAME_MODULE puts the game's code in the DLL a
       # player's PC builds, and the scaffold is compiled against a ppu_recomp.h with no functions in it, which
       # gowa.py writes from the lifter's own header preamble. This is the exe `gowa.py package kit` publishes.

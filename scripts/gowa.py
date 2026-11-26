@@ -1495,15 +1495,6 @@ def cmd_build(args):
     if not sdl3:
         say("note: no SDL3 %s in ../sdl3; the controllers are XInput's alone" % SDL3_VERSION)
     ff_opts.append("-DPS3RECOMP_SDL3_INCLUDE_DIR=" + (os.path.join(sdl3, "include") if sdl3 else ""))
-    # CMake's first compiler test runs before it has worked out that clang-cl speaks MSVC's command line, and CMake 4.5
-    # passes it -MD/-MT/-MF there. clang 22 counts one of those as a second source file and the test fails with "cannot
-    # specify '/Fo...' when compiling multiple source files" (LLVM bug 216085, fixed after 22). Saying which frontend
-    # it is up front makes the test use MSVC's own flags (/showIncludes), as the build after it does.
-    frontend = (["-DCMAKE_C_COMPILER_FRONTEND_VARIANT=MSVC", "-DCMAKE_CXX_COMPILER_FRONTEND_VARIANT=MSVC",
-                 # Not the compiler's own -MD/-MT depfiles: clang 22 counts one of those arguments as a source file
-                 # too, and every compile then stops on "cannot specify '/Fo...'" (LLVM bug 216085).
-                 "-DCMAKE_DEPENDS_USE_COMPILER=OFF"]
-                if compiler == "clang-cl" else [])
     rc = run(["cmake", "-S", ROOT, "-B", BUILD, "-G", "Ninja",
               "-DCMAKE_BUILD_TYPE=" + args.config,
               "-DCMAKE_C_COMPILER=" + compiler, "-DCMAKE_CXX_COMPILER=" + cxx,
@@ -1513,7 +1504,7 @@ def cmd_build(args):
               "-DPORT_SPU_LINES=" + ("ON" if args.spu_lines else "OFF"),
               "-DPORT_SPU_JOBCAP=" + ("ON" if args.jobcap else "OFF"),
               "-DPORT_SPU_FLOAT_APPROX=" + ("ON" if args.spu_approx else "OFF"),
-              "-DPython3_EXECUTABLE=" + sys.executable] + ff_opts + frontend
+              "-DPython3_EXECUTABLE=" + sys.executable] + ff_opts
              + ["-D" + d for d in args.define], env=env)
     if rc:
         die("cmake configure failed")
