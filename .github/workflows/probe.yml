@@ -1,0 +1,122 @@
+name: Probe clang-cl
+
+# Temporary: finds the argument the hosted runner's clang-cl counts as a second source file, so CMake cannot run its
+# own compiler test there. Delete once the answer is committed.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+        with:
+          arch: x64
+
+      - name: Which arguments clang-cl takes
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, subprocess
+
+          work = pathlib.Path(os.environ["RUNNER_TEMP"]) / "probe"
+          work.mkdir(parents=True, exist_ok=True)
+          (work / "t.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+          lines = []
+
+          def first_line(text):
+              for raw in text.replace("\r", "").splitlines():
+                  if raw.strip():
+                      return raw.strip()[:220]
+              return ""
+
+          def run(label, argv, cwd=work, env=None):
+              e = os.environ.copy()
+              if env:
+                  e.update(env)
+              p = subprocess.run(argv, cwd=str(cwd), env=e, capture_output=True, text=True)
+              out = p.stdout + p.stderr
+              multi = "cannot specify" in out
+              verdict = "MULTI" if multi else ("ok" if p.returncode == 0 else "FAIL")
+              lines.append("{} | {} | rc={} | {}".format(verdict, label, p.returncode, "" if p.returncode == 0 else first_line(out)))
+              return p.returncode == 0
+
+          lines.append("clang-cl: " + first_line(subprocess.run(["clang-cl", "--version"], capture_output=True, text=True).stdout))
+          lines.append("cmake: " + first_line(subprocess.run(["cmake", "--version"], capture_output=True, text=True).stdout))
+          lines.append("ninja: " + first_line(subprocess.run(["ninja", "--version"], capture_output=True, text=True).stdout))
+          lines.append("where clang-cl: " + first_line(subprocess.run(["where.exe", "clang-cl"], capture_output=True, text=True).stdout))
+          lines.append("_CL_ env: " + repr(os.environ.get("_CL_")))
+          lines.append("VSCMD: " + repr(os.environ.get("VisualStudioVersion")) + " / " + repr(os.environ.get("VCToolsVersion")))
+
+          src = str(work / "t.c")
+          obj = "CMakeFiles\\cmTC.dir\\testCCompiler.c.obj"
+          fdd = "CMakeFiles\\cmTC.dir\\"
+          (work / "CMakeFiles" / "cmTC.dir").mkdir(parents=True, exist_ok=True)
+
+          full = ["clang-cl", "/nologo", "/DWIN32", "/D_WINDOWS", "/Zi", "/Ob0", "/Od", "/RTC1", "-MDd",
+                  "/showIncludes", "/Fo" + obj, "/Fd" + fdd, "-c", "--", src]
+
+          lines.append("== the line CMake runs ==")
+          run("full (as CMake runs it)", full)
+
+          lines.append("== one argument at a time, taken out of the full line ==")
+          for drop in ("--", "/showIncludes", "-MDd", "/Fd" + fdd, "/Zi", "/RTC1", "/D_WINDOWS", "/nologo"):
+              if drop in full:
+                  run("full without " + drop, [a for a in full if a != drop])
+
+          lines.append("== built up from nothing ==")
+          steps = []
+          for i in range(1, len(full)):
+              steps.append(("first %d args" % i, full[:i] + [src]))
+          for label, argv in steps:
+              run(label, argv)
+
+          lines.append("== single arguments with the source ==")
+          for extra in (["-c"], ["/showIncludes", "-c"], ["-MDd", "-c"], ["/Fd" + fdd, "-c"], ["-c", "--"],
+                        ["/Fo" + obj, "-c"], ["/nologo", "/Fo" + obj, "-c"]):
+              run("; ".join(extra), ["clang-cl"] + extra + [src])
+              run(";-without-source-order " + "; ".join(extra), ["clang-cl", src] + extra)
+
+          lines.append("== other shapes ==")
+          run("-Fo (dash form)", ["clang-cl", "-Fo" + obj, "-c", src])
+          run("/Fo relative, /Fd relative, /showIncludes, /c", ["clang-cl", "/Fo" + obj, "/Fd" + fdd, "/showIncludes", "/c", src])
+          run("with _CL_ set as the runner sets it", full, env={"_CL_": os.environ.get("_CL_", "-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH")})
+          run("_CL_ empty", full, env={"_CL_": ""})
+          run("working directory inside CMakeFiles", ["clang-cl", "/nologo", "/Fo" + obj, "/Fd" + fdd, "/showIncludes", "/c", "--", src],
+              cwd=work / "CMakeFiles")
+
+          lines.append("== CMake itself ==")
+          mini = work / "mini"
+          mini.mkdir(exist_ok=True)
+          (mini / "CMakeLists.txt").write_text(
+              "cmake_minimum_required(VERSION 3.20)\nproject(mini C)\nadd_executable(mini t.c)\n", encoding="utf-8")
+          (mini / "t.c").write_text("int main(void){return 0;}\n", encoding="utf-8")
+
+          def cmake_try(label, extra, gen="Ninja", build=True):
+              d = work / ("b_" + label.replace(" ", "_").replace("=", "").replace("/", ""))
+              p = subprocess.run(["cmake", "-S", "mini", "-B", str(d), "-G", gen, "-DCMAKE_C_COMPILER=clang-cl"] + extra,
+                                 cwd=str(work), capture_output=True, text=True)
+              lines.append("{} | configure: {} | rc={} | {}".format(
+                  "ok" if p.returncode == 0 else "FAIL", label, p.returncode,
+                  "" if p.returncode == 0 else first_line(p.stdout + p.stderr)))
+              if build and p.returncode == 0:
+                  b = subprocess.run(["cmake", "--build", str(d)], cwd=str(work), capture_output=True, text=True)
+                  lines.append("{} | build: {} | rc={} | {}".format(
+                      "ok" if b.returncode == 0 else "FAIL", label, b.returncode,
+                      "" if b.returncode == 0 else first_line(b.stdout + b.stderr)))
+
+          cmake_try("plain", [])
+          cmake_try("frontend variant MSVC", ["-DCMAKE_C_COMPILER_FRONTEND_VARIANT=MSVC"])
+          cmake_try("works 1", ["-DCMAKE_C_COMPILER_WORKS=1", "-DCMAKE_CXX_COMPILER_WORKS=1"])
+          cmake_try("unix makefiles", [], gen="Unix Makefiles")
+
+          note = " | ".join(lines)
+          print(note)
+          print("::error::" + note[:60000])
+          raise SystemExit(1)
+          PY
