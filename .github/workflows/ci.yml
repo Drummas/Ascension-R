@@ -83,10 +83,15 @@ jobs:
           rc=$?
           tail -40 launcher-build.log
           if [ $rc -ne 0 ]; then
-            # The log is only readable to whoever is signed in; this puts the first errors on the run page itself.
-            first=$(grep -m 4 -iE 'error|fatal' launcher-build.log | tr '\n' '|' | cut -c 1-300)
-            ctx=$(sed -n '/CMake Error/,$p' launcher-build.log | head -25 | tr '\n' '|' | cut -c 1-1000)
-            echo "::error::$(head -1 launcher-build.log) -- $first -- $ctx"
+            # The log is only readable to whoever is signed in; this puts the first error and its context on the run
+            # page itself, which is what the annotation shows.
+            line=$(grep -n -m 1 -E ': (error|fatal error):' launcher-build.log | cut -d: -f1)
+            if [ -n "$line" ]; then
+              around=$(sed -n "$((line>5 ? line-5 : 1)),$((line+8))p" launcher-build.log | tr '\n' '|' | cut -c 1-2500)
+            else
+              around=$(sed -n '/CMake Error/,$p' launcher-build.log | head -20 | tr '\n' '|' | cut -c 1-2500)
+            fi
+            echo "::error::$(head -1 launcher-build.log) -- $around"
             exit $rc
           fi
           test -f build/Ascension-R.exe
