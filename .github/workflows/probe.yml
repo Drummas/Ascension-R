@@ -130,7 +130,10 @@ jobs:
           (mini2 / "CMakeLists.txt").write_text(
               "cmake_minimum_required(VERSION 3.20)\nproject(mini2 CXX)\nadd_executable(mini2 t.cpp)\n", encoding="utf-8")
           (mini2 / "t.cpp").write_text(
-              '#include <string>\nint main(){ std::string s("x"); return (int)s.size() - 1; }\n', encoding="utf-8")
+              '#include <string>\n'
+              'int main(){ std::string s("x");\n'
+              '  try { s += "y"; } catch (...) { return 2; }\n'
+              '  return (int)s.size() - 2; }\n', encoding="utf-8")
 
           def cxx_try(label, extra, env):
               d = work / ("c_" + label.replace(" ", "_").replace("=", "").replace("/", ""))
@@ -150,7 +153,9 @@ jobs:
           switch = "-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
           cxx_try("no switch", [], {"_CL_": ""})
           cxx_try("_CL_ switch", [], {"_CL_": switch})
-          cxx_try("flag switch", ["-DCMAKE_C_FLAGS=" + switch, "-DCMAKE_CXX_FLAGS=" + switch], {"_CL_": ""})
+          cxx_try("CMAKE_CXX_FLAGS switch", ["-DCMAKE_C_FLAGS=" + switch, "-DCMAKE_CXX_FLAGS=" + switch], {"_CL_": ""})
+          cxx_try("CMAKE_CXX_FLAGS_INIT switch", ["-DCMAKE_C_FLAGS_INIT=" + switch, "-DCMAKE_CXX_FLAGS_INIT=" + switch], {"_CL_": ""})
+          cxx_try("CFLAGS/CXXFLAGS switch", [], {"_CL_": "", "CFLAGS": switch, "CXXFLAGS": switch})
 
           note = "\n".join(lines)
           pathlib.Path("probe-results.txt").write_text(note + "\n", encoding="utf-8")
