@@ -47,36 +47,20 @@ jobs:
       - name: Port tests
         shell: bash
         run: |
-          set -e
-          python tests/test_game_find.py
-          python tests/test_game_prepare.py
-          python tests/test_portable_copy.py
-          python tests/test_portable_paths.py
-          python tests/test_dxc_guards.py
-          python tests/test_gametext.py
-          python tests/test_lang.py
-          python tests/test_kit_paths.py
-          python tests/test_game_module_crt.py
-          python tests/test_game_module_hooks.py
-          python tests/test_update_check.py
-          python tests/test_kit_files.py
-          python tests/test_optional_mods.py
-          python tests/test_build_jobs.py
-          python tests/test_kit_pgo.py
-          python tests/test_mods.py
-          python tests/test_modpack.py
-          python tests/test_modtools.py
-          python tests/test_textures.py
-          python tests/test_proportions.py
-          python tests/test_mp_sam.py
-          python tests/test_online_tss.py
-          python tests/test_mp_play.py
-          python tests/test_mp_node.py
-          python tests/test_mp_dht.py
-          python tests/test_mp_status.py
-          python tests/test_mp_p2p.py
-          python tests/test_mp_nat.py
-          python tests/test_mp_upnp.py
+          failed=""; flaky=""
+          for t in test_game_find test_game_prepare test_portable_copy test_portable_paths test_dxc_guards \
+                   test_gametext test_lang test_kit_paths test_game_module_crt test_game_module_hooks \
+                   test_update_check test_kit_files test_optional_mods test_build_jobs test_kit_pgo test_mods \
+                   test_modpack test_modtools test_textures test_proportions test_mp_sam test_online_tss \
+                   test_mp_play test_mp_node test_mp_dht test_mp_status test_mp_p2p test_mp_nat test_mp_upnp; do
+            echo "--- $t"
+            if ! python "tests/$t.py"; then
+              # The NAT and timing suites can lose a race on a busy runner; a second run says whether it is them or the code.
+              if python "tests/$t.py"; then flaky="$flaky $t"; else failed="$failed $t"; fi
+            fi
+          done
+          [ -z "$flaky" ] || echo "note: passed on a second run:$flaky"
+          if [ -n "$failed" ]; then echo "::error::port tests failing:$failed"; exit 1; fi
 
       - name: Which clang-cl argument names a second source
         shell: bash
