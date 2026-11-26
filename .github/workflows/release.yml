@@ -189,7 +189,17 @@ jobs:
       # dist/<version>/kit the zip, audit.txt, the map and FFmpeg's source (which go up) and build-info.txt (which
       # stays here). No lift and no GOWA.elf: the game's code is what a player's PC builds.
       - name: Build and package the Kit
-        run: python scripts/gowa.py package kit
+        shell: bash
+        run: |
+          set +e
+          python scripts/gowa.py package kit 2>&1 | tee package.log
+          rc=${PIPESTATUS[0]}
+          if [ $rc -ne 0 ]; then
+            # The log is only readable to whoever is signed in: the last lines of it -- gowa.py says why with die(),
+            # last -- go on the run page as the annotation.
+            echo "::error::$(tail -8 package.log | tr '\n' '|' | cut -c 1-2500)"
+            exit $rc
+          fi
 
       # The launcher this run compiled. The Kit's zip carries this exe; a package that has none is not a release, and
       # this says so here rather than after the upload.
