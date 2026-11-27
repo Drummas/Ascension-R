@@ -140,6 +140,12 @@ jobs:
           submodules: true
           fetch-depth: 0
 
+      # gowa.py packages a release only from what is pushed: it asks each of the two trees whether HEAD is on a remote
+      # branch. A submodule is checked out at a commit, with no remote branches beside it, and would read as unpushed.
+      - name: The submodule's branches, which the release check asks for
+        shell: bash
+        run: git -C ps3recomp fetch origin "+refs/heads/*:refs/remotes/origin/*"
+
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
@@ -197,7 +203,7 @@ jobs:
           if [ $rc -ne 0 ]; then
             # The log is only readable to whoever is signed in: the last lines of it -- gowa.py says why with die(),
             # last -- go on the run page as the annotation.
-            echo "::error::$(tail -8 package.log | tr '\n' '|' | cut -c 1-2500)"
+            echo "::error::$(tail -14 package.log | tr '\n' '|' | cut -c 1-3000)"
             exit $rc
           fi
 
