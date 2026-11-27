@@ -1,3 +1,14 @@
+## v0.5.2
+
+**Ascension-R 0.5.2** links the game again at once when the folder it is in is renamed, with no search.
+
+- **The game's folder:** 0.5.1 replaced a link whose folder had been renamed, but the only thing the launcher had to go
+  on was the dead path inside that link, so the start walked the drives again -- slowly, and looking like a first run.
+  The folder the game is in is kept in `ascension-r.ini` now, the way the port keeps its own: its way down for one
+  inside the port's folder, `..\PS3_GAME` for one beside it, absolute only for one on another drive. A renamed or
+  moved folder both are in leaves that path leading to the game, so the start links it again from it and only looks
+  for the game when the folder itself is gone.
+
 ## v0.5.1
 
 **Ascension-R 0.5.1** keeps the game's folder found when it is renamed or moved.

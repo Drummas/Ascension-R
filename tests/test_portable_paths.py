@@ -47,6 +47,13 @@ static void used_is(const wchar_t* root, const wchar_t* kept, const wchar_t* wan
     is(used, want, what);
 }
 
+static void near_is(const wchar_t* root, const wchar_t* path, const wchar_t* want, const char* what)
+{
+    wchar_t kept[PPATH_MAX];
+    ppath_keep_near_in(root, path, kept, PPATH_MAX);
+    is(kept, want, what);
+}
+
 int wmain(void)
 {
     const wchar_t* root = L"C:\\Games\\Ascension-R";
@@ -71,6 +78,26 @@ int wmain(void)
     used_is(root, L"D:\\RPCS3\\rpcs3.exe", L"D:\\RPCS3\\rpcs3.exe", "an absolute path");
     used_is(root, L"vfs/PS3_GAME", L"C:\\Games\\Ascension-R\\vfs\\PS3_GAME", "a kept path with forward slashes");
     used_is(root, L"", L"", "nothing");
+
+    /* A folder that moves with the program's: the way down when it is inside, the way up and down when it is beside
+     * it on the same drive. A player who renames the folder both are in still has the path leading to the game. */
+    near_is(root, L"C:\\Games\\Ascension-R\\vfs", L"vfs", "near: inside, the way down");
+    near_is(root, L"C:\\Games\\Ascension-R\\PS3_GAME", L"PS3_GAME", "near: a folder under it");
+    near_is(root, L"C:\\Games\\ps3\\Ascension-R", L"..\\ps3\\Ascension-R", "near: beside it, the way up and down");
+    near_is(root, L"C:\\PS3\\game", L"..\\..\\PS3\\game", "near: two folders up");
+    near_is(root, L"C:\\Games\\ascension-r-kit\\vfs", L"..\\ascension-r-kit\\vfs", "near: a name that starts the same");
+    near_is(root, L"C:\\Games\\Ascension-R", L"C:\\Games\\Ascension-R", "near: the folder itself");
+    near_is(root, L"C:\\Games\\ps3\\", L"..\\ps3", "near: a backslash at the end");
+    near_is(L"C:\\Games\\Ascension-R\\", L"C:\\Games\\Ascension-R\\vfs", L"vfs", "near: the root with one");
+    near_is(root, L"D:\\RPCS3\\dev_hdd0\\game\\NPUA80918", L"D:\\RPCS3\\dev_hdd0\\game\\NPUA80918",
+            "near: another drive");
+    {
+        /* Renamed as a player renames it: the same kept path, made whole from the folder's new name. */
+        wchar_t kept[PPATH_MAX], used[PPATH_MAX];
+        ppath_keep_near_in(L"C:\\Games\\Ascension-R", L"C:\\Games\\ps3\\PS3_GAME", kept, PPATH_MAX);
+        ppath_use_in(L"C:\\PS3 Games\\Ascension-R", kept, used, PPATH_MAX);
+        is(used, L"C:\\PS3 Games\\Ascension-R\\..\\ps3\\PS3_GAME", "near: whole under the folder's new name");
+    }
 
     /* The same in UTF-8, as the settings file keeps them (a folder or a game's folder may have any name). */
     {

@@ -108,6 +108,64 @@ static inline void ppath_keep_in(const wchar_t* root, const wchar_t* path, wchar
     ppath_copy_w(out, n, full);
 }
 
+/* `path` kept so that it moves with the root's folder: the way down when it is inside it, the way up and down
+ * ("..\\PS3_GAME") when it is beside it on the same drive, and absolute when it is on another drive, on a network,
+ * or is the root itself. A folder the player renames -- both of them in it -- is found again the same way, with no
+ * search: only the way down from the program's folder is gone, and the way up from the new name is not. */
+static inline void ppath_keep_near_in(const wchar_t* root, const wchar_t* path, wchar_t* out, size_t n)
+{
+    out[0] = 0;
+    if (!path || !*path) return;
+    wchar_t full[PPATH_MAX], base[PPATH_MAX];
+    ppath_full(path, full, PPATH_MAX);
+    ppath_full(root, base, PPATH_MAX);
+    if (!full[0] || !base[0]) { ppath_copy_w(out, n, full[0] ? full : path); return; }
+    /* A backslash at the end (GetFullPathName keeps it) is no folder of its own. */
+    for (size_t i = wcslen(base); i > 3 && base[i - 1] == L'\\'; i--) base[i - 1] = 0;
+    for (size_t i = wcslen(full); i > 3 && full[i - 1] == L'\\'; i--) full[i - 1] = 0;
+    /* The same drive, its root a letter and a backslash: C:\... both. A path on another drive, on a network
+     * (\\server\share\...), or one of the two not whole keeps a path of its own. */
+    if (base[1] != L':' || full[1] != L':' || base[2] != L'\\' || full[2] != L'\\' || _wcsnicmp(base, full, 2)) {
+        ppath_copy_w(out, n, full);
+        return;
+    }
+    const wchar_t* b = base + 3;
+    const wchar_t* f = full + 3;
+    while (*b && *f) {   /* the folders both have, from the drive's root down */
+        const wchar_t* be = wcschr(b, L'\\');
+        if (!be) be = b + wcslen(b);
+        const wchar_t* fe = wcschr(f, L'\\');
+        if (!fe) fe = f + wcslen(f);
+        const size_t bl = (size_t)(be - b), fl = (size_t)(fe - f);
+        if (bl != fl || _wcsnicmp(b, f, bl)) break;
+        b = *be ? be + 1 : be;
+        f = *fe ? fe + 1 : fe;
+    }
+    if (!*f) { ppath_copy_w(out, n, full); return; }   /* the root itself, or a folder above it */
+    wchar_t buf[PPATH_MAX];
+    size_t at = 0;
+    buf[0] = 0;
+    /* every folder of the root the path is not under is one to go up */
+    for (const wchar_t* p = b; *p; p++)
+        if (*p == L'\\') {
+            if (at + 4 >= PPATH_MAX) { ppath_copy_w(out, n, full); return; }
+            buf[at++] = L'.';
+            buf[at++] = L'.';
+            buf[at++] = L'\\';
+            buf[at] = 0;
+        }
+    if (*b) {   /* the last of them: no backslash after it */
+        if (at + 4 >= PPATH_MAX) { ppath_copy_w(out, n, full); return; }
+        buf[at++] = L'.';
+        buf[at++] = L'.';
+        buf[at++] = L'\\';
+        buf[at] = 0;
+    }
+    if (wcslen(buf) + wcslen(f) >= PPATH_MAX) { ppath_copy_w(out, n, full); return; }
+    wmemcpy(buf + at, f, wcslen(f) + 1);
+    ppath_copy_w(out, n, buf);
+}
+
 /* A kept path, made whole again: the root, then the way down; an absolute one as it is. */
 static inline void ppath_use_in(const wchar_t* root, const wchar_t* kept, wchar_t* out, size_t n)
 {
@@ -147,6 +205,26 @@ static inline int ppath_root(wchar_t* out, size_t n)
         if (s) *s = 0;
     }
     return out[0] != 0;
+}
+
+/* The same for a path that may be beside the program's folder (ppath_keep_near_in): the game's folder, kept so a
+ * renamed or moved folder both are in still leads to it. */
+static inline void ppath_keep_near(const wchar_t* path, wchar_t* out, size_t n)
+{
+    wchar_t root[PPATH_MAX];
+    out[0] = 0;
+    if (!path || !*path) return;
+    if (!ppath_root(root, PPATH_MAX)) { ppath_copy_w(out, n, path); return; }
+    ppath_keep_near_in(root, path, out, n);
+}
+
+/* The same, for a file of the settings (they are UTF-8). */
+static inline void ppath_keep_near_u8(const wchar_t* path, char* out, size_t n)
+{
+    wchar_t kept[PPATH_MAX];
+    if (n) out[0] = 0;
+    ppath_keep_near(path, kept, PPATH_MAX);
+    ppath_utf8(kept, out, n);
 }
 
 /* A path as the settings keep it: relative to the program's folder for one inside it, absolute otherwise. */

@@ -1025,6 +1025,32 @@ static const wchar_t* game_titles_line(void)
     return b;
 }
 
+/* The game's folder in the settings, kept so that it moves with this one (portable_paths.h: ppath_keep_near) -- beside
+ * the program, "..\PS3_GAME" -- for game_relink: a renamed or moved folder the two are in links it again with no
+ * search. A disc's update, in the RPCS3 folder beside the game, is kept the same way. */
+static void game_keep_folder(const GameInfo& g)
+{
+    char kept[PPATH_MAX * 4];
+    int changed = 0;
+    if (g.dir[0]) {
+        ppath_keep_near_u8(g.dir, kept, sizeof kept);
+        const char* was = ps3_settings_str("paths", "game", NULL, NULL);
+        if (!was || _stricmp(was, kept)) {
+            ps3_settings_set("paths", "game", kept);
+            changed = 1;
+        }
+    }
+    if (g.disc && g.update[0]) {
+        ppath_keep_near_u8(g.update, kept, sizeof kept);
+        const char* was = ps3_settings_str("paths", "update", NULL, NULL);
+        if (!was || _stricmp(was, kept)) {
+            ps3_settings_set("paths", "update", kept);
+            changed = 1;
+        }
+    }
+    if (changed) ps3_settings_save(NULL);
+}
+
 /* What the links lead to now, and whether the game can start. */
 static void game_refresh(void)
 {
@@ -1055,6 +1081,8 @@ static void game_refresh(void)
     /* Not the whole game: nothing is built or played from it, whatever was decrypted before (game_status says what
      * the folder lacks). */
     if (s_game.g.state == GAME_INCOMPLETE) s_rc.elf_ok = 0;
+    /* Where it is, as this copy of the port keeps it: the next start links it again after a rename (game_relink). */
+    if (s_game.g.state >= GAME_NO_ELF) game_keep_folder(s_game.g);
 #ifdef PORT_GAME_MODULE
     kit_refresh();
 #endif
@@ -4071,6 +4099,32 @@ static int game_use(const GameInfo& b)
     return 1;
 }
 
+/* A link leads nowhere: the game's folder the settings keep, made whole again for this copy of the port, links both
+ * with no search. 0: that folder is gone too, and the game has to be looked for. */
+static int game_relink(void)
+{
+    wchar_t kept[PPATH_MAX], dir[PPATH_MAX], upd[PPATH_MAX];
+    if (!ppath_setting_w("paths", "game", NULL, NULL, kept, PPATH_MAX)[0]) return 0;
+    ppath_full(kept, dir, PPATH_MAX);   /* "." and ".." taken out: the link is made to a path of its own */
+    if (!dir[0] || GetFileAttributesW(dir) == INVALID_FILE_ATTRIBUTES) return 0;
+    GameInfo g;
+    if (game_locate(dir, &g) < GAME_NO_ELF) return 0;
+    if (g.disc) {
+        /* A disc runs from its update: without the one the settings keep, the search pairs them again. */
+        if (!g.update[0] || GetFileAttributesW(g.update) == INVALID_FILE_ATTRIBUTES) {
+            if (!ppath_setting_w("paths", "update", NULL, NULL, kept, PPATH_MAX)[0]) return 0;
+            ppath_full(kept, upd, PPATH_MAX);
+            if (!upd[0] || GetFileAttributesW(upd) == INVALID_FILE_ATTRIBUTES) return 0;
+            wchar_t d[GAME_PATH_MAX];   /* the probe empties *g first, and g.dir is in it */
+            swprintf(d, GAME_PATH_MAX, L"%ls", g.dir);
+            if (game_probe_pair(d, upd, &g) < GAME_NO_ELF) return 0;
+        }
+    }
+    const int ok = game_use(g);
+    if (ok) printf("[game] linked again to %ls\n", g.dir);   /* no search: the folder the settings keep */
+    return ok;
+}
+
 static void find_now(const wchar_t* dir)
 {
     AcquireSRWLockExclusive(&s_find.lock);
@@ -5694,8 +5748,11 @@ extern "C" int gowa_launcher(void)
     SetForegroundWindow(s_main);
     SetTimer(s_main, 1, 500, NULL);
     anim(1);
-    /* No game yet, or the folder its link leads to was renamed or moved: look for it (and game_use links it again). */
-    if (!s_rc.elf_ok || game_link_dangling(s_game.link_vfs)) find_start(NULL);
+    /* No game yet, or a link leads nowhere (a folder was renamed or moved): the game's folder the settings keep links
+     * them again, with no search; only when that folder is gone too is the game looked for. */
+    if (!s_rc.elf_ok || game_link_dangling(s_game.link_vfs) || game_link_dangling(s_game.link_hdd0)) {
+        if (!game_relink()) find_start(NULL);
+    }
     if (const Opt* u = opt_find("launcher", "update_check"))
         if (opt_on(*u)) update_check_begin(s_main, WM_UPDATE, &s_upd);   /* a newer release on GitHub */
     report_offer();
