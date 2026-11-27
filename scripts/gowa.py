@@ -3100,7 +3100,9 @@ def kit_headers(mod):
 
 def kit_headers_all():
     """Every header of this tree a source of the DLL can include: what a Kit packed on a PC with no game ships in
-    place of kit_headers' exact list (that one takes the game). Nothing made from the game is in it."""
+    place of kit_headers' exact list (that one takes the game). Nothing made from the game is in it, and nothing
+    KIT_NEVER names: those are the tree's own, compiled here into what the Kit carries, and a header too many is worth
+    a few KB while one of those must never travel."""
     pats = [os.path.join(KIT_DIR, "**", "*"),
             os.path.join(ROOT, "port", "*.h"),
             os.path.join(ROOT, "native", "*.h"),
@@ -3111,7 +3113,7 @@ def kit_headers_all():
     keep = set()
     for pat in pats:
         for p in glob.glob(pat, recursive=True):
-            if os.path.isfile(p):
+            if os.path.isfile(p) and os.path.basename(p).lower() not in KIT_NEVER:
                 keep.add(os.path.relpath(p, ROOT))
     return keep
 
