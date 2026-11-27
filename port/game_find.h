@@ -109,7 +109,12 @@ int game_link_target(const wchar_t* link, wchar_t* out, size_t n);
 int game_link_possible(const wchar_t* link, const wchar_t* target, wchar_t* err, size_t n);
 
 /* Makes link a directory junction to target (no administrator rights needed), as `gowa.py setup`
- * does. A link already there is replaced; what it pointed at is not touched. */
+ * does. A link already there is replaced, and so is one whose folder was renamed or moved away; what
+ * it pointed at is not touched. */
 int game_link(const wchar_t* link, const wchar_t* target, wchar_t* err, size_t n);
+
+/* 1 when link is a link whose folder is not there any more (the game's, renamed or moved): the launcher
+ * looks for the game again and game_link makes the link to where it is now. */
+int game_link_dangling(const wchar_t* link);
 
 #endif

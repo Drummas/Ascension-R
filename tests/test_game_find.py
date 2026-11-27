@@ -88,6 +88,8 @@ int wmain(int argc, wchar_t** argv)
     } else if (!wcscmp(argv[1], L"link")) {
         const int ok = game_link(argv[2], argv[3], err, 2048);
         printf("link %d %ls\n", ok, err);
+    } else if (!wcscmp(argv[1], L"dangling")) {
+        printf("dangling %d\n", game_link_dangling(argv[2]));
     } else if (!wcscmp(argv[1], L"target")) {
         const int ok = game_link_target(argv[2], t, 2048);
         printf("target %d %ls\n", ok, t);
@@ -622,6 +624,27 @@ class GameFind(unittest.TestCase):
         self.assertEqual(self.run_t("link", link, self.p("two"))[1], "1")
         self.assertEqual(self.run_t("target", link)[2], self.p("two"))
         self.assertTrue(os.path.isfile(self.p("one", "PARAM.SFO")), "what it led to stays")
+
+    def test_a_link_whose_game_was_renamed_is_made_again(self):
+        # The player renames the folder the game is in -- or the port's, with the game inside it. The link leads
+        # nowhere, so the launcher looks again and links the copy it finds (game_link), where before the name it still
+        # took kept the new link from being made and the game was "not found".
+        make_game(self.p("games", "one"))
+        make_game(self.p("two"))
+        link = self.p("vfs", "PS3_GAME")
+        self.assertEqual(self.run_t("link", link, self.p("games", "one"))[1], "1")
+        self.assertEqual(self.run_t("dangling", link)[1], "0")
+        os.rename(self.p("games"), self.p("games2"))
+        self.assertEqual(self.run_t("dangling", link)[1], "1")
+        self.assertEqual(self.run_t("link", link, self.p("two"))[1], "1")
+        self.assertEqual(self.run_t("dangling", link)[1], "0")
+        self.assertEqual(self.run_t("target", link)[2], self.p("two"))
+        self.assertTrue(os.path.isfile(os.path.join(link, "PARAM.SFO")))
+
+    def test_nothing_and_a_folder_are_no_dangling_link(self):
+        self.assertEqual(self.run_t("dangling", self.p("nothing"))[1], "0")
+        os.makedirs(self.p("folder"))
+        self.assertEqual(self.run_t("dangling", self.p("folder"))[1], "0")
 
     def test_a_folder_with_files_stays(self):
         os.makedirs(self.p("mine"))

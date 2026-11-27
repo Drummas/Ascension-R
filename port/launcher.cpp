@@ -5442,7 +5442,7 @@ static void shot_state(int what, int on)
     static int elf_ok;
     if (what == S_SEARCH) {   /* a search under way: the row only says so */
         s_find.thread = on ? GetCurrentThread() : NULL;
-        swprintf(s_find.now, GAME_PATH_MAX, L"%ls", on ? L"D:\\Games\\PS3\\RPCS3\\dev_hdd0\\game" : L"");
+        swprintf(s_find.now, GAME_PATH_MAX, L"%ls", on ? s_game.link_vfs : L"");
     }
     if (what == S_TOAST) {
         if (on) toast("Saved");
@@ -5694,7 +5694,8 @@ extern "C" int gowa_launcher(void)
     SetForegroundWindow(s_main);
     SetTimer(s_main, 1, 500, NULL);
     anim(1);
-    if (!s_rc.elf_ok) find_start(NULL);   /* no game yet: look for it */
+    /* No game yet, or the folder its link leads to was renamed or moved: look for it (and game_use links it again). */
+    if (!s_rc.elf_ok || game_link_dangling(s_game.link_vfs)) find_start(NULL);
     if (const Opt* u = opt_find("launcher", "update_check"))
         if (opt_on(*u)) update_check_begin(s_main, WM_UPDATE, &s_upd);   /* a newer release on GitHub */
     report_offer();

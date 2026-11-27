@@ -999,14 +999,38 @@ static int make_junction(const wchar_t* link, const wchar_t* target, wchar_t* er
     return ok;
 }
 
+/* Whether the name is taken at all. GetFileAttributes follows a link, so a link whose folder was renamed or moved --
+ * the game's, which the player keeps where they like -- says nothing of it (ERROR_FILE_NOT_FOUND) while its name is
+ * still there; opening the reparse point itself says it is. */
+static int link_there(const wchar_t* path)
+{
+    HANDLE h = CreateFileW(path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+                           FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (h == INVALID_HANDLE_VALUE) return 0;
+    BY_HANDLE_FILE_INFORMATION i;
+    const int link = GetFileInformationByHandle(h, &i) && (i.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT);
+    CloseHandle(h);
+    return link;
+}
+
+int game_link_dangling(const wchar_t* link)
+{
+    if (!link || !*link || !link_there(link)) return 0;
+    wchar_t dir[GAME_PATH_MAX];
+    /* What it leads to, looked for itself: a link to a folder that is gone is one to look past. */
+    if (!game_link_target(link, dir, GAME_PATH_MAX) || !*dir) return 1;
+    return GetFileAttributesW(dir) == INVALID_FILE_ATTRIBUTES;
+}
+
 int game_link(const wchar_t* link, const wchar_t* target, wchar_t* err, size_t n)
 {
     if (same_folder(link, target)) return 1;
     wchar_t now[GAME_PATH_MAX];
     if (game_link_target(link, now, GAME_PATH_MAX) && same_folder(now, target)) return 1;
     if (!game_link_possible(link, target, err, n)) return 0;
-    /* A link, or an empty folder: RemoveDirectory takes the link itself, never what it leads to. */
-    if (GetFileAttributesW(link) != INVALID_FILE_ATTRIBUTES && !RemoveDirectoryW(link)) {
+    /* A link, or an empty folder: RemoveDirectory takes the link itself, never what it leads to. A link whose folder is
+     * gone is replaced the same way, not made over: its name is still taken, so a link made there would not be. */
+    if ((link_there(link) || GetFileAttributesW(link) != INVALID_FILE_ATTRIBUTES) && !RemoveDirectoryW(link)) {
         say(err, n, L"Cannot replace the link", link);
         return 0;
     }

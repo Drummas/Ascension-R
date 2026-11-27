@@ -1,3 +1,13 @@
+## v0.5.1
+
+**Ascension-R 0.5.1** keeps the game's folder found when it is renamed or moved.
+
+- **The game's folder:** the launcher reaches it through two links of its own, `vfs\PS3_GAME` and
+  `gamedata\dev_hdd0\game\<id>`, and a link holds its target's full path: renaming the game's folder -- or the port's,
+  with the game inside it -- left both leading nowhere, and the launcher could not make them again, the dead link still
+  taking the name. It replaces a link whose folder is gone now, and at the start looks for the game again when its link
+  leads nowhere, so the folder can be renamed at any time and the next start finds it.
+
 ## v0.5.0
 
 **Ascension-R 0.5.0** is the version that can be moved: an installed folder keeps everything it uses inside itself.
