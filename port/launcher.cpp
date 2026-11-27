@@ -396,10 +396,10 @@ static Opt s_opt[] = {
     { T_ONLINE, "online", "relay", "off", "Always relayed", 1, SW,
       "Your game's traffic goes by the host's PC (Host, Join) or the players' nodes (Auto) instead of straight to the "
       "other players: for a network where joining works and playing does not." },
-    { T_ONLINE, "online", "upnp", "on", "Open the port on the router", 1, SW,
+    { T_ONLINE, "online", "upnp", "off", "Open the port on the router", 1, SW,
       "Auto: asks the router (UPnP) to let other players reach this PC, as torrent clients do. Players who can be "
       "reached carry for the ones who cannot." },
-    { T_ONLINE, "online", "relay_others", "on", "Help others connect", 1, SW,
+    { T_ONLINE, "online", "relay_others", "off", "Help others connect", 1, SW,
       "Auto: two players who cannot reach each other may talk through your PC (a few pairs at most)." },
     { T_ONLINE, "online", "nodes", "", "Community nodes", 0, NULL, NULL, 0, NULL,
       "Auto: nodes anyone can run on a reachable PC (scripts\\mp_p2p.py community), which introduce players and "

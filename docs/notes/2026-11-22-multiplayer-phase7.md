@@ -49,7 +49,7 @@ reached through another makes the path direct again.
 
 ## The settings
 
-`[online]` for Auto: `upnp` (on), `relay_others` (on), `nodes` (community nodes, host[:port] with a comma between, port
+`[online]` for Auto: `upnp` (off), `relay_others` (off), `nodes` (community nodes, host[:port] with a comma between, port
 36102 when left out), and for tests `lan` and `dht` (on). The launcher's Multiplayer tab has Open the port on the
 router, Help others connect and Community nodes. `GOWA_MP_DIRECT=0` (tests) keeps a node from reaching any node but
 the named ones itself.

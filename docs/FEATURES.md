@@ -379,10 +379,10 @@ Play.
   (TCP 10070 and 10012, TCP and UDP 36101), or on a virtual LAN.
 - **Always relayed** (`relay`): the game's traffic goes by the host's PC or the players' nodes instead of straight to
   the other players, for a network where joining works and playing does not.
-- **Open the port on the router** (`upnp`, on): Auto asks the router (UPnP) to forward the node's UDP port, 36102, so
+- **Open the port on the router** (`upnp`, off): Auto asks the router (UPnP) to forward the node's UDP port, 36102, so
   that other players reach this PC.
-- **Help others connect** (`relay_others`, on): two players who cannot reach each other may talk through this PC, a few
-  pairs at most.
+- **Help others connect** (`relay_others`, off): two players who cannot reach each other may talk through this PC, a
+  few pairs at most.
 - **Community nodes** (`nodes`): nodes anyone can run on a reachable machine, which introduce players and carry for
   them: `address:port`, a comma between. One runs with `kit\python\python.exe kit\scripts\mp_p2p.py community` in the
   download's folder, or `python3 scripts/mp_p2p.py community` from the repository, its UDP port 36102 reachable.

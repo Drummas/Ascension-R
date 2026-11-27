@@ -168,7 +168,7 @@ std::string last_line(const std::string& s)
 struct Args {
     int mode = 0;
     std::string name, server, nodes, elf, sig;
-    bool relay = false, upnp = true, relay_others = true, lan = true, dht = true;
+    bool relay = false, upnp = false, relay_others = false, lan = true, dht = true;
     std::wstring port, game_mode, players, dir;
 };
 
@@ -290,8 +290,8 @@ Args args_now(void)
     const char* elf = ppath_setting("paths", "elf", NULL, NULL, elf_buf, sizeof elf_buf);
     a.elf = elf ? elf : "";
     a.relay = ps3_settings_bool("online", "relay", NULL, 0) != 0;
-    a.upnp = ps3_settings_bool("online", "upnp", NULL, 1) != 0;
-    a.relay_others = ps3_settings_bool("online", "relay_others", NULL, 1) != 0;
+    a.upnp = ps3_settings_bool("online", "upnp", NULL, 0) != 0;
+    a.relay_others = ps3_settings_bool("online", "relay_others", NULL, 0) != 0;
     a.lan = ps3_settings_bool("online", "lan", NULL, 1) != 0;
     a.dht = ps3_settings_bool("online", "dht", NULL, 1) != 0;
     a.port = number("port", 1024, 65535);

@@ -1,3 +1,12 @@
+## v0.5.3
+
+**Ascension-R 0.5.3** asks the router for nothing, and carries for nobody, until it is told to.
+
+- **Multiplayer:** Open the port on the router (UPnP) and Help others connect were on in a new `ascension-r.ini`, so a
+  fresh install asked the router to forward a port and carried other players' traffic without being told to. Both are
+  off now, in the Multiplayer tab as before, for the player to switch on. A settings file that already has them on
+  keeps them on.
+
 ## v0.5.2
 
 **Ascension-R 0.5.2** links the game again at once when the folder it is in is renamed, with no search.
