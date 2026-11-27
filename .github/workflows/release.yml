@@ -140,12 +140,6 @@ jobs:
           submodules: true
           fetch-depth: 0
 
-      # gowa.py packages a release only from what is pushed: it asks each of the two trees whether HEAD is on a remote
-      # branch. A submodule is checked out at a commit, with no remote branches beside it, and would read as unpushed.
-      - name: The submodule's branches, which the release check asks for
-        shell: bash
-        run: git -C ps3recomp fetch origin "+refs/heads/*:refs/remotes/origin/*"
-
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.12'
@@ -194,21 +188,22 @@ jobs:
       # The project's own one-click build and package: the launcher (compiled here, no game), kit\, licenses, and in
       # dist/<version>/kit the zip, audit.txt, the map and FFmpeg's source (which go up) and build-info.txt (which
       # stays here). No lift and no GOWA.elf: the game's code is what a player's PC builds.
+      # The log is written outside the tree: gowa.py packages a release only from what is pushed, and an untracked file
+      # in the tree is one of the things it refuses. It is also only readable to whoever is signed in, so a failure puts
+      # its last lines on the run page, and the whole log on a branch of its own.
       - name: Build and package the Kit
         shell: bash
         run: |
           set +e
-          python scripts/gowa.py package kit 2>&1 | tee package.log
+          log="$RUNNER_TEMP/package.log"
+          python scripts/gowa.py package kit 2>&1 | tee "$log"
           rc=${PIPESTATUS[0]}
           if [ $rc -ne 0 ]; then
-            # The log is only readable to whoever is signed in: the last lines of it -- gowa.py says why with die(),
-            # last -- go on the run page as the annotation, and the log itself to a branch of its own, where it can be
-            # read without signing in.
-            echo "::error::$(tail -14 package.log | tr '\n' '|' | cut -c 1-3000)"
-            { echo "package kit, $(date -u +%FT%TZ), ${GITHUB_SHA}"; tail -200 package.log; } > release-log.txt
+            echo "::error::$(tail -14 "$log" | tr -d '\r' | tr '\n' '|' | cut -c 1-3000)"
+            { echo "package kit, $(date -u +%FT%TZ), ${GITHUB_SHA}"; tail -200 "$log"; } > log.txt
             git config user.name "release"; git config user.email "release@users.noreply.github.com"
             git checkout -B release-log
-            git add -f release-log.txt
+            git add -f log.txt
             git commit -qm "package kit's log [skip ci]"
             git push --force origin HEAD:refs/heads/release-log || echo "could not push the log"
             exit $rc
