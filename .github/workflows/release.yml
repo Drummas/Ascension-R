@@ -193,6 +193,13 @@ jobs:
       # its last lines on the run page, and the whole log on a branch of its own.
       - name: Build and package the Kit
         shell: bash
+        env:
+          # The runner's MSVC STL asks for a newer Clang than its LLVM has and stops clang-cl with STL1000; the STL's own
+          # switch lets it through. It goes in the flags CMake prepends to its own, not in _CL_: clang-cl appends _CL_
+          # after CMake's -- and the source file, and a -D there reads as a second source file.
+          _CL_: ''
+          CFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
+          CXXFLAGS: -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH
         run: |
           set +e
           log="$RUNNER_TEMP/package.log"
