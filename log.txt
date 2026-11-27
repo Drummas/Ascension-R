@@ -1,0 +1,35 @@
+package kit, 2026-11-27T00:55:01Z, 5f69b14045b262153845d49466823f98d6a2f254, 192537 lines
+67753: 4044 |             printf("[D3D12] ERROR: D3D12CreateDevice failed (0x%08lX)\n", hr);
+67843: 4206 |         printf("[D3D12] ERROR: CreateDXGIFactory1 failed (0x%08lX)\n", hr);
+67892: 4304 |         printf("[D3D12] ERROR: CreateSwapChainForHwnd failed (0x%08lX)\n", hr);
+67899: 4374 |             printf("[D3D12] ERROR: display target %u (0x%08lX)\n", i, hr);
+68021: 5113 |     if (FAILED(hr)) { printf("[D3D12] ERROR: presentation root signature (0x%08lX)\n", hr); return -1; }
+68061: 5321 |     if (FAILED(hr)) { printf("[D3D12] ERROR: back buffer RTV heap (0x%08lX)\n", hr); return -1; }
+68065: 5329 |     if (FAILED(hr)) { printf("[D3D12] ERROR: presentation SRV heap (0x%08lX)\n", hr); return -1; }
+68069: 5400 |         printf("[D3D12] ERROR: presentation pipeline (0x%08lX)\n", hr);
+108048:  365 |     const char* fatal = getenv("SPU_MISS_FATAL");
+108060:  365 |     const char* fatal = getenv("SPU_MISS_FATAL");
+124454: 1983 |         fprintf(stderr, "ERROR: could not load %s\n", elf);
+124457: 1983 |         fprintf(stderr, "ERROR: could not load %s\n", elf);
+192537:subprocess.CalledProcessError: Command '['git', '-C', 'D:\\a\\Ascension-R\\Ascension-R', 'config', 'user.email']' returned non-zero exit status 1.
+--- the last lines ---
+looking at what the programs import and for this PC in the files
+Traceback (most recent call last):
+  File "D:\a\Ascension-R\Ascension-R\scripts\gowa.py", line 3728, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "D:\a\Ascension-R\Ascension-R\scripts\gowa.py", line 3719, in main
+    return {"doctor": cmd_doctor, "setup": cmd_setup, "game-files": cmd_game_files, "analyze": cmd_analyze,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\Ascension-R\Ascension-R\scripts\gowa.py", line 2069, in cmd_package
+    problems = release_problems(stage, env)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\Ascension-R\Ascension-R\scripts\gowa.py", line 1708, in release_problems
+    git_text(ROOT, "config", "user.email"), git_text(ROOT, "config", "user.name")]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\a\Ascension-R\Ascension-R\scripts\gowa.py", line 1665, in git_text
+    return subprocess.run(["git", "-C", cwd] + list(a), stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', '-C', 'D:\\a\\Ascension-R\\Ascension-R', 'config', 'user.email']' returned non-zero exit status 1.
