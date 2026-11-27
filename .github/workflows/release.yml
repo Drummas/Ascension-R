@@ -200,7 +200,9 @@ jobs:
           rc=${PIPESTATUS[0]}
           if [ $rc -ne 0 ]; then
             echo "::error::$(tail -14 "$log" | tr -d '\r' | tr '\n' '|' | cut -c 1-3000)"
-            { echo "package kit, $(date -u +%FT%TZ), ${GITHUB_SHA}"; tail -200 "$log"; } > log.txt
+            { echo "package kit, $(date -u +%FT%TZ), ${GITHUB_SHA}, $(( $(wc -l < "$log") )) lines";
+              grep -n -iE "error:|fatal|undefined (reference|symbol)|LNK[0-9]{4}" "$log" | head -60;
+              echo "--- the last lines ---"; tail -20 "$log"; } > log.txt
             git config user.name "release"; git config user.email "release@users.noreply.github.com"
             git checkout -B release-log
             git add -f log.txt
