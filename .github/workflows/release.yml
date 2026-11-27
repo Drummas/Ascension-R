@@ -202,8 +202,15 @@ jobs:
           rc=${PIPESTATUS[0]}
           if [ $rc -ne 0 ]; then
             # The log is only readable to whoever is signed in: the last lines of it -- gowa.py says why with die(),
-            # last -- go on the run page as the annotation.
+            # last -- go on the run page as the annotation, and the log itself to a branch of its own, where it can be
+            # read without signing in.
             echo "::error::$(tail -14 package.log | tr '\n' '|' | cut -c 1-3000)"
+            { echo "package kit, $(date -u +%FT%TZ), ${GITHUB_SHA}"; tail -200 package.log; } > release-log.txt
+            git config user.name "release"; git config user.email "release@users.noreply.github.com"
+            git checkout -B release-log
+            git add -f release-log.txt
+            git commit -qm "package kit's log [skip ci]"
+            git push --force origin HEAD:refs/heads/release-log || echo "could not push the log"
             exit $rc
           fi
 
