@@ -1665,6 +1665,13 @@ def git_text(cwd, *a):
     return subprocess.run(["git", "-C", cwd] + list(a), stdout=subprocess.PIPE, text=True, check=True).stdout.strip()
 
 
+def git_config(cwd, key):
+    """This machine's value of a git setting, or "" when it has none. A runner that was never told a name to look for
+    is not a release problem, it is one needle fewer: git exits 1 for an unset setting, and that is not a failure."""
+    p = subprocess.run(["git", "-C", cwd, "config", key], stdout=subprocess.PIPE, text=True)
+    return p.stdout.strip() if p.returncode == 0 else ""
+
+
 def release_tree_problems():
     """A release is built from what is committed and pushed. scratch/ in the submodule is not built."""
     out = git_text(ROOT, "status", "--porcelain", "--ignore-submodules=dirty").splitlines()
@@ -1705,7 +1712,7 @@ def release_problems(stage, env):
         die("no dumpbin in the toolchain")
     system32 = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32")
     names = [ROOT, os.path.expanduser("~"), os.environ.get("USERNAME", ""),
-             git_text(ROOT, "config", "user.email"), git_text(ROOT, "config", "user.name")]
+             git_config(ROOT, "user.email"), git_config(ROOT, "user.name")]
     needles = {}
     for n in filter(None, names):
         for v in (n, n.replace("\\", "/")):
